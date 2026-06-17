@@ -242,30 +242,30 @@ with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
 
             bio = gr.Textbox(
                 label="instagram bio ✦ required",
-                placeholder="e.g.  coffee, chaos, and too many tabs open | she/her | manifesting",
+                placeholder="she/her | manifesting",
                 lines=2
             )
             captions = gr.Textbox(
-                label="recent captions — optional",
-                placeholder="paste 5-10 captions. doesn't matter if they're cringe, that's kind of the point",
+                label="recent captions",
+                placeholder="paste 5-10 captions",
                 lines=4
             )
             dms = gr.Textbox(
-                label="texts or dms — optional",
-                placeholder="paste some messages they sent you. voice notes don't count unfortunately",
+                label="texts or dms",
+                placeholder="paste messages sent",
                 lines=3
             )
 
-            gr.HTML(section_label("more signals — optional", "margin-top:28px;"))
+            gr.HTML(section_label("more signals", "margin-top:28px;"))
 
             music = gr.Textbox(
-                label="spotify or music taste — optional",
-                placeholder="top artists, a playlist name, their wrapped screenshot description... 'sufjan stevens and also sabrina carpenter somehow' works",
+                label="spotify or music taste",
+                placeholder="top artists, a playlist name, wrapped screenshot description",
                 lines=2
             )
             opinions = gr.Textbox(
-                label="twitter, reddit, or any unfiltered takes — optional",
-                placeholder="tweets, reddit comments, discord rants. the less they were trying to sound good, the better",
+                label="twitter, reddit, or any unfiltered takes",
+                placeholder="tweets, reddit comments, discord rants",
                 lines=3
             )
 
