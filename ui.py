@@ -20,7 +20,6 @@ TYPE_DESCRIPTIONS = {
     "ESFP": "the entertainer — spontaneous, fun, lights up every room.",
 }
 
-# inline style helpers so gradio can't swallow them
 PINK = "#B8607A"
 PINK_DARK = "#9B4F5E"
 CREAM = "#F5EDE3"
@@ -37,7 +36,7 @@ def section_label(text, extra_style=""):
     </div>
     """
 
-def run_analysis(bio, captions, dms, essay, followers, following, num_posts, profile_photo, candid_photo):
+def run_analysis(bio, captions, dms, music, opinions, followers, following, profile_photo):
     if not bio or not bio.strip():
         return (
             f"<div style='text-align:center;font-size:13px;color:{PINK_DARK};padding:32px;font-family:DM Sans,sans-serif;'>drop in at least an instagram bio to get started ✦</div>",
@@ -48,12 +47,11 @@ def run_analysis(bio, captions, dms, essay, followers, following, num_posts, pro
             bio=bio,
             captions=captions,
             dms=dms,
-            essay=essay,
+            music=music,
+            opinions=opinions,
             followers=int(followers) if followers else 0,
             following=int(following) if following else 0,
-            num_posts=int(num_posts) if num_posts else 0,
             profile_photo_path=profile_photo,
-            candid_photo_path=candid_photo
         )
 
         if not mbti_type:
@@ -106,7 +104,6 @@ def run_analysis(bio, captions, dms, essay, followers, following, num_posts, pro
                 photo_html += row("emotion", photo_signals.get("dominant_emotion", "unknown"))
             else:
                 photo_html += row("face", "hidden, cartoon, or no face found")
-            # remove last border
             photo_html = photo_html.rstrip("</div>") + "</div>"
             photo_html += "</div>"
 
@@ -135,7 +132,6 @@ body, .gradio-container {
 
 footer { display: none !important; }
 
-/* kill all gradio panel backgrounds */
 .gradio-container .form,
 .gradio-container .gap,
 .gradio-container .block,
@@ -150,7 +146,6 @@ footer { display: none !important; }
     box-shadow: none !important;
 }
 
-/* inputs */
 .gradio-container textarea,
 .gradio-container input[type=number],
 .gradio-container input[type=text] {
@@ -172,7 +167,6 @@ footer { display: none !important; }
     box-shadow: 0 0 0 3px rgba(184, 96, 122, 0.1) !important;
 }
 
-/* field labels */
 .gradio-container label span,
 .gradio-container .label-wrap span {
     font-family: 'DM Sans', sans-serif !important;
@@ -183,7 +177,6 @@ footer { display: none !important; }
     text-transform: uppercase !important;
 }
 
-/* image upload */
 .gradio-container .upload-container,
 .gradio-container [data-testid="image"] {
     border: 1.5px dashed #CBADB3 !important;
@@ -192,7 +185,6 @@ footer { display: none !important; }
     box-shadow: none !important;
 }
 
-/* button */
 .gradio-container button.primary {
     background: #1A1010 !important;
     color: #F5EDE3 !important;
@@ -215,7 +207,6 @@ footer { display: none !important; }
     box-shadow: 0 10px 28px rgba(184, 96, 122, 0.3) !important;
 }
 
-/* output html blocks */
 .gradio-container .output-html,
 .gradio-container [data-testid="html"] {
     background: transparent !important;
@@ -237,7 +228,6 @@ footer { display: none !important; }
 
 with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
 
-    # hero -- all styles inlined so gradio can't eat them
     gr.HTML("""
     <div style='text-align:center;padding:80px 0 60px;animation:fadeUp 0.9s ease both;'>
         <div style='font-size:10px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#9B4F5E;margin-bottom:18px;font-family:"DM Sans",sans-serif;'>digital footprint analysis</div>
@@ -249,37 +239,45 @@ with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
     with gr.Row():
         with gr.Column(scale=3):
             gr.HTML(section_label("text signals"))
+
             bio = gr.Textbox(
                 label="instagram bio ✦ required",
-                placeholder="e.g.  living slowly, thinking deeply 🌿 | philosophy | coffee always",
+                placeholder="e.g.  coffee, chaos, and too many tabs open | she/her | manifesting",
                 lines=2
             )
             captions = gr.Textbox(
-                label="caption dump — optional",
-                placeholder="paste 5-10 recent captions",
+                label="recent captions — optional",
+                placeholder="paste 5-10 captions. doesn't matter if they're cringe, that's kind of the point",
                 lines=4
             )
             dms = gr.Textbox(
                 label="texts or dms — optional",
-                placeholder="paste some messages they sent you",
+                placeholder="paste some messages they sent you. voice notes don't count unfortunately",
                 lines=3
             )
-            essay = gr.Textbox(
-                label="personal writing — optional",
-                placeholder="college essay, cover letter, anything longer form",
+
+            gr.HTML(section_label("more signals — optional", "margin-top:28px;"))
+
+            music = gr.Textbox(
+                label="spotify or music taste — optional",
+                placeholder="top artists, a playlist name, their wrapped screenshot description... 'sufjan stevens and also sabrina carpenter somehow' works",
+                lines=2
+            )
+            opinions = gr.Textbox(
+                label="twitter, reddit, or any unfiltered takes — optional",
+                placeholder="tweets, reddit comments, discord rants. the less they were trying to sound good, the better",
                 lines=3
             )
 
         with gr.Column(scale=2):
-            gr.HTML(section_label("numeric signals"))
+            gr.HTML(section_label("the numbers"))
+
             with gr.Row():
                 followers = gr.Number(label="followers", value=0)
                 following = gr.Number(label="following", value=0)
-            num_posts = gr.Number(label="number of posts", value=0)
 
-            gr.HTML(section_label("photo signals — optional", "margin-top:28px;"))
+            gr.HTML(section_label("profile photo — optional", "margin-top:28px;"))
             profile_photo = gr.Image(label="profile photo", type="filepath")
-            candid_photo = gr.Image(label="candid or tagged photo", type="filepath")
 
     gr.HTML("<div style='text-align:center;padding:40px 0 20px;'>")
     analyze_btn = gr.Button("analyze ↗", variant="primary")
@@ -303,7 +301,7 @@ with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
 
     analyze_btn.click(
         fn=run_analysis,
-        inputs=[bio, captions, dms, essay, followers, following, num_posts, profile_photo, candid_photo],
+        inputs=[bio, captions, dms, music, opinions, followers, following, profile_photo],
         outputs=[result_type, result_breakdown, result_photo, result_error]
     )
 
