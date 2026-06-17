@@ -4,7 +4,7 @@ from transformers import CLIPProcessor, CLIPModel
 import deepface
 from deepface import DeepFace
 
-# load clip once at startup aka it's a vision-language model that scores
+# load clip once at startup -- it's a vision-language model that scores
 # how well an image matches a text description
 clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
@@ -90,12 +90,12 @@ def analyze_profile_photo(image_path):
             signals["face_detected"] = False
             signals["deepface_error"] = str(e)
     else:
-        # no real face found so mild i signal (hidden/obscured self)
+        # no real face found, mild i signal (hidden/obscured self)
         signals["face_detected"] = False
 
     return signals
 
-def photo_to_mbti_signals(profile_signals, candid_signals=None):
+def photo_to_mbti_signals(profile_signals):
     # translates raw photo analysis into mbti axis nudges
     # these are soft signals so they influence but don't override text scores
     mbti_nudges = {}
@@ -117,14 +117,6 @@ def photo_to_mbti_signals(profile_signals, candid_signals=None):
         mbti_nudges["J_P"] = "J"
     elif "candid" in profile_signals.get("photo_vibe", ""):
         mbti_nudges["J_P"] = "P"
-
-    # if we have both photos, the gap between them is itself a signal
-    # a very curated profile pic + very candid tagged photo = high self-monitoring = J lean
-    if candid_signals:
-        profile_posed = "posed" in profile_signals.get("photo_vibe", "")
-        candid_natural = "candid" in candid_signals.get("photo_vibe", "")
-        if profile_posed and candid_natural:
-            mbti_nudges["J_P"] = "J"  # big gap between curated and natural self
 
     return mbti_nudges
 

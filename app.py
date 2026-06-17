@@ -32,7 +32,7 @@ WEIGHTS = {
     "numeric": 0.10
 }
 
-def assemble_text(bio, captions, dms, essay):
+def assemble_text(bio, captions, dms, music, opinions):
     # label each section so the model knows what context it's reading
     parts = []
     if bio and bio.strip():
@@ -41,8 +41,12 @@ def assemble_text(bio, captions, dms, essay):
         parts.append(f"[captions]: {captions.strip()}")
     if dms and dms.strip():
         parts.append(f"[messages/texts]: {dms.strip()}")
-    if essay and essay.strip():
-        parts.append(f"[personal writing]: {essay.strip()}")
+    if music and music.strip():
+        # music taste is surprisingly good for n/s and f/t signals
+        parts.append(f"[music taste]: {music.strip()}")
+    if opinions and opinions.strip():
+        # unfiltered takes = most raw signal we have, weight it accordingly
+        parts.append(f"[unfiltered opinions]: {opinions.strip()}")
     return "\n".join(parts)
 
 def classify_text(combined_text):
@@ -64,7 +68,7 @@ def classify_text(combined_text):
         }
     return scores
 
-def numeric_signals(followers, following, num_posts):
+def numeric_signals(followers, following):
     # soft signals only, these just nudge the final score a little
     signals = {}
 
@@ -72,10 +76,6 @@ def numeric_signals(followers, following, num_posts):
     if followers and following and following > 0:
         ratio = followers / following
         signals["E_I_numeric"] = "I" if ratio > 2 else "E"
-
-    # sparse poster tends to be more selective/internal
-    if num_posts:
-        signals["post_signal"] = "I" if num_posts < 50 else "E"
 
     return signals
 
@@ -129,20 +129,19 @@ def get_mbti_type(final_scores):
     # just reads the winner from each axis
     return "".join(final_scores[axis]["winner"] for axis in ["E_I", "N_S", "T_F", "J_P"])
 
-def analyze(bio, captions, dms, essay, followers, following, num_posts, profile_photo_path=None, candid_photo_path=None):
-    # this is the main function that ties everything together
-    combined_text = assemble_text(bio, captions, dms, essay)
+def analyze(bio, captions, dms, music, opinions, followers, following, profile_photo_path=None):
+    # main function that ties everything together
+    combined_text = assemble_text(bio, captions, dms, music, opinions)
     text_scores = classify_text(combined_text) if combined_text.strip() else {}
 
     photo_nudges = {}
     photo_signals = None
     if profile_photo_path:
         profile_signals = analyze_profile_photo(profile_photo_path)
-        candid_signals = analyze_profile_photo(candid_photo_path) if candid_photo_path else None
-        photo_nudges = photo_to_mbti_signals(profile_signals, candid_signals)
+        photo_nudges = photo_to_mbti_signals(profile_signals)
         photo_signals = profile_signals
 
-    numeric_sigs = numeric_signals(followers, following, num_posts)
+    numeric_sigs = numeric_signals(followers, following)
 
     if not text_scores:
         return None, None, None
@@ -159,10 +158,10 @@ if __name__ == "__main__":
         bio="living slowly, thinking deeply 🌿 | philosophy student | coffee always",
         captions="some days are just for sitting with it. new city, same soul. quiet mornings > everything",
         dms="idk i just feel like people drain me sometimes lol. i'd rather just stay in",
-        essay="",
+        music="sufjan stevens, phoebe bridgers, that one arctic monkeys album everyone has a phase about",
+        opinions="",
         followers=800,
         following=300,
-        num_posts=40,
         profile_photo_path=None
     )
     print("final scores:")
