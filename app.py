@@ -1,0 +1,171 @@
+from transformers import pipeline
+from photo_analysis import analyze_profile_photo, photo_to_mbti_signals
+
+# load once at startup
+classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+
+# descriptive phrases work way better than single words like "introvert"
+AXES = {
+    "E_I": {
+        "labels": ["energized by social interaction and being around people", "energized by solitude and inner reflection"],
+        "keys": ["E", "I"]
+    },
+    "N_S": {
+        "labels": ["abstract and imaginative thinker who focuses on patterns and ideas", "practical and detail-oriented thinker who focuses on facts and reality"],
+        "keys": ["N", "S"]
+    },
+    "T_F": {
+        "labels": ["makes decisions based on logic and objective analysis", "makes decisions based on empathy and personal values"],
+        "keys": ["T", "F"]
+    },
+    "J_P": {
+        "labels": ["prefers structure, planning, and clear decisions", "prefers flexibility, spontaneity, and keeping options open"],
+        "keys": ["J", "P"]
+    }
+}
+
+# how much each source influences the final score
+# text is the most reliable so it gets the most weight
+WEIGHTS = {
+    "text": 0.65,
+    "photo": 0.25,
+    "numeric": 0.10
+}
+
+def assemble_text(bio, captions, dms, essay):
+    # label each section so the model knows what context it's reading
+    parts = []
+    if bio and bio.strip():
+        parts.append(f"[instagram bio]: {bio.strip()}")
+    if captions and captions.strip():
+        parts.append(f"[captions]: {captions.strip()}")
+    if dms and dms.strip():
+        parts.append(f"[messages/texts]: {dms.strip()}")
+    if essay and essay.strip():
+        parts.append(f"[personal writing]: {essay.strip()}")
+    return "\n".join(parts)
+
+def classify_text(combined_text):
+    # runs 4 separate classifications, one per axis
+    if not combined_text.strip():
+        return None
+
+    scores = {}
+    for axis, config in AXES.items():
+        result = classifier(
+            combined_text,
+            candidate_labels=config["labels"],
+            hypothesis_template="this person is someone who {}."
+        )
+        # scores[0] matches label[0], scores[1] matches label[1]
+        scores[axis] = {
+            config["keys"][0]: round(result["scores"][0] * 100, 1),
+            config["keys"][1]: round(result["scores"][1] * 100, 1),
+        }
+    return scores
+
+def numeric_signals(followers, following, num_posts):
+    # soft signals only, these just nudge the final score a little
+    signals = {}
+
+    # high follower/following ratio = selective about who they follow = mild i lean
+    if followers and following and following > 0:
+        ratio = followers / following
+        signals["E_I_numeric"] = "I" if ratio > 2 else "E"
+
+    # sparse poster tends to be more selective/internal
+    if num_posts:
+        signals["post_signal"] = "I" if num_posts < 50 else "E"
+
+    return signals
+
+def fuse_scores(text_scores, photo_nudges, numeric_sigs):
+    # combines all three sources into one score per axis
+    # text gives us a 0-100 float, photo and numeric give us a letter nudge
+    # we convert the nudges into a small score boost and blend everything
+
+    axis_map = ["E_I", "N_S", "T_F", "J_P"]
+    final_scores = {}
+
+    for axis in axis_map:
+        # start with text scores (already 0-100)
+        text = text_scores[axis]
+        letters = list(text.keys())
+        first, second = letters[0], letters[1]
+
+        # convert to a single number where positive = first letter, negative = second
+        # e.g. E_I: positive = E leaning, negative = I leaning
+        text_lean = (text[first] - text[second]) * WEIGHTS["text"]
+
+        # photo nudge -- adds or subtracts a small flat amount
+        photo_lean = 0
+        if axis in photo_nudges:
+            photo_lean = 15 if photo_nudges[axis] == first else -15
+        photo_lean *= WEIGHTS["photo"]
+
+        # numeric nudge -- same idea, smaller effect
+        numeric_lean = 0
+        if axis == "E_I":
+            if "E_I_numeric" in numeric_sigs:
+                numeric_lean = 10 if numeric_sigs["E_I_numeric"] == first else -10
+            numeric_lean *= WEIGHTS["numeric"]
+
+        total = text_lean + photo_lean + numeric_lean
+
+        # convert back to per-letter confidence scores
+        # total > 0 means first letter wins, < 0 means second wins
+        first_score = round(50 + (total / 2), 1)
+        second_score = round(100 - first_score, 1)
+
+        final_scores[axis] = {
+            first: max(0, min(100, first_score)),
+            second: max(0, min(100, second_score)),
+            "winner": first if total > 0 else second
+        }
+
+    return final_scores
+
+def get_mbti_type(final_scores):
+    # just reads the winner from each axis
+    return "".join(final_scores[axis]["winner"] for axis in ["E_I", "N_S", "T_F", "J_P"])
+
+def analyze(bio, captions, dms, essay, followers, following, num_posts, profile_photo_path=None, candid_photo_path=None):
+    # this is the main function that ties everything together
+    combined_text = assemble_text(bio, captions, dms, essay)
+    text_scores = classify_text(combined_text) if combined_text.strip() else {}
+
+    photo_nudges = {}
+    photo_signals = None
+    if profile_photo_path:
+        profile_signals = analyze_profile_photo(profile_photo_path)
+        candid_signals = analyze_profile_photo(candid_photo_path) if candid_photo_path else None
+        photo_nudges = photo_to_mbti_signals(profile_signals, candid_signals)
+        photo_signals = profile_signals
+
+    numeric_sigs = numeric_signals(followers, following, num_posts)
+
+    if not text_scores:
+        return None, None, None
+
+    final_scores = fuse_scores(text_scores, photo_nudges, numeric_sigs)
+    mbti_type = get_mbti_type(final_scores)
+
+    return mbti_type, final_scores, photo_signals
+
+
+# quick test to make sure fusion is working
+if __name__ == "__main__":
+    mbti, scores, photo = analyze(
+        bio="living slowly, thinking deeply 🌿 | philosophy student | coffee always",
+        captions="some days are just for sitting with it. new city, same soul. quiet mornings > everything",
+        dms="idk i just feel like people drain me sometimes lol. i'd rather just stay in",
+        essay="",
+        followers=800,
+        following=300,
+        num_posts=40,
+        profile_photo_path=None
+    )
+    print("final scores:")
+    for axis, data in scores.items():
+        print(f"  {axis}: {data}")
+    print(f"\npredicted type: {mbti}")
