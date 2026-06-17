@@ -40,11 +40,10 @@ def run_analysis(bio, captions, dms, essay, followers, following, num_posts, pro
         )
 
         if not mbti_type:
-            return "<div class='error-msg'>couldn't generate a result — try adding more text.</div>", "", "", ""
+            return "<div class='error-msg'>couldn't generate a result -- try adding more text.</div>", "", "", ""
 
         description = TYPE_DESCRIPTIONS.get(mbti_type, "")
 
-        # build result card html
         result_html = f"""
         <div class='result-reveal'>
             <div class='type-badge'>{mbti_type}</div>
@@ -52,7 +51,6 @@ def run_analysis(bio, captions, dms, essay, followers, following, num_posts, pro
         </div>
         """
 
-        # axis breakdown
         axis_labels = {"E_I": ("E", "I"), "N_S": ("N", "S"), "T_F": ("T", "F"), "J_P": ("J", "P")}
         breakdown_html = "<div class='breakdown-grid'>"
         for axis, (a, b) in axis_labels.items():
@@ -76,7 +74,6 @@ def run_analysis(bio, captions, dms, essay, followers, following, num_posts, pro
             """
         breakdown_html += "</div>"
 
-        # photo signals
         photo_html = ""
         if photo_signals:
             photo_html = "<div class='photo-signals'>"
@@ -97,22 +94,25 @@ def run_analysis(bio, captions, dms, essay, followers, following, num_posts, pro
 
 
 custom_css = """
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-/* base reset */
+/* reset */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body, .gradio-container {
-    background-color: #F7F0E6 !important;
+    background-color: #F5EDE3 !important;
     font-family: 'DM Sans', sans-serif !important;
-    color: #2D1F1F !important;
+    color: #1A1010 !important;
 }
 
-/* hide gradio chrome we don't need */
-.gradio-container > .main > .wrap { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+.gradio-container > .main > .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
 footer { display: none !important; }
 
-/* hero section */
+/* hero */
 .hero {
     text-align: center;
     padding: 80px 0 60px;
@@ -120,131 +120,149 @@ footer { display: none !important; }
 }
 
 .hero-eyebrow {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.25em;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: #C97D8A;
-    margin-bottom: 20px;
+    color: #9B4F5E;
+    margin-bottom: 18px;
 }
 
 .hero-title {
     font-family: 'Playfair Display', serif;
     font-size: clamp(64px, 10vw, 120px);
     font-weight: 900;
-    line-height: 0.95;
-    color: #2D1F1F;
-    letter-spacing: -0.02em;
-    margin-bottom: 24px;
+    line-height: 0.93;
+    color: #1A1010;
+    letter-spacing: -0.03em;
+    margin-bottom: 22px;
 }
 
 .hero-title em {
     font-style: italic;
-    color: #C97D8A;
+    color: #B8607A;
 }
 
 .hero-sub {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    font-weight: 300;
-    color: #7A5C5C;
-    max-width: 480px;
-    margin: 0 auto 0;
-    line-height: 1.7;
+    font-size: 15px;
+    font-weight: 400;
+    color: #6B4A4A;
+    max-width: 420px;
+    margin: 0 auto;
+    line-height: 1.75;
 }
 
-/* section labels */
+/* section rules -- label + extending line */
 .section-label {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: #C97D8A;
+    color: #9B4F5E;
     margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #E8C4CC;
+    /* no background, no border box -- just the label itself */
 }
 
-/* input card panels */
-.input-panel {
-    background: #FDF8F3;
-    border: 1px solid #EDD8DC;
-    border-radius: 20px;
-    padding: 32px;
-    margin-bottom: 20px;
-    transition: box-shadow 0.2s ease;
+.section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #DFC4C9;
 }
-.input-panel:hover { box-shadow: 0 8px 40px rgba(201, 125, 138, 0.12); }
 
-/* override gradio input styles */
+/* inputs -- transparent bg so there's no white box */
 .gradio-container textarea,
 .gradio-container input[type=number],
 .gradio-container input[type=text] {
-    background: #F7F0E6 !important;
-    border: 1.5px solid #E8C4CC !important;
-    border-radius: 12px !important;
+    background: transparent !important;
+    border: 1.5px solid #CBADB3 !important;
+    border-radius: 10px !important;
     font-family: 'DM Sans', sans-serif !important;
     font-size: 14px !important;
-    color: #2D1F1F !important;
-    padding: 14px 16px !important;
+    color: #1A1010 !important;
+    padding: 13px 15px !important;
     transition: border-color 0.2s ease !important;
+    box-shadow: none !important;
 }
+
 .gradio-container textarea:focus,
 .gradio-container input:focus {
-    border-color: #C97D8A !important;
+    border-color: #B8607A !important;
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(201, 125, 138, 0.12) !important;
+    box-shadow: 0 0 0 3px rgba(184, 96, 122, 0.1) !important;
 }
 
 /* labels */
 .gradio-container label span {
     font-family: 'DM Sans', sans-serif !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.05em !important;
-    color: #7A5C5C !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.14em !important;
+    color: #6B4A4A !important;
     text-transform: uppercase !important;
 }
 
-/* number inputs row */
-.nums-row { display: flex; gap: 16px; }
-.nums-row > * { flex: 1; }
+/* kill the default gradio form group backgrounds */
+.gradio-container .form,
+.gradio-container .gap,
+.gradio-container .block,
+.gradio-container .panel {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* image upload -- keep it minimal */
+.gradio-container .upload-container,
+.gradio-container [data-testid="image"] {
+    border: 1.5px dashed #CBADB3 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
 
 /* analyze button */
-.analyze-btn-wrap { text-align: center; padding: 40px 0 20px; }
+.analyze-btn-wrap {
+    text-align: center;
+    padding: 40px 0 20px;
+}
+
 .gradio-container button.primary {
-    background: #2D1F1F !important;
-    color: #F7F0E6 !important;
+    background: #1A1010 !important;
+    color: #F5EDE3 !important;
     font-family: 'DM Sans', sans-serif !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.12em !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.14em !important;
     text-transform: uppercase !important;
     border: none !important;
     border-radius: 100px !important;
-    padding: 18px 52px !important;
+    padding: 17px 52px !important;
     cursor: pointer !important;
     transition: all 0.25s ease !important;
+    box-shadow: none !important;
 }
+
 .gradio-container button.primary:hover {
-    background: #C97D8A !important;
+    background: #B8607A !important;
     transform: translateY(-2px) !important;
-    box-shadow: 0 12px 32px rgba(201, 125, 138, 0.35) !important;
+    box-shadow: 0 10px 28px rgba(184, 96, 122, 0.3) !important;
 }
 
 /* divider */
 .divider {
     border: none;
-    border-top: 1px solid #EDD8DC;
+    border-top: 1px solid #DFC4C9;
     margin: 48px 0;
 }
 
-/* result reveal */
+/* result card */
 .result-reveal {
     text-align: center;
-    padding: 48px 0 32px;
+    padding: 44px 0 28px;
     animation: fadeUp 0.6s ease both;
 }
 
@@ -253,34 +271,33 @@ footer { display: none !important; }
     font-size: clamp(72px, 12vw, 140px);
     font-weight: 900;
     font-style: italic;
-    color: #C97D8A;
+    color: #B8607A;
     line-height: 1;
     letter-spacing: -0.03em;
     animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .type-desc {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px;
-    font-weight: 300;
-    color: #7A5C5C;
-    margin-top: 16px;
-    letter-spacing: 0.02em;
+    font-size: 15px;
+    font-weight: 400;
+    color: #6B4A4A;
+    margin-top: 14px;
+    letter-spacing: 0.01em;
 }
 
-/* axis breakdown grid */
+/* axis grid */
 .breakdown-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    gap: 14px;
     margin-top: 8px;
 }
 
 .axis-card {
-    background: #FDF8F3;
-    border: 1px solid #EDD8DC;
-    border-radius: 16px;
-    padding: 24px;
+    border: 1px solid #DFC4C9;
+    border-radius: 14px;
+    padding: 22px;
+    /* no background fill -- matches page */
     animation: fadeUp 0.5s ease both;
 }
 
@@ -288,56 +305,54 @@ footer { display: none !important; }
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .letter {
     font-family: 'Playfair Display', serif;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 700;
     font-style: italic;
 }
-.letter.active { color: #C97D8A; }
-.letter.dim { color: #D4B8BC; }
+.letter.active { color: #B8607A; }
+.letter.dim { color: #D4B4BA; }
 
 .vs {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.15em;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #BBA8A8;
+    color: #BBA5A5;
 }
 
 .bar-track {
-    height: 4px;
-    background: #EDD8DC;
+    height: 3px;
+    background: #E8D0D4;
     border-radius: 100px;
     overflow: hidden;
-    margin-bottom: 10px;
+    margin-bottom: 9px;
 }
 
 .bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #E8A4B0, #C97D8A);
+    background: #B8607A;
     border-radius: 100px;
     transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .axis-score {
-    font-family: 'DM Sans', sans-serif;
     font-size: 11px;
     font-weight: 400;
-    color: #A08080;
+    color: #9B7A7A;
     letter-spacing: 0.03em;
 }
 
 /* photo signals */
 .photo-signals {
-    background: #FDF8F3;
-    border: 1px solid #EDD8DC;
-    border-radius: 16px;
-    padding: 24px;
+    border: 1px solid #DFC4C9;
+    border-radius: 14px;
+    padding: 22px;
+    /* no bg fill here either */
     margin-top: 8px;
 }
 
@@ -345,75 +360,65 @@ footer { display: none !important; }
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
+    padding: 9px 0;
     border-bottom: 1px solid #EDD8DC;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
 }
 .signal-row:last-child { border-bottom: none; }
 
 .signal-label {
-    font-weight: 500;
-    letter-spacing: 0.08em;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    font-size: 10px;
-    color: #A08080;
+    color: #9B7A7A;
 }
 
 .signal-val {
-    color: #2D1F1F;
-    font-weight: 300;
+    color: #1A1010;
+    font-weight: 400;
 }
 
 /* error */
 .error-msg {
     text-align: center;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    color: #C97D8A;
+    font-size: 13px;
+    color: #9B4F5E;
     padding: 32px;
 }
 
-/* results section label */
+/* results eyebrow label */
 .results-header {
     font-family: 'Playfair Display', serif;
     font-size: 13px;
     font-style: italic;
-    color: #C97D8A;
-    letter-spacing: 0.05em;
+    color: #9B4F5E;
+    letter-spacing: 0.04em;
     margin-bottom: 4px;
 }
 
-/* animations */
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes popIn {
-    from { opacity: 0; transform: scale(0.7); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-/* image upload area */
-.gradio-container .upload-container,
-.gradio-container [data-testid="image"] {
-    border: 1.5px dashed #E8C4CC !important;
-    border-radius: 12px !important;
-    background: #F7F0E6 !important;
-}
-
-/* result output boxes: remove default gradio styling */
+/* output boxes -- no gradio chrome */
 .gradio-container .output-html {
     background: transparent !important;
     border: none !important;
     padding: 0 !important;
+    box-shadow: none !important;
+}
+
+/* animations */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.75); }
+    to { opacity: 1; transform: scale(1); }
 }
 """
 
 with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
 
-    # hero
     gr.HTML("""
     <div class='hero'>
         <div class='hero-eyebrow'>digital footprint analysis</div>
@@ -422,10 +427,8 @@ with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
     </div>
     """)
 
-    # inputs
     with gr.Row():
         with gr.Column(scale=3):
-            gr.HTML("<div class='input-panel'>")
             gr.HTML("<div class='section-label'>text signals</div>")
             bio = gr.Textbox(
                 label="instagram bio ✦ required",
@@ -434,7 +437,7 @@ with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
             )
             captions = gr.Textbox(
                 label="caption dump — optional",
-                placeholder="paste 5–10 recent captions",
+                placeholder="paste 5-10 recent captions",
                 lines=4
             )
             dms = gr.Textbox(
@@ -447,31 +450,24 @@ with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
                 placeholder="college essay, cover letter, anything longer form",
                 lines=3
             )
-            gr.HTML("</div>")
 
         with gr.Column(scale=2):
-            gr.HTML("<div class='input-panel'>")
             gr.HTML("<div class='section-label'>numeric signals</div>")
             with gr.Row():
                 followers = gr.Number(label="followers", value=0)
                 following = gr.Number(label="following", value=0)
             num_posts = gr.Number(label="number of posts", value=0)
-            gr.HTML("</div>")
 
-            gr.HTML("<div class='input-panel'>")
-            gr.HTML("<div class='section-label'>photo signals — optional</div>")
+            gr.HTML("<div class='section-label' style='margin-top:28px;'>photo signals — optional</div>")
             profile_photo = gr.Image(label="profile photo", type="filepath")
             candid_photo = gr.Image(label="candid or tagged photo", type="filepath")
-            gr.HTML("</div>")
 
-    # button
     gr.HTML("<div class='analyze-btn-wrap'>")
     analyze_btn = gr.Button("analyze ↗", variant="primary")
     gr.HTML("</div>")
 
     gr.HTML("<hr class='divider'>")
 
-    # results
     gr.HTML("<div class='results-header'>your read</div>")
 
     result_type = gr.HTML()
