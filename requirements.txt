@@ -1,0 +1,6 @@
+transformers
+gradio
+torch
+Pillow
+deepface
+tf-keras
