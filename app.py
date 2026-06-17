@@ -4,22 +4,33 @@ from photo_analysis import analyze_profile_photo, photo_to_mbti_signals
 # load once at startup
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
-# descriptive phrases work way better than single words like "introvert"
 AXES = {
     "E_I": {
-        "labels": ["energized by social interaction and being around people", "energized by solitude and inner reflection"],
+        "labels": [
+            "tends to seek out social interaction and feels energized being around other people",
+            "tends to prefer solitude and feels drained by too much social interaction"
+        ],
         "keys": ["E", "I"]
     },
     "N_S": {
-        "labels": ["abstract and imaginative thinker who focuses on patterns and ideas", "practical and detail-oriented thinker who focuses on facts and reality"],
+        "labels": [
+            "tends to think about possibilities, meaning, and the big picture rather than concrete details",
+            "tends to focus on what is concrete, present, and directly observable rather than abstract ideas"
+        ],
         "keys": ["N", "S"]
     },
     "T_F": {
-        "labels": ["makes decisions based on logic and objective analysis", "makes decisions based on empathy and personal values"],
+        "labels": [
+            "tends to make decisions by analyzing facts and thinking through things logically",
+            "tends to make decisions based on how they feel and how it affects the people involved"
+        ],
         "keys": ["T", "F"]
     },
     "J_P": {
-        "labels": ["prefers structure, planning, and clear decisions", "prefers flexibility, spontaneity, and keeping options open"],
+        "labels": [
+            "tends to like having a plan and prefers things to be settled and decided",
+            "tends to prefer going with the flow and keeping their options open"
+        ],
         "keys": ["J", "P"]
     }
 }
@@ -59,13 +70,19 @@ def classify_text(combined_text):
         result = classifier(
             combined_text,
             candidate_labels=config["labels"],
-            hypothesis_template="this person is someone who {}."
+            # "the text suggests" is way more stable than "this person is"
+            # because the model is reading evidence, not making a leap about identity
+            hypothesis_template="the text suggests the author {}."
         )
-        # scores[0] matches label[0], scores[1] matches label[1]
-        scores[axis] = {
-            config["keys"][0]: round(result["scores"][0] * 100, 1),
-            config["keys"][1]: round(result["scores"][1] * 100, 1),
-        }
+        key0, key1 = config["keys"]
+        s0 = round(result["scores"][0] * 100, 1)
+        s1 = round(result["scores"][1] * 100, 1)
+
+        # gap under 8 points = noise, just call it even
+        if abs(s0 - s1) < 8:
+            scores[axis] = {key0: 50.0, key1: 50.0, "ambiguous": True}
+        else:
+            scores[axis] = {key0: s0, key1: s1}
     return scores
 
 def numeric_signals(followers, following):
