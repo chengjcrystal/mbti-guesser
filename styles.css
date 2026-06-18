@@ -3,11 +3,32 @@
 /* ── page background ── */
 body, .gradio-container { background: #F4EDE4 !important; }
 
+.main-content {
+  max-width: 850px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+.gradio-container {
+  max-width: 100% !important;
+}
+html,
+body {
+  overflow-x: hidden;
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* ── hide gradio footer and logo ── */
 footer, .built-with { display: none !important; }
 
 /* ── hero ── */
 .mbti-hero {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
   text-align: center;
   padding: 64px 24px 40px;
 }
@@ -50,19 +71,26 @@ footer, .built-with { display: none !important; }
   display: block;
 }
 
-/* ── photo upload — constrain height so icon stays small ── */
-.photo-upload-wrap .upload-container,
-.photo-upload-wrap [data-testid="image"],
-.photo-upload-wrap .svelte-1ipelgc {
-  max-height: 80px !important;
-  min-height: 80px !important;
+/* ── photo upload ── */
+.photo-upload-wrap {
+  font-size: 11px !important;
 }
-
-/* target gradio's image upload component directly */
-[data-testid="image"] > .wrap,
-[data-testid="image"] .wrap.svelte-1ipelgc {
-  min-height: 80px !important;
-  max-height: 80px !important;
+.photo-upload-wrap [data-testid="image"] {
+  min-height: 100px !important;
+}
+.photo-upload-wrap [data-testid="image"] .wrap {
+  min-height: 100px !important;
+}
+/* "Drop Image Here" and "Click to Upload" */
+.photo-upload-wrap span,
+.photo-upload-wrap button,
+.photo-upload-wrap label {
+  font-size: 11px !important;
+}
+/* upload + clipboard icons */
+.photo-upload-wrap svg {
+  width: 16px !important;
+  height: 16px !important;
 }
 
 /* ── photo note ── */
@@ -103,7 +131,13 @@ footer, .built-with { display: none !important; }
   color: #C2758A;
   margin-bottom: 12px;
 }
-.result-type-row { display: flex; gap: 2px; align-items: flex-end; margin-bottom: 10px; }
+.result-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: flex-end;
+  margin-bottom: 10px;
+}
 .type-letter, .type-letter-ambiguous {
   font-family: 'Playfair Display', serif;
   font-size: 64px;
@@ -134,7 +168,13 @@ footer, .built-with { display: none !important; }
   margin-bottom: 16px;
 }
 .axis-row { margin-bottom: 18px; }
-.axis-meta { display: flex; align-items: baseline; gap: 7px; margin-bottom: 6px; }
+.axis-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 6px;
+}
 .axis-eyebrow {
   font-size: 10px; font-weight: 600; letter-spacing: 0.15em;
   text-transform: uppercase; color: #C9B4B4; min-width: 52px;

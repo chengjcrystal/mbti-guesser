@@ -211,116 +211,110 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
     </div>
     """)
 
-    with gr.Row(equal_height=False):
+    with gr.Column(elem_classes=["main-content"]):
 
-        with gr.Column(scale=1):
-            gr.HTML("")
+        with gr.Group():
+            gr.HTML('<span class="section-label">the basics</span>')
+            spotify_artists = gr.Textbox(
+                label="spotify top artists",
+                placeholder="mitski, clairo, brockhampton, glass animals…",
+                info="what's always in their headphones?",
+            )
+            humor_types = gr.CheckboxGroup(
+                label="their humor",
+                choices=["dry", "chaotic", "wholesome", "dark", "sarcastic", "surreal", "self-deprecating"],
+                info="check everything that fits",
+            )
+            punctuality = gr.Radio(
+                label="early, on time, or always late?",
+                choices=["always early", "on time", "always late"],
+            )
+            group_archetypes = gr.CheckboxGroup(
+                label="their role in the friend group",
+                choices=[
+                    "The Mom (plans everything)", "The Chaos Agent",
+                    "The Researcher (googles before anyone asks)", "The Therapist Friend",
+                    "The Flake", "The Hype Person", "The Background One", "The Realist",
+                ],
+                info="can pick more than one",
+            )
 
-        with gr.Column(scale=4):
+        with gr.Group():
+            gr.HTML('<span class="section-label">what they\'re like</span>')
+            what_they_talk_about = gr.Textbox(
+                label="what do they talk about most?",
+                placeholder="the show they're obsessed with, their job, conspiracy theories…",
+                lines=2,
+            )
+            weekend_activities = gr.Textbox(
+                label="how do they spend their weekends?",
+                placeholder="hiking alone, hosting people, sleeping until noon…",
+                lines=2,
+            )
+            stress_triggers = gr.Textbox(
+                label="what stresses them out?",
+                placeholder="last-minute changes, conflict, falling behind…",
+                lines=2,
+            )
+            party_vibe = gr.Textbox(
+                label="vibe at parties — or what kind of drunk are they?",
+                placeholder="disappears to talk to one person, center of everything, goes home early…",
+                lines=2,
+                info="best indirect introvert/extrovert signal",
+            )
+            fav_media = gr.Textbox(
+                label="favorite shows, movies, or books",
+                placeholder="succession, studio ghibli, crime podcasts, philosophy youtube…",
+                lines=2,
+            )
 
-            with gr.Group():
-                gr.HTML('<span class="section-label">the basics</span>')
-                spotify_artists = gr.Textbox(
-                    label="spotify top artists",
-                    placeholder="mitski, clairo, brockhampton, glass animals…",
-                    info="what's always in their headphones?",
-                )
-                humor_types = gr.CheckboxGroup(
-                    label="their humor",
-                    choices=["dry", "chaotic", "wholesome", "dark", "sarcastic", "surreal", "self-deprecating"],
-                    info="check everything that fits",
-                )
-                punctuality = gr.Radio(
-                    label="early, on time, or always late?",
-                    choices=["always early", "on time", "always late"],
-                )
-                group_archetypes = gr.CheckboxGroup(
-                    label="their role in the friend group",
-                    choices=[
-                        "The Mom (plans everything)", "The Chaos Agent",
-                        "The Researcher (googles before anyone asks)", "The Therapist Friend",
-                        "The Flake", "The Hype Person", "The Background One", "The Realist",
-                    ],
-                    info="can pick more than one",
-                )
+        with gr.Group():
+            gr.HTML('<span class="section-label">how they text</span>')
+            text_length_slider = gr.Slider(
+                minimum=1, maximum=5, step=1, value=3,
+                label="how long are their texts?",
+                info="1 = one-word replies   •   5 = full essays",
+            )
+            texting_style = gr.CheckboxGroup(
+                label="texting style",
+                choices=["quick replies", "slow replies", "emoji heavy", "no emoji",
+                            "all lowercase", "uses punctuation", "leaves people on read"],
+            )
 
-            with gr.Group():
-                gr.HTML('<span class="section-label">what they\'re like</span>')
-                what_they_talk_about = gr.Textbox(
-                    label="what do they talk about most?",
-                    placeholder="the show they're obsessed with, their job, conspiracy theories…",
-                    lines=2,
-                )
-                weekend_activities = gr.Textbox(
-                    label="how do they spend their weekends?",
-                    placeholder="hiking alone, hosting people, sleeping until noon…",
-                    lines=2,
-                )
-                stress_triggers = gr.Textbox(
-                    label="what stresses them out?",
-                    placeholder="last-minute changes, conflict, falling behind…",
-                    lines=2,
-                )
-                party_vibe = gr.Textbox(
-                    label="vibe at parties — or what kind of drunk are they?",
-                    placeholder="disappears to talk to one person, center of everything, goes home early…",
-                    lines=2,
-                    info="best indirect introvert/extrovert signal",
-                )
-                fav_media = gr.Textbox(
-                    label="favorite shows, movies, or books",
-                    placeholder="succession, studio ghibli, crime podcasts, philosophy youtube…",
-                    lines=2,
-                )
+        with gr.Group():
+            gr.HTML('<span class="section-label">social media</span>')
+            with gr.Row():
+                followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
+                following = gr.Number(label="following count", precision=0, minimum=0)
+            social_media_checkboxes = gr.CheckboxGroup(
+                label="social media behavior",
+                choices=["posts a lot", "mostly a lurker", "stories person",
+                            "feed poster", "has a spam/close friends account"],
+            )
+            spam_friends_count = gr.Number(
+                label="close friends / spam list size",
+                minimum=0, visible=False,
+                info="under 10 = very private   •   110+ = basically a second public account",
+            )
+            social_media_checkboxes.change(
+                fn=lambda c: gr.update(visible="has a spam/close friends account" in c),
+                inputs=social_media_checkboxes,
+                outputs=spam_friends_count,
+            )
 
-            with gr.Group():
-                gr.HTML('<span class="section-label">how they text</span>')
-                text_length_slider = gr.Slider(
-                    minimum=1, maximum=5, step=1, value=3,
-                    label="how long are their texts?",
-                    info="1 = one-word replies   •   5 = full essays",
-                )
-                texting_style = gr.CheckboxGroup(
-                    label="texting style",
-                    choices=["quick replies", "slow replies", "emoji heavy", "no emoji",
-                             "all lowercase", "uses punctuation", "leaves people on read"],
-                )
+        with gr.Group():
+            gr.HTML('<span class="section-label">photo <span style="font-size:10px;color:#C9B4B4;letter-spacing:0.1em">optional</span></span>')
+            photo = gr.Image(
+                label="drop a photo of them",
+                type="filepath",
+                sources=["upload", "clipboard"],
+                elem_classes=["photo-upload-wrap"],
+            )
+            gr.HTML('<p class="photo-note">analyzed locally — expression, solo vs. group, eye contact, background context.</p>')
 
-            with gr.Group():
-                gr.HTML('<span class="section-label">social media</span>')
-                with gr.Row():
-                    followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
-                    following = gr.Number(label="following count", precision=0, minimum=0)
-                social_media_checkboxes = gr.CheckboxGroup(
-                    label="social media behavior",
-                    choices=["posts a lot", "mostly a lurker", "stories person",
-                             "feed poster", "has a spam/close friends account"],
-                )
-                spam_friends_count = gr.Number(
-                    label="close friends / spam list size",
-                    minimum=0, visible=False,
-                    info="under 10 = very private   •   110+ = basically a second public account",
-                )
-                social_media_checkboxes.change(
-                    fn=lambda c: gr.update(visible="has a spam/close friends account" in c),
-                    inputs=social_media_checkboxes,
-                    outputs=spam_friends_count,
-                )
+        output = gr.HTML("")
 
-            with gr.Group():
-                gr.HTML('<span class="section-label">photo <span style="font-size:10px;color:#C9B4B4;letter-spacing:0.1em">optional</span></span>')
-                photo = gr.Image(
-                    label="drop a photo of them",
-                    type="filepath", sources=["upload", "clipboard"],
-                )
-                gr.HTML('<p class="photo-note">analyzed locally — expression, solo vs. group, eye contact, background context.</p>')
-
-            output = gr.HTML("")
-
-            submit_btn = gr.Button("figure out their type ↗", variant="primary", size="lg")
-
-        with gr.Column(scale=1):
-            gr.HTML("")
+        submit_btn = gr.Button("figure out their type ↗", variant="primary", size="lg")
 
     gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli · axes marked "?" had insufficient signal</div>')
 
