@@ -197,8 +197,6 @@ theme = gr.themes.Soft(
     link_text_color="#C2758A",
     body_text_color="#1E1414",
     body_text_color_subdued="#6B4C4C",
-    section_header_text_color="#1E1414",
-    section_header_text_weight="600",
 )
 
 
