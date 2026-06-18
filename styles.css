@@ -1,55 +1,64 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
-/* ─── reset ─────────────────────────────────────────────── */
+/* ─── reset ────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ─── tokens ─────────────────────────────────────────────
-   bg-page   : #F4EDE4   warm parchment
-   bg-panel  : #FDFAF7   near-white
-   bg-input  : #FFFFFF   true white  ← fixes the gray-on-gray problem
-   rose      : #C2758A   primary accent
-   rose-light: #EDD5DC   borders, dividers
-   rose-faint: #F7EBF0   chip hover
-   ink       : #1E1414   near-black
-   ink-mid   : #6B4C4C   body text, labels
-   ink-dim   : #A08888   helper text, secondary
-   ink-ghost : #C9B4B4   pole labels, metadata
-──────────────────────────────────────────────────────────── */
+/*
+  TOKENS
+  bg-page   #F4EDE4  warm parchment
+  bg-panel  #FDFAF7  near-white
+  bg-input  #FFFFFF  true white
+  rose      #C2758A  accent
+  rose-lt   #EDD5DC  borders / dividers
+  rose-faint#F7EBF0  chip hover
+  ink       #1E1414  near-black
+  ink-mid   #6B4C4C  body / labels
+  ink-dim   #A08888  helper text
+  ink-ghost #C9B4B4  metadata / poles
+*/
 
-/* ─── base ────────────────────────────────────────────────── */
-.gradio-container {
+/* ─── page ─────────────────────────────────────────────────────── */
+body,
+.gradio-container,
+.gradio-container > .main,
+.gradio-container > .main > .wrap {
   background: #F4EDE4 !important;
   font-family: 'DM Sans', sans-serif !important;
-  max-width: 1160px !important;
-  margin: 0 auto !important;
-  padding: 0 2rem !important;
-  min-height: 100vh;
 }
 
-/* strip gradio chrome */
-.gradio-container .block,
-.gradio-container .panel,
-.gradio-container > div,
-footer {
+.gradio-container {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+/* strip ALL gradio chrome globally */
+.gradio-container *[class*="block"],
+.gradio-container *[class*="panel"],
+.gradio-container footer,
+.gradio-container .gap,
+.gradio-container form {
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
 }
 
-/* ─── hero ─────────────────────────────────────────────────── */
+/* ─── hero ─────────────────────────────────────────────────────── */
 .mbti-hero {
-  padding: 88px 0 56px;
+  padding: 80px 48px 52px;
   text-align: center;
   animation: fadeUp 0.7s ease both;
   position: relative;
+  overflow: hidden;
 }
 
-/* large ghost letters — the signature element */
 .mbti-hero::before {
   content: "MBTI";
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 50%; left: 50%;
   transform: translate(-50%, -46%) scaleX(1.12);
   font-family: 'Playfair Display', serif;
   font-weight: 900;
@@ -68,7 +77,7 @@ footer {
 .hero-eyebrow {
   display: block;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.3em;
   text-transform: uppercase;
   color: #C2758A;
@@ -86,39 +95,58 @@ footer {
   margin-bottom: 24px;
 }
 
-.hero-title em {
-  color: #C2758A;
-  font-style: italic;
-}
+.hero-title em { color: #C2758A; font-style: italic; }
 
 .hero-sub {
   font-size: 15px;
   font-weight: 300;
   color: #6B4C4C;
   line-height: 1.8;
-  max-width: 420px;
+  max-width: 400px;
   margin: 0 auto;
 }
 
-/* ─── two-col shell ─────────────────────────────────────────── */
-.mbti-shell {
+/* ─── two-col shell ─────────────────────────────────────────────
+   Gradio's gr.Row renders as  div.gradio-row  (a flex container).
+   We override it here rather than relying on elem_classes reaching
+   the flex parent.
+──────────────────────────────────────────────────────────────── */
+.mbti-shell,
+.mbti-shell > .gradio-row,
+div.gradio-row:has(.form-panel),
+div[class*="row"]:has(.form-panel) {
   display: grid !important;
   grid-template-columns: 1fr 420px !important;
   gap: 24px !important;
   align-items: start !important;
-  padding-bottom: 88px;
+  padding: 0 48px 80px !important;
+  background: transparent !important;
+  flex-wrap: unset !important;
 }
 
-@media (max-width: 880px) {
-  .mbti-shell { grid-template-columns: 1fr !important; }
+/* Gradio column wrappers inside the shell — let the grid take over */
+div.gradio-row:has(.form-panel) > div,
+div[class*="row"]:has(.form-panel) > div {
+  width: auto !important;
+  min-width: 0 !important;
+  flex: unset !important;
 }
 
-/* ─── panels ────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  div.gradio-row:has(.form-panel),
+  div[class*="row"]:has(.form-panel) {
+    grid-template-columns: 1fr !important;
+    padding: 0 24px 64px !important;
+  }
+}
+
+/* ─── panels ───────────────────────────────────────────────────── */
 .form-panel {
   background: #FDFAF7 !important;
   border: 1px solid #EDD5DC !important;
   border-radius: 20px !important;
   padding: 40px !important;
+  gap: 0 !important;
 }
 
 .result-panel {
@@ -135,40 +163,58 @@ footer {
   box-shadow: 0 12px 56px rgba(194, 117, 138, 0.1) !important;
 }
 
-/* ─── section dividers ──────────────────────────────────────── */
-/*  Left accent bar = stronger hierarchy than a dot               */
-.section-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 40px 0 20px;
-  padding-left: 12px;
-  border-left: 2.5px solid #C2758A;
+/* every direct Gradio child inside the panels needs its chrome stripped */
+.form-panel > *,
+.form-panel > * > *,
+.result-panel > *,
+.result-panel > * > * {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
 }
 
-.section-head:first-of-type { margin-top: 0; }
+/* re-apply spacing between form fields */
+.form-panel > div { margin-bottom: 20px !important; }
+.form-panel > div:last-child { margin-bottom: 0 !important; }
+
+/* ─── section heads ─────────────────────────────────────────────── */
+.section-head {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 36px 0 18px !important;
+  padding-left: 14px !important;
+  border-left: 3px solid #C2758A !important;
+  background: transparent !important;
+}
+
+.section-head:first-of-type { margin-top: 0 !important; }
 
 .section-eyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: #C2758A;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.28em !important;
+  text-transform: uppercase !important;
+  color: #C2758A !important;
 }
 
-/* ─── gradio label overrides ────────────────────────────────── */
-.gradio-container label > span:first-child,
-.gradio-container .svelte-1ed2p3z {
+/* ─── labels ────────────────────────────────────────────────────── */
+.gradio-container label > span,
+.gradio-container .label-wrap > span,
+.gradio-container span.svelte-1ed2p3z {
   font-family: 'DM Sans', sans-serif !important;
   font-size: 12px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.06em !important;
-  color: #1E1414 !important;         /* ink — clear legibility */
+  letter-spacing: 0.04em !important;
+  color: #1E1414 !important;
   text-transform: none !important;
   margin-bottom: 6px !important;
+  display: block !important;
 }
 
-.gradio-container .info {
+.gradio-container .info,
+.gradio-container span.info {
   font-size: 12px !important;
   font-weight: 400 !important;
   color: #A08888 !important;
@@ -177,11 +223,10 @@ footer {
   margin-top: 4px !important;
 }
 
-/* ─── text inputs ───────────────────────────────────────────── */
-/* White background = clean contrast on the warm panel            */
+/* ─── text inputs ───────────────────────────────────────────────── */
 .gradio-container input[type="text"],
-.gradio-container textarea,
-.gradio-container input[type="number"] {
+.gradio-container input[type="number"],
+.gradio-container textarea {
   background: #FFFFFF !important;
   border: 1.5px solid #DEC8CE !important;
   border-radius: 10px !important;
@@ -190,12 +235,14 @@ footer {
   font-weight: 400 !important;
   color: #1E1414 !important;
   padding: 12px 16px !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  width: 100% !important;
+  transition: border-color 0.2s, box-shadow 0.2s !important;
+  box-shadow: none !important;
 }
 
 .gradio-container input[type="text"]:focus,
-.gradio-container textarea:focus,
-.gradio-container input[type="number"]:focus {
+.gradio-container input[type="number"]:focus,
+.gradio-container textarea:focus {
   border-color: #C2758A !important;
   box-shadow: 0 0 0 3px rgba(194, 117, 138, 0.12) !important;
   outline: none !important;
@@ -207,34 +254,49 @@ footer {
   font-weight: 300 !important;
 }
 
-/* ─── checkbox / radio chips ────────────────────────────────── */
-.gradio-container .wrap.svelte-vt7tkb,
-.gradio-container .wrap {
-  gap: 6px !important;
-  flex-wrap: wrap !important;
+/* number input wrapper */
+.gradio-container .number-wrap,
+.gradio-container [data-testid="number"] {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
-.gradio-container .wrap label {
-  background: #FFFFFF !important;          /* white, not parchment */
+/* ─── checkbox / radio chips ──────────────────────────────────── */
+.gradio-container .wrap,
+.gradio-container fieldset {
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.gradio-container .wrap label,
+.gradio-container fieldset label {
+  background: #FFFFFF !important;
   border: 1.5px solid #DEC8CE !important;
   border-radius: 100px !important;
   padding: 7px 15px !important;
   cursor: pointer !important;
-  transition: border-color 0.15s ease, background 0.15s ease !important;
+  transition: border-color 0.15s, background 0.15s !important;
+  margin: 0 !important;
 }
 
-.gradio-container .wrap label:hover {
+.gradio-container .wrap label:hover,
+.gradio-container fieldset label:hover {
   border-color: #C2758A !important;
   background: #F7EBF0 !important;
 }
 
-/* checked state: rose accent, not heavy ink */
-.gradio-container .wrap label:has(input:checked) {
+.gradio-container .wrap label:has(input:checked),
+.gradio-container fieldset label:has(input:checked) {
   background: #C2758A !important;
   border-color: #C2758A !important;
 }
 
-.gradio-container .wrap label span {
+.gradio-container .wrap label span,
+.gradio-container fieldset label span {
   font-family: 'DM Sans', sans-serif !important;
   font-size: 13px !important;
   font-weight: 400 !important;
@@ -243,21 +305,31 @@ footer {
   color: #1E1414 !important;
 }
 
-.gradio-container .wrap label:has(input:checked) span {
+.gradio-container .wrap label:has(input:checked) span,
+.gradio-container fieldset label:has(input:checked) span {
   color: #FFFFFF !important;
 }
 
-.gradio-container .wrap input { display: none !important; }
-
-/* ─── slider ────────────────────────────────────────────────── */
-.gradio-container input[type="range"] {
-  accent-color: #C2758A !important;
+.gradio-container .wrap input,
+.gradio-container fieldset input {
+  display: none !important;
 }
 
-/* ─── submit button ─────────────────────────────────────────── */
+/* ─── slider ─────────────────────────────────────────────────── */
+.gradio-container input[type="range"] {
+  accent-color: #C2758A !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin-top: 8px !important;
+}
+
+/* ─── submit row ─────────────────────────────────────────────── */
 .mbti-submit { margin-top: 40px !important; }
 
-.mbti-submit button {
+.mbti-submit button,
+.mbti-submit button.primary {
   background: #1E1414 !important;
   color: #F4EDE4 !important;
   font-family: 'DM Sans', sans-serif !important;
@@ -270,7 +342,8 @@ footer {
   padding: 20px 0 !important;
   width: 100% !important;
   cursor: pointer !important;
-  transition: background 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease !important;
+  transition: background 0.22s, transform 0.22s, box-shadow 0.22s !important;
+  box-shadow: none !important;
 }
 
 .mbti-submit button:hover {
@@ -279,7 +352,7 @@ footer {
   box-shadow: 0 16px 40px rgba(194, 117, 138, 0.3) !important;
 }
 
-/* ─── result: placeholder ───────────────────────────────────── */
+/* ─── result: placeholder ─────────────────────────────────────── */
 .result-placeholder {
   font-size: 14px;
   font-weight: 300;
@@ -297,7 +370,7 @@ footer {
   line-height: 1.6;
 }
 
-/* ─── result: prediction wrap ───────────────────────────────── */
+/* ─── result: prediction ─────────────────────────────────────── */
 .result-wrap { animation: fadeUp 0.4s ease both; }
 
 .result-eyebrow {
@@ -310,7 +383,6 @@ footer {
   margin-bottom: 14px;
 }
 
-/* 4-letter type badges */
 .result-type-row {
   display: flex;
   gap: 4px;
@@ -319,9 +391,6 @@ footer {
 }
 
 .type-letter {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   font-family: 'Playfair Display', serif;
   font-size: clamp(52px, 9vw, 72px);
   font-weight: 900;
@@ -332,9 +401,6 @@ footer {
 }
 
 .type-letter-ambiguous {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   font-family: 'Playfair Display', serif;
   font-size: clamp(52px, 9vw, 72px);
   font-weight: 900;
@@ -377,7 +443,6 @@ footer {
   margin-bottom: 20px;
 }
 
-/* Each row: stacked — meta line, then bar — with room to breathe */
 .axis-row {
   margin-bottom: 22px;
   animation: fadeUp 0.4s ease both;
@@ -427,7 +492,6 @@ footer {
   margin-left: auto;
 }
 
-/* bidirectional bar */
 .axis-bar-wrap {
   display: flex;
   align-items: center;
@@ -453,14 +517,9 @@ footer {
   position: relative;
 }
 
-.bar-half {
-  flex: 1;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-}
-
-.bar-half-left { justify-content: flex-end; }
+.bar-half { flex: 1; height: 100%; overflow: hidden; display: flex; }
+.bar-half-left  { justify-content: flex-end; }
+.bar-half-right { justify-content: flex-start; }
 
 .bar-fill-left {
   height: 100%;
@@ -469,8 +528,6 @@ footer {
   transform-origin: right center;
   animation: growBar 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-
-.bar-half-right { justify-content: flex-start; }
 
 .bar-fill-right {
   height: 100%;
@@ -482,16 +539,14 @@ footer {
 
 .bar-center-tick {
   position: absolute;
-  left: 50%;
-  top: 0;
+  left: 50%; top: 0;
   transform: translateX(-50%);
-  width: 2px;
-  height: 100%;
+  width: 2px; height: 100%;
   background: #C9B4B4;
   border-radius: 100px;
 }
 
-/* ─── photo note ─────────────────────────────────────────────── */
+/* ─── photo note ──────────────────────────────────────────────── */
 .photo-note {
   font-size: 12px;
   font-weight: 300;
@@ -500,31 +555,31 @@ footer {
   margin-top: 10px;
 }
 
-/* ─── footer ─────────────────────────────────────────────────── */
+/* ─── footer ──────────────────────────────────────────────────── */
 .mbti-footer {
   font-size: 11px;
   font-weight: 400;
   color: #C9B4B4;
   text-align: center;
-  padding-bottom: 64px;
+  padding: 0 48px 64px;
   line-height: 1.75;
   letter-spacing: 0.02em;
 }
 
-/* ─── animations ─────────────────────────────────────────────── */
+/* ─── animations ──────────────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0);    }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes popIn {
   from { opacity: 0; transform: scale(0.6) rotate(-5deg); }
-  to   { opacity: 1; transform: scale(1)   rotate(0deg);  }
+  to   { opacity: 1; transform: scale(1)   rotate(0deg); }
 }
 
 @keyframes growBar {
   from { width: 0 !important; }
-  to   { /* width set inline */ }
+  to   { }
 }
 
 @media (prefers-reduced-motion: reduce) {

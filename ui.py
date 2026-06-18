@@ -12,24 +12,54 @@ from photo_analysis import analyze_photo
 _CSS_PATH = pathlib.Path(__file__).parent / "styles.css"
 CSS = _CSS_PATH.read_text()
 
+# Additional inline CSS to patch Gradio's row/column DOM — these selectors
+# must be injected alongside the external sheet because Gradio's scoped
+# Svelte classes change per build and :has() on the actual row element is
+# the most stable cross-version approach.
+CSS += """
+/* ── target Gradio's actual row element that wraps our two columns ── */
+#mbti-row {
+  display: grid !important;
+  grid-template-columns: 1fr 420px !important;
+  gap: 24px !important;
+  align-items: start !important;
+  flex-wrap: unset !important;
+  padding: 0 48px 80px !important;
+}
+
+#mbti-row > div {
+  width: auto !important;
+  min-width: 0 !important;
+  flex: unset !important;
+  max-width: unset !important;
+}
+
+@media (max-width: 900px) {
+  #mbti-row {
+    grid-template-columns: 1fr !important;
+    padding: 0 24px 64px !important;
+  }
+}
+"""
+
 # ── type metadata ────────────────────────────────────────────────────────────
 MBTI_DESCRIPTIONS = {
-    "INTJ": ("the architect",     "strategic, private, always three steps ahead. probably already knows what you're going to say."),
-    "INTP": ("the logician",      "lives in their head, loves a rabbit hole, skeptical of most things. argues for fun and calls it curiosity."),
-    "ENTJ": ("the commander",     "natural leader, extremely sure of themselves, not always gentle about it. has strong opinions on your life choices."),
-    "ENTP": ("the debater",       "argues for fun, gets bored easily, full of ideas they won't always follow through on. devil's advocate as a personality."),
-    "INFJ": ("the advocate",      "intense, private, somehow knows what you're thinking before you do. rarest type and they know it."),
-    "INFP": ("the mediator",      "idealistic, emotional, writes in their notes app at 2am. takes everything personally and feels deeply about it."),
-    "ENFJ": ("the protagonist",   "makes everyone feel seen, over-commits to plans, cries at ads. the friend who checks in on you unprompted."),
-    "ENFP": ("the campaigner",    "energetic, all over the place, starts things they don't finish. somehow still the most magnetic person in the room."),
-    "ISTJ": ("the logistician",   "reliable to a fault, rule-follower, shows love through acts of service. will send you a calendar invite."),
-    "ISFJ": ("the defender",      "takes care of everyone around them, forgets to take care of themselves. remembers your coffee order."),
-    "ESTJ": ("the executive",     "has a spreadsheet for everything, does not understand why you don't. gets things done, no vibes required."),
-    "ESFJ": ("the consul",        "the friend group mom, needs approval, genuinely warm. throws the best parties and stress-cleans before you arrive."),
-    "ISTP": ("the virtuoso",      "quiet but mechanically gifted, not big on feelings, extremely competent. fix-it person energy."),
-    "ISFP": ("the adventurer",    "gentle, artistic, keeps their real thoughts to themselves. has excellent taste and won't brag about it."),
-    "ESTP": ("the entrepreneur",  "impulsive, charismatic, probably the one daring you to do stuff. thrives on chaos they created."),
-    "ESFP": ("the entertainer",   "the most fun person in the room, no plans, all vibes. will make a bit out of anything."),
+    "INTJ": ("the architect",    "strategic, private, always three steps ahead. probably already knows what you're going to say."),
+    "INTP": ("the logician",     "lives in their head, loves a rabbit hole, skeptical of most things. argues for fun and calls it curiosity."),
+    "ENTJ": ("the commander",    "natural leader, extremely sure of themselves, not always gentle about it. has strong opinions on your life choices."),
+    "ENTP": ("the debater",      "argues for fun, gets bored easily, full of ideas they won't always follow through on. devil's advocate as a personality."),
+    "INFJ": ("the advocate",     "intense, private, somehow knows what you're thinking before you do. rarest type and they know it."),
+    "INFP": ("the mediator",     "idealistic, emotional, writes in their notes app at 2am. takes everything personally and feels deeply about it."),
+    "ENFJ": ("the protagonist",  "makes everyone feel seen, over-commits to plans, cries at ads. the friend who checks in on you unprompted."),
+    "ENFP": ("the campaigner",   "energetic, all over the place, starts things they don't finish. somehow still the most magnetic person in the room."),
+    "ISTJ": ("the logistician",  "reliable to a fault, rule-follower, shows love through acts of service. will send you a calendar invite."),
+    "ISFJ": ("the defender",     "takes care of everyone around them, forgets to take care of themselves. remembers your coffee order."),
+    "ESTJ": ("the executive",    "has a spreadsheet for everything, does not understand why you don't. gets things done, no vibes required."),
+    "ESFJ": ("the consul",       "the friend group mom, needs approval, genuinely warm. throws the best parties and stress-cleans before you arrive."),
+    "ISTP": ("the virtuoso",     "quiet but mechanically gifted, not big on feelings, extremely competent. fix-it person energy."),
+    "ISFP": ("the adventurer",   "gentle, artistic, keeps their real thoughts to themselves. has excellent taste and won't brag about it."),
+    "ESTP": ("the entrepreneur", "impulsive, charismatic, probably the one daring you to do stuff. thrives on chaos they created."),
+    "ESFP": ("the entertainer",  "the most fun person in the room, no plans, all vibes. will make a bit out of anything."),
 }
 
 AXIS_META = {
@@ -51,27 +81,24 @@ def format_results(mbti_type: str, axis_results: dict) -> str:
 
     if has_ambiguous:
         title_label = "mixed signals"
-        desc_text   = "a few axes didn't have enough signal to call — see the breakdown below."
+        desc_text   = "a few axes didn't have enough signal — see the breakdown below."
     else:
         title_label, desc_text = MBTI_DESCRIPTIONS.get(
             mbti_type,
             ("unknown type", "an unusual combination — see the breakdown below.")
         )
 
-    # animated letter badges
-    letter_badges = ""
-    for i, ch in enumerate(mbti_type):
-        delay = i * 0.08
-        cls = "type-letter-ambiguous" if ch == "?" else "type-letter"
-        letter_badges += f'<span class="{cls}" style="animation-delay:{delay}s">{ch}</span>'
+    letter_badges = "".join(
+        f'<span class="{"type-letter-ambiguous" if ch == "?" else "type-letter"}" '
+        f'style="animation-delay:{i * 0.08}s">{ch}</span>'
+        for i, ch in enumerate(mbti_type)
+    )
 
-    # axis bars
     bars_html = ""
     for i, axis in enumerate(AXIS_ORDER):
         r    = axis_results[axis]
         meta = AXIS_META[axis]
         p0, p1 = meta["poles"]
-        d0, d1 = meta["desc"]
 
         is_ambiguous = r["is_ambiguous"]
         winner       = r["winner"]
@@ -87,16 +114,15 @@ def format_results(mbti_type: str, axis_results: dict) -> str:
         else:
             letter_display = winner
             conf_label     = f"{conf:.0f}%"
-            winner_idx     = meta["poles"].index(winner)
-            winner_desc    = meta["desc"][winner_idx]
+            winner_desc    = meta["desc"][meta["poles"].index(winner)]
             letter_cls     = "axis-letter"
-
-            fill_pct = max(0.0, min(100.0, (conf - 50) / 50 * 100))
+            fill_pct       = max(0.0, min(100.0, (conf - 50) / 50 * 100))
+            delay          = f"{i * 0.12 + 0.3}s"
 
             if winner == p0:
                 bar_inner = (
                     f'<div class="bar-half bar-half-left">'
-                    f'  <div class="bar-fill bar-fill-left" style="width:{fill_pct}%;animation-delay:{i*0.12+0.3}s"></div>'
+                    f'<div class="bar-fill bar-fill-left" style="width:{fill_pct}%;animation-delay:{delay}"></div>'
                     f'</div>'
                     f'<div class="bar-half bar-half-right"></div>'
                 )
@@ -104,7 +130,7 @@ def format_results(mbti_type: str, axis_results: dict) -> str:
                 bar_inner = (
                     f'<div class="bar-half bar-half-left"></div>'
                     f'<div class="bar-half bar-half-right">'
-                    f'  <div class="bar-fill bar-fill-right" style="width:{fill_pct}%;animation-delay:{i*0.12+0.3}s"></div>'
+                    f'<div class="bar-fill bar-fill-right" style="width:{fill_pct}%;animation-delay:{delay}"></div>'
                     f'</div>'
                 )
 
@@ -140,7 +166,7 @@ def run_prediction(
     spotify_artists, humor_types, punctuality, group_archetypes,
     what_they_talk_about, weekend_activities, text_length_slider,
     texting_style, stress_triggers, party_vibe, fav_media,
-    followers, following, social_media_checkboxes, spam_friends_count, photo
+    followers, following, social_media_checkboxes, spam_friends_count, photo,
 ):
     photo_results = None
     if photo is not None:
@@ -150,22 +176,22 @@ def run_prediction(
             print(f"photo analysis error: {e}")
 
     mbti_type, axis_results = predict_mbti(
-        spotify_artists        = spotify_artists or "",
-        humor_types            = humor_types or [],
-        punctuality            = punctuality,
-        group_archetypes       = group_archetypes or [],
-        what_they_talk_about   = what_they_talk_about or "",
-        weekend_activities     = weekend_activities or "",
-        text_length_slider     = int(text_length_slider) if text_length_slider else 3,
-        texting_style          = texting_style or [],
-        stress_triggers        = stress_triggers or "",
-        party_vibe             = party_vibe or "",
-        fav_media              = fav_media or "",
-        followers              = followers,
-        following              = following,
-        social_media_checkboxes= social_media_checkboxes or [],
-        spam_friends_count     = spam_friends_count,
-        photo_results          = photo_results,
+        spotify_artists         = spotify_artists or "",
+        humor_types             = humor_types or [],
+        punctuality             = punctuality,
+        group_archetypes        = group_archetypes or [],
+        what_they_talk_about    = what_they_talk_about or "",
+        weekend_activities      = weekend_activities or "",
+        text_length_slider      = int(text_length_slider) if text_length_slider else 3,
+        texting_style           = texting_style or [],
+        stress_triggers         = stress_triggers or "",
+        party_vibe              = party_vibe or "",
+        fav_media               = fav_media or "",
+        followers               = followers,
+        following               = following,
+        social_media_checkboxes = social_media_checkboxes or [],
+        spam_friends_count      = spam_friends_count,
+        photo_results           = photo_results,
     )
 
     if axis_results is None:
@@ -177,6 +203,7 @@ def run_prediction(
 # ── layout ────────────────────────────────────────────────────────────────────
 with gr.Blocks(title="mbti guesser", css=CSS) as demo:
 
+    # hero — full width, outside the row
     gr.HTML("""
     <div class="mbti-hero">
       <span class="hero-eyebrow">✦ personality decoder</span>
@@ -185,10 +212,11 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
     </div>
     """)
 
-    with gr.Row(elem_classes=["mbti-shell"]):
+    # elem_id on the Row so #mbti-row CSS grid override lands on the right element
+    with gr.Row(elem_id="mbti-row"):
 
-        # ── form column ──────────────────────────────────────────────────────
-        with gr.Column(elem_classes=["form-panel"]):
+        # ── form column (scale=3 → wider) ────────────────────────────────────
+        with gr.Column(scale=3, elem_classes=["form-panel"]):
 
             gr.HTML('<div class="section-head"><span class="section-eyebrow">the basics</span></div>')
 
@@ -197,29 +225,21 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
                 placeholder="mitski, clairo, brockhampton, glass animals…",
                 info="what's always in their headphones?",
             )
-
             humor_types = gr.CheckboxGroup(
                 label="their humor",
                 choices=["dry", "chaotic", "wholesome", "dark", "sarcastic", "surreal", "self-deprecating"],
                 info="check everything that fits",
             )
-
             punctuality = gr.Radio(
                 label="early, on time, or always late?",
                 choices=["always early", "on time", "always late"],
             )
-
             group_archetypes = gr.CheckboxGroup(
                 label="their role in the friend group",
                 choices=[
-                    "The Mom (plans everything)",
-                    "The Chaos Agent",
-                    "The Researcher (googles before anyone asks)",
-                    "The Therapist Friend",
-                    "The Flake",
-                    "The Hype Person",
-                    "The Background One",
-                    "The Realist",
+                    "The Mom (plans everything)", "The Chaos Agent",
+                    "The Researcher (googles before anyone asks)", "The Therapist Friend",
+                    "The Flake", "The Hype Person", "The Background One", "The Realist",
                 ],
                 info="can pick more than one",
             )
@@ -231,26 +251,22 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
                 placeholder="the show they're obsessed with, their job, conspiracy theories, local drama…",
                 lines=2,
             )
-
             weekend_activities = gr.Textbox(
                 label="how do they spend their weekends?",
                 placeholder="hiking alone, hosting people, working on a project, sleeping until noon…",
                 lines=2,
             )
-
             stress_triggers = gr.Textbox(
                 label="what stresses them out?",
                 placeholder="last-minute changes, conflict, falling behind, too many obligations…",
                 lines=2,
             )
-
             party_vibe = gr.Textbox(
                 label="vibe at parties — or what kind of drunk are they?",
                 placeholder="disappears to talk to one person all night, center of everything, goes home early…",
                 lines=2,
                 info="best indirect introvert/extrovert signal",
             )
-
             fav_media = gr.Textbox(
                 label="favorite shows, movies, or books",
                 placeholder="succession, studio ghibli, crime podcasts, philosophy youtube…",
@@ -264,7 +280,6 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
                 label="how long are their texts?",
                 info="1 = one-word replies   •   5 = full essays",
             )
-
             texting_style = gr.CheckboxGroup(
                 label="texting style",
                 choices=[
@@ -276,15 +291,8 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
             gr.HTML('<div class="section-head"><span class="section-eyebrow">social media</span></div>')
 
             with gr.Row():
-                followers = gr.Number(
-                    label="follower count",
-                    precision=0, minimum=0,
-                    info="on their main account",
-                )
-                following = gr.Number(
-                    label="following count",
-                    precision=0, minimum=0,
-                )
+                followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
+                following = gr.Number(label="following count", precision=0, minimum=0)
 
             social_media_checkboxes = gr.CheckboxGroup(
                 label="social media behavior",
@@ -293,11 +301,9 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
                     "feed poster", "has a spam/close friends account",
                 ],
             )
-
             spam_friends_count = gr.Number(
                 label="how many people are on their close friends / spam list?",
-                minimum=0,
-                visible=False,
+                minimum=0, visible=False,
                 info="under 10 = very private   •   110+ = basically a second public account",
             )
 
@@ -310,7 +316,7 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
             gr.HTML("""
             <div class="section-head">
               <span class="section-eyebrow">photo</span>
-              <span style="font-size:10px;color:#C9B4B4;letter-spacing:0.12em">optional</span>
+              <span style="font-size:10px;color:#C9B4B4;letter-spacing:0.14em;margin-left:4px">optional</span>
             </div>
             """)
 
@@ -320,19 +326,13 @@ with gr.Blocks(title="mbti guesser", css=CSS) as demo:
                 sources=["upload", "clipboard"],
                 height=172,
             )
-
-            gr.HTML("""
-            <p class="photo-note">
-              analyzed locally using deepface + opencv — we look at expression,
-              solo vs. group, eye contact, and background context.
-            </p>
-            """)
+            gr.HTML('<p class="photo-note">analyzed locally using deepface + opencv — expression, solo vs. group, eye contact, background context.</p>')
 
             with gr.Row(elem_classes=["mbti-submit"]):
                 submit_btn = gr.Button("figure out their type ↗", variant="primary")
 
-        # ── result column ────────────────────────────────────────────────────
-        with gr.Column(elem_classes=["result-panel"]):
+        # ── result column (scale=2 → narrower, sticky) ───────────────────────
+        with gr.Column(scale=2, elem_classes=["result-panel"]):
             output = gr.HTML("""
             <div class="result-placeholder">
               fill in a few fields<br>on the left, then<br>hit the button.
