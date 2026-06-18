@@ -32,7 +32,7 @@ footer, .built-with { display: none !important; }
 .hero-title em { color: #C2758A; }
 .hero-sub {
   font-size: 15px;
-  color: #6B4C4C;
+  color: #C2758A;
   font-weight: 300;
   line-height: 1.7;
 }
@@ -48,6 +48,21 @@ footer, .built-with { display: none !important; }
   padding-left: 10px;
   margin: 32px 0 16px;
   display: block;
+}
+
+/* ── photo upload — constrain height so icon stays small ── */
+.photo-upload-wrap .upload-container,
+.photo-upload-wrap [data-testid="image"],
+.photo-upload-wrap .svelte-1ipelgc {
+  max-height: 80px !important;
+  min-height: 80px !important;
+}
+
+/* target gradio's image upload component directly */
+[data-testid="image"] > .wrap,
+[data-testid="image"] .wrap.svelte-1ipelgc {
+  min-height: 80px !important;
+  max-height: 80px !important;
 }
 
 /* ── photo note ── */

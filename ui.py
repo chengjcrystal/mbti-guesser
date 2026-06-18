@@ -213,7 +213,10 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
 
     with gr.Row(equal_height=False):
 
-        with gr.Column(scale=3):
+        with gr.Column(scale=1):
+            gr.HTML("")
+
+        with gr.Column(scale=4):
 
             with gr.Group():
                 gr.HTML('<span class="section-label">the basics</span>')
@@ -308,19 +311,16 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
                 gr.HTML('<span class="section-label">photo <span style="font-size:10px;color:#C9B4B4;letter-spacing:0.1em">optional</span></span>')
                 photo = gr.Image(
                     label="drop a photo of them",
-                    type="filepath", sources=["upload", "clipboard"], height=160,
+                    type="filepath", sources=["upload", "clipboard"],
                 )
                 gr.HTML('<p class="photo-note">analyzed locally — expression, solo vs. group, eye contact, background context.</p>')
 
+            output = gr.HTML("")
+
             submit_btn = gr.Button("figure out their type ↗", variant="primary", size="lg")
 
-        with gr.Column(scale=2):
-            output = gr.HTML("""
-            <div class="result-placeholder">
-              fill in a few fields on the left,<br>then hit the button.<br><br>
-              <span style="font-family:'Playfair Display',serif;font-style:italic;font-size:72px;color:#EDD5DC;line-height:1">?</span>
-            </div>
-            """)
+        with gr.Column(scale=1):
+            gr.HTML("")
 
     gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli · axes marked "?" had insufficient signal</div>')
 
