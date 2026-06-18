@@ -1,9 +1,7 @@
 from transformers import pipeline
-from photo_analysis import analyze_profile_photo, photo_to_mbti_signals
+import re
 
-# load once at startup
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-
+# axis definitions 
 AXES = {
     "E_I": {
         "labels": [
@@ -35,153 +33,332 @@ AXES = {
     }
 }
 
-# how much each source influences the final score
-# text is the most reliable so it gets the most weight
-WEIGHTS = {
-    "text": 0.65,
-    "photo": 0.25,
-    "numeric": 0.10
-}
+# weights for the three signal sources
+TEXT_WEIGHT = 0.65
+PHOTO_WEIGHT = 0.25
+NUMERIC_WEIGHT = 0.10
 
-def assemble_text(bio, captions, dms, music, opinions):
-    # label each section so the model knows what context it's reading
+# gap below this = axis is ambiguous, show "?" instead of a letter
+AMBIGUITY_THRESHOLD = 8.0
+
+_classifier = None
+
+def get_classifier():
+    global _classifier
+    if _classifier is None:
+        _classifier = pipeline(
+            "zero-shot-classification",
+            model="facebook/bart-large-mnli"
+        )
+    return _classifier
+
+
+def assemble_text(
+    spotify_artists,
+    humor_types,
+    punctuality,
+    group_archetypes,
+    what_they_talk_about,
+    weekend_activities,
+    text_length_slider,
+    texting_style,
+    stress_triggers,
+    party_vibe,
+    fav_media
+):
+    """
+    combine all the free-text and picker fields into one labeled blob.
+    labeling each section helps the model understand context instead of
+    treating everything as one undifferentiated wall of text.
+    """
     parts = []
-    if bio and bio.strip():
-        parts.append(f"[instagram bio]: {bio.strip()}")
-    if captions and captions.strip():
-        parts.append(f"[captions]: {captions.strip()}")
-    if dms and dms.strip():
-        parts.append(f"[messages/texts]: {dms.strip()}")
-    if music and music.strip():
-        # music taste is surprisingly good for n/s and f/t signals
-        parts.append(f"[music taste]: {music.strip()}")
-    if opinions and opinions.strip():
-        # unfiltered takes = most raw signal we have, weight it accordingly
-        parts.append(f"[unfiltered opinions]: {opinions.strip()}")
-    return "\n".join(parts)
 
-def classify_text(combined_text):
-    # runs 4 separate classifications, one per axis
-    if not combined_text.strip():
+    if spotify_artists and spotify_artists.strip():
+        parts.append(f"Their Spotify top artists: {spotify_artists.strip()}")
+
+    # humor types multi-select -> sentence
+    if humor_types:
+        humor_str = ", ".join(humor_types)
+        parts.append(f"Their humor style tends to be: {humor_str}.")
+
+    # punctuality radio -> sentence
+    punctuality_map = {
+        "always early": "They are always early and plan ahead.",
+        "on time": "They tend to show up right on time.",
+        "always late": "They are usually late and go with the flow."
+    }
+    if punctuality and punctuality in punctuality_map:
+        parts.append(punctuality_map[punctuality])
+
+    # group archetypes multi-select -> sentence
+    if group_archetypes:
+        archetype_str = ", ".join(group_archetypes)
+        parts.append(f"In their friend group they are: {archetype_str}.")
+
+    if what_they_talk_about and what_they_talk_about.strip():
+        parts.append(f"What they talk about most: {what_they_talk_about.strip()}")
+
+    if weekend_activities and weekend_activities.strip():
+        parts.append(f"How they spend their weekends: {weekend_activities.strip()}")
+
+    # text length slider -> descriptive sentence
+    text_length_descriptions = {
+        1: "They text in one-word replies and barely say anything.",
+        2: "Their texts are short and to the point.",
+        3: "They write average-length texts, not too short or too long.",
+        4: "They tend to write long texts with a lot of detail.",
+        5: "They send full essays -> their texts are extremely long and detailed."
+    }
+    if text_length_slider and int(text_length_slider) in text_length_descriptions:
+        parts.append(text_length_descriptions[int(text_length_slider)])
+
+    # texting style checkboxes -> sentence
+    if texting_style:
+        style_str = ", ".join(texting_style)
+        parts.append(f"Their texting style: {style_str}.")
+
+    if stress_triggers and stress_triggers.strip():
+        parts.append(f"What stresses them out: {stress_triggers.strip()}")
+
+    if party_vibe and party_vibe.strip():
+        parts.append(f"At parties or when they drink: {party_vibe.strip()}")
+
+    if fav_media and fav_media.strip():
+        parts.append(f"Their favorite shows and media: {fav_media.strip()}")
+
+    return " ".join(parts)
+
+
+def numeric_signals(followers, following, social_media_checkboxes):
+    """
+    returns a dict of axis -> score nudges based on follower counts
+    and social media behavior checkboxes. scores are in [-1, 1] range
+    where -1 is strong first label (E/N/T/J) and +1 is strong second (I/S/F/P).
+    """
+    nudges = {"E_I": 0.0}
+
+    # follower count thresholds for E/I
+    # positive = I lean, negative = E lean
+    if followers is not None:
+        try:
+            f = int(followers)
+            if f < 100:
+                nudges["E_I"] += 0.8   # strong I signal
+            elif f < 500:
+                nudges["E_I"] += 0.4   # mild I
+            elif f < 800:
+                nudges["E_I"] += 0.0   # no lean
+            elif f < 1500:
+                nudges["E_I"] -= 0.4   # mild E
+            else:
+                nudges["E_I"] -= 0.8   # strong E
+        except (ValueError, TypeError):
+            pass
+
+    # social media checkboxes
+    if social_media_checkboxes:
+        if "mostly a lurker" in social_media_checkboxes:
+            nudges["E_I"] += 0.25
+        if "posts a lot" in social_media_checkboxes:
+            nudges["E_I"] -= 0.25
+
+        # spam/close friends account: nudge depends on how many people are on it
+        # small list = more selective/private = introvert lean, big list = basically public = extravert lean
+        if "has a spam/close friends account" in social_media_checkboxes:
+            count = spam_friends_count  # comes from the number input below
+            if count is not None:
+                if count < 10:
+                    nudges["E_I"] += 0.4
+                elif count < 50:
+                    nudges["E_I"] += 0.2
+                elif count <= 80:
+                    pass
+                elif count <= 110:
+                    nudges["E_I"] -= 0.2
+                else:
+                    nudges["E_I"] -= 0.4
+
+        # clamp to [-1, 1]
+        for k in nudges:
+            nudges[k] = max(-1.0, min(1.0, nudges[k]))
+
+        return nudges
+
+
+def classify_text(text):
+    """
+    run zero-shot classification on each axis separately.
+    returns dict of axis -> (winning_key, confidence_pct, is_ambiguous)
+    """
+    if not text or not text.strip():
         return None
 
-    scores = {}
-    for axis, config in AXES.items():
-        result = classifier(
-            combined_text,
-            candidate_labels=config["labels"],
-            # "the text suggests" is way more stable than "this person is"
-            # because the model is reading evidence, not making a leap about identity
-            hypothesis_template="the text suggests the author {}."
+    clf = get_classifier()
+    results = {}
+
+    for axis_name, axis_data in AXES.items():
+        labels = axis_data["labels"]
+        keys = axis_data["keys"]
+
+        # hypothesis template matters a lot here
+        output = clf(
+            text,
+            candidate_labels=labels,
+            hypothesis_template="the text suggests the author {}.",
+            multi_label=False
         )
-        key0, key1 = config["keys"]
-        s0 = round(result["scores"][0] * 100, 1)
-        s1 = round(result["scores"][1] * 100, 1)
 
-        # gap under 8 points = noise, just call it even
-        if abs(s0 - s1) < 8:
-            scores[axis] = {key0: 50.0, key1: 50.0, "ambiguous": True}
-        else:
-            scores[axis] = {key0: s0, key1: s1}
-    return scores
+        # map back to our keys
+        label_to_key = dict(zip(labels, keys))
+        scored = {label_to_key[l]: s * 100 for l, s in zip(output["labels"], output["scores"])}
 
-def numeric_signals(followers, following):
-    # soft signals only, these just nudge the final score a little
-    signals = {}
+        winner = max(scored, key=scored.get)
+        loser = min(scored, key=scored.get)
+        gap = scored[winner] - scored[loser]
+        is_ambiguous = gap < AMBIGUITY_THRESHOLD
 
-    # high follower/following ratio = selective about who they follow = mild i lean
-    if followers and following and following > 0:
-        ratio = followers / following
-        signals["E_I_numeric"] = "I" if ratio > 2 else "E"
-
-    return signals
-
-def fuse_scores(text_scores, photo_nudges, numeric_sigs):
-    # combines all three sources into one score per axis
-    # text gives us a 0-100 float, photo and numeric give us a letter nudge
-    # we convert the nudges into a small score boost and blend everything
-
-    axis_map = ["E_I", "N_S", "T_F", "J_P"]
-    final_scores = {}
-
-    for axis in axis_map:
-        # start with text scores (already 0-100)
-        text = text_scores[axis]
-        letters = list(text.keys())
-        first, second = letters[0], letters[1]
-
-        # convert to a single number where positive = first letter, negative = second
-        # e.g. E_I: positive = E leaning, negative = I leaning
-        text_lean = (text[first] - text[second]) * WEIGHTS["text"]
-
-        # photo nudge -- adds or subtracts a small flat amount
-        photo_lean = 0
-        if axis in photo_nudges:
-            photo_lean = 15 if photo_nudges[axis] == first else -15
-        photo_lean *= WEIGHTS["photo"]
-
-        # numeric nudge -- same idea, smaller effect
-        numeric_lean = 0
-        if axis == "E_I":
-            if "E_I_numeric" in numeric_sigs:
-                numeric_lean = 10 if numeric_sigs["E_I_numeric"] == first else -10
-            numeric_lean *= WEIGHTS["numeric"]
-
-        total = text_lean + photo_lean + numeric_lean
-
-        # convert back to per-letter confidence scores
-        # total > 0 means first letter wins, < 0 means second wins
-        first_score = round(50 + (total / 2), 1)
-        second_score = round(100 - first_score, 1)
-
-        final_scores[axis] = {
-            first: max(0, min(100, first_score)),
-            second: max(0, min(100, second_score)),
-            "winner": first if total > 0 else second
+        results[axis_name] = {
+            "winner": winner,
+            "confidence": scored[winner],
+            "gap": gap,
+            "is_ambiguous": is_ambiguous,
+            "scores": scored
         }
 
-    return final_scores
-
-def get_mbti_type(final_scores):
-    # just reads the winner from each axis
-    return "".join(final_scores[axis]["winner"] for axis in ["E_I", "N_S", "T_F", "J_P"])
-
-def analyze(bio, captions, dms, music, opinions, followers, following, profile_photo_path=None):
-    # main function that ties everything together
-    combined_text = assemble_text(bio, captions, dms, music, opinions)
-    text_scores = classify_text(combined_text) if combined_text.strip() else {}
-
-    photo_nudges = {}
-    photo_signals = None
-    if profile_photo_path:
-        profile_signals = analyze_profile_photo(profile_photo_path)
-        photo_nudges = photo_to_mbti_signals(profile_signals)
-        photo_signals = profile_signals
-
-    numeric_sigs = numeric_signals(followers, following)
-
-    if not text_scores:
-        return None, None, None
-
-    final_scores = fuse_scores(text_scores, photo_nudges, numeric_sigs)
-    mbti_type = get_mbti_type(final_scores)
-
-    return mbti_type, final_scores, photo_signals
+    return results
 
 
-# quick test to make sure fusion is working
-if __name__ == "__main__":
-    mbti, scores, photo = analyze(
-        bio="living slowly, thinking deeply 🌿 | philosophy student | coffee always",
-        captions="some days are just for sitting with it. new city, same soul. quiet mornings > everything",
-        dms="idk i just feel like people drain me sometimes lol. i'd rather just stay in",
-        music="sufjan stevens, phoebe bridgers, that one arctic monkeys album everyone has a phase about",
-        opinions="",
-        followers=800,
-        following=300,
-        profile_photo_path=None
+def blend_signals(text_results, photo_results, numeric_nudges):
+    """
+    combine text, photo, and numeric signals using weighted blending.
+    
+    text_results: output from classify_text()
+    photo_results: dict from photo_analysis.py, or None
+    numeric_nudges: dict from numeric_signals()
+    
+    returns final axis decisions as dict
+    """
+    final = {}
+
+    for axis_name, axis_data in AXES.items():
+        keys = axis_data["keys"]  # i.e. ["E", "I"]
+
+        # start with text scores (in 0-100 range)
+        if text_results and axis_name in text_results:
+            text_scores = text_results[axis_name]["scores"]
+            # convert to [-1, 1] where -1 = first key, +1 = second key
+            text_val = (text_scores[keys[1]] - text_scores[keys[0]]) / 100.0
+        else:
+            text_val = 0.0
+
+        # photo signal: only E_I and T_F are affected
+        photo_val = 0.0
+        if photo_results:
+            if axis_name == "E_I" and "E_I" in photo_results:
+                photo_val = photo_results["E_I"]  # expected in [-1, 1]
+            elif axis_name == "T_F" and "T_F" in photo_results:
+                photo_val = photo_results["T_F"]
+
+        # numeric nudges (already in [-1, 1])
+        numeric_val = numeric_nudges.get(axis_name, 0.0)
+
+        # weighted blend
+        has_photo = photo_results is not None and axis_name in photo_results
+        if has_photo:
+            blended = (
+                text_val * TEXT_WEIGHT +
+                photo_val * PHOTO_WEIGHT +
+                numeric_val * NUMERIC_WEIGHT
+            )
+        else:
+            # redistribute photo weight to text when no photo
+            adjusted_text_w = TEXT_WEIGHT + PHOTO_WEIGHT
+            adjusted_numeric_w = NUMERIC_WEIGHT
+            total = adjusted_text_w + adjusted_numeric_w
+            blended = (
+                text_val * (adjusted_text_w / total) +
+                numeric_val * (adjusted_numeric_w / total)
+            )
+
+        # convert back to confidence percentages
+        # blended is in [-1, 1] where negative = first key, positive = second key
+        second_key_pct = (blended + 1) / 2 * 100
+        first_key_pct = 100 - second_key_pct
+
+        winner = keys[0] if first_key_pct > second_key_pct else keys[1]
+        winner_pct = max(first_key_pct, second_key_pct)
+        gap = abs(first_key_pct - second_key_pct)
+        is_ambiguous = gap < AMBIGUITY_THRESHOLD
+
+        final[axis_name] = {
+            "winner": winner,
+            "confidence": winner_pct,
+            "gap": gap,
+            "is_ambiguous": is_ambiguous,
+            "scores": {keys[0]: first_key_pct, keys[1]: second_key_pct}
+        }
+
+    return final
+
+
+def predict_mbti(
+    spotify_artists="",
+    humor_types=None,
+    punctuality=None,
+    group_archetypes=None,
+    what_they_talk_about="",
+    weekend_activities="",
+    text_length_slider=3,
+    texting_style=None,
+    stress_triggers="",
+    party_vibe="",
+    fav_media="",
+    followers=None,
+    following=None,
+    social_media_checkboxes=None,
+    photo_results=None
+):
+    """
+    main entry point. takes all inputs, runs classification, returns
+    the predicted type and per-axis breakdown.
+    """
+    # build the text blob
+    text = assemble_text(
+        spotify_artists=spotify_artists,
+        humor_types=humor_types or [],
+        punctuality=punctuality,
+        group_archetypes=group_archetypes or [],
+        what_they_talk_about=what_they_talk_about,
+        weekend_activities=weekend_activities,
+        text_length_slider=text_length_slider,
+        texting_style=texting_style or [],
+        stress_triggers=stress_triggers,
+        party_vibe=party_vibe,
+        fav_media=fav_media
     )
-    print("final scores:")
-    for axis, data in scores.items():
-        print(f"  {axis}: {data}")
-    print(f"\npredicted type: {mbti}")
+
+    if not text.strip():
+        return None, "fill in at least a few fields to get a prediction!"
+
+    # classify text
+    text_results = classify_text(text)
+
+    # numeric signals
+    numeric_nudges = numeric_signals(followers, following, social_media_checkboxes or [])
+
+    # blend everything together
+    final_results = blend_signals(text_results, photo_results, numeric_nudges)
+
+    # build the type string
+    axis_order = ["E_I", "N_S", "T_F", "J_P"]
+    type_letters = []
+    for axis in axis_order:
+        r = final_results[axis]
+        if r["is_ambiguous"]:
+            type_letters.append("?")
+        else:
+            type_letters.append(r["winner"])
+
+    mbti_type = "".join(type_letters)
+
+    return mbti_type, final_results

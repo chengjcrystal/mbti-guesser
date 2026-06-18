@@ -1,309 +1,343 @@
-import gradio as gr
-from app import analyze
+"""
+ui.py
 
-TYPE_DESCRIPTIONS = {
-    "INTJ": "the architect — strategic, private, driven by long-term vision.",
-    "INTP": "the thinker — logical, curious, lives entirely inside their own head.",
-    "ENTJ": "the commander — decisive, ambitious, natural at taking charge.",
-    "ENTP": "the debater — quick-witted, loves ideas, always playing devil's advocate.",
-    "INFJ": "the advocate — deeply empathetic, idealistic, intense inner world.",
-    "INFP": "the mediator — values-driven, creative, feels everything deeply.",
-    "ENFJ": "the protagonist — warm, charismatic, genuinely invested in people.",
-    "ENFP": "the campaigner — enthusiastic, imaginative, sees potential everywhere.",
-    "ISTJ": "the logistician — reliable, detail-oriented, gets things done quietly.",
-    "ISFJ": "the defender — caring, loyal, remembers everything about everyone.",
-    "ESTJ": "the executive — organized, traditional, natural at running things.",
-    "ESFJ": "the consul — warm, social, puts everyone else first.",
-    "ISTP": "the virtuoso — calm under pressure, hands-on, figures things out by doing.",
-    "ISFP": "the adventurer — gentle, artistic, lives fully in the present.",
-    "ESTP": "the entrepreneur — bold, observant, learns by jumping in.",
-    "ESFP": "the entertainer — spontaneous, fun, lights up every room.",
-}
-
-PINK = "#B8607A"
-PINK_DARK = "#9B4F5E"
-CREAM = "#F5EDE3"
-BROWN = "#6B4A4A"
-NEAR_BLACK = "#1A1010"
-BORDER = "#DFC4C9"
-BORDER_INPUT = "#CBADB3"
-
-def section_label(text, extra_style=""):
-    return f"""
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;{extra_style}">
-        <span style="font-size:9px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:{PINK_DARK};white-space:nowrap;font-family:'DM Sans',sans-serif;">{text}</span>
-        <div style="flex:1;height:1px;background:{BORDER};"></div>
-    </div>
-    """
-
-def run_analysis(bio, captions, dms, music, opinions, followers, following, profile_photo):
-    if not bio or not bio.strip():
-        return (
-            f"<div style='text-align:center;font-size:13px;color:{PINK_DARK};padding:32px;font-family:DM Sans,sans-serif;'>drop in at least an instagram bio to get started ✦</div>",
-            "", "", ""
-        )
-    try:
-        mbti_type, final_scores, photo_signals = analyze(
-            bio=bio,
-            captions=captions,
-            dms=dms,
-            music=music,
-            opinions=opinions,
-            followers=int(followers) if followers else 0,
-            following=int(following) if following else 0,
-            profile_photo_path=profile_photo,
-        )
-
-        if not mbti_type:
-            return f"<div style='text-align:center;font-size:13px;color:{PINK_DARK};padding:32px;'>couldn't generate a result -- try adding more text.</div>", "", "", ""
-
-        description = TYPE_DESCRIPTIONS.get(mbti_type, "")
-
-        result_html = f"""
-        <div style='text-align:center;padding:44px 0 28px;'>
-            <div style='font-family:"Playfair Display",serif;font-size:clamp(72px,12vw,140px);font-weight:900;font-style:italic;color:{PINK};line-height:1;letter-spacing:-0.03em;'>{mbti_type}</div>
-            <div style='font-size:15px;font-weight:400;color:{BROWN};margin-top:14px;letter-spacing:0.01em;font-family:"DM Sans",sans-serif;'>{description}</div>
-        </div>
-        """
-
-        axis_labels = {"E_I": ("E", "I"), "N_S": ("N", "S"), "T_F": ("T", "F"), "J_P": ("J", "P")}
-        breakdown_html = "<div style='display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:8px;'>"
-        for axis, (a, b) in axis_labels.items():
-            scores = final_scores[axis]
-            winner = scores["winner"]
-            winner_score = scores[winner]
-            loser = b if winner == a else a
-            a_color = PINK if winner == a else "#D4B4BA"
-            b_color = PINK if winner == b else "#D4B4BA"
-            breakdown_html += f"""
-            <div style='border:1px solid {BORDER};border-radius:14px;padding:22px;'>
-                <div style='display:flex;align-items:center;gap:12px;margin-bottom:14px;'>
-                    <span style='font-family:"Playfair Display",serif;font-size:26px;font-weight:700;font-style:italic;color:{a_color};'>{a}</span>
-                    <span style='font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#BBA5A5;font-family:"DM Sans",sans-serif;'>vs</span>
-                    <span style='font-family:"Playfair Display",serif;font-size:26px;font-weight:700;font-style:italic;color:{b_color};'>{b}</span>
-                </div>
-                <div style='height:3px;background:#E8D0D4;border-radius:100px;overflow:hidden;margin-bottom:9px;'>
-                    <div style='height:100%;width:{winner_score}%;background:{PINK};border-radius:100px;'></div>
-                </div>
-                <div style='font-size:11px;font-weight:400;color:#9B7A7A;letter-spacing:0.03em;font-family:"DM Sans",sans-serif;'>{winner} — {winner_score}% confidence</div>
-            </div>
-            """
-        breakdown_html += "</div>"
-
-        photo_html = ""
-        if photo_signals:
-            def row(label, val):
-                return f"<div style='display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #EDD8DC;font-size:12px;font-family:DM Sans,sans-serif;'><span style='font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#9B7A7A;'>{label}</span><span style='color:{NEAR_BLACK};font-weight:400;'>{val}</span></div>"
-
-            photo_html = f"<div style='border:1px solid {BORDER};border-radius:14px;padding:22px;margin-top:8px;'>"
-            photo_html += row("photo type", photo_signals.get("photo_type", "unknown"))
-            photo_html += row("composition", photo_signals.get("solo_or_group", "unknown"))
-            photo_html += row("vibe", photo_signals.get("photo_vibe", "unknown"))
-            photo_html += row("tone", photo_signals.get("color_tone", "unknown"))
-            if photo_signals.get("face_detected"):
-                photo_html += row("emotion", photo_signals.get("dominant_emotion", "unknown"))
-            else:
-                photo_html += row("face", "hidden, cartoon, or no face found")
-            photo_html = photo_html.rstrip("</div>") + "</div>"
-            photo_html += "</div>"
-
-        return result_html, breakdown_html, photo_html, ""
-
-    except Exception as e:
-        return f"<div style='text-align:center;font-size:13px;color:{PINK_DARK};padding:32px;'>something went wrong: {str(e)}</div>", "", "", ""
-
-
-custom_css = """
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body, .gradio-container {
-    background-color: #F5EDE3 !important;
-    font-family: 'DM Sans', sans-serif !important;
-    color: #1A1010 !important;
-}
-
-.gradio-container > .main > .wrap {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 2rem;
-}
-
-footer { display: none !important; }
-
-.gradio-container .form,
-.gradio-container .gap,
-.gradio-container .block,
-.gradio-container .panel,
-.gradio-container .wrap,
-.gradio-container .border-none,
-.gradio-container .bg-white,
-.gradio-container .gr-box,
-.gradio-container .gr-panel {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-.gradio-container textarea,
-.gradio-container input[type=number],
-.gradio-container input[type=text] {
-    background: transparent !important;
-    border: 1.5px solid #CBADB3 !important;
-    border-radius: 10px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 14px !important;
-    color: #1A1010 !important;
-    padding: 13px 15px !important;
-    transition: border-color 0.2s ease !important;
-    box-shadow: none !important;
-}
-
-.gradio-container textarea:focus,
-.gradio-container input:focus {
-    border-color: #B8607A !important;
-    outline: none !important;
-    box-shadow: 0 0 0 3px rgba(184, 96, 122, 0.1) !important;
-}
-
-.gradio-container label span,
-.gradio-container .label-wrap span {
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.14em !important;
-    color: #6B4A4A !important;
-    text-transform: uppercase !important;
-}
-
-.gradio-container .upload-container,
-.gradio-container [data-testid="image"] {
-    border: 1.5px dashed #CBADB3 !important;
-    border-radius: 10px !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.gradio-container button.primary {
-    background: #1A1010 !important;
-    color: #F5EDE3 !important;
-    font-family: 'DM Sans', sans-serif !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.14em !important;
-    text-transform: uppercase !important;
-    border: none !important;
-    border-radius: 100px !important;
-    padding: 17px 52px !important;
-    cursor: pointer !important;
-    transition: all 0.25s ease !important;
-    box-shadow: none !important;
-}
-
-.gradio-container button.primary:hover {
-    background: #B8607A !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 10px 28px rgba(184, 96, 122, 0.3) !important;
-}
-
-.gradio-container .output-html,
-.gradio-container [data-testid="html"] {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-}
-
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes popIn {
-    from { opacity: 0; transform: scale(0.75); }
-    to { opacity: 1; transform: scale(1); }
-}
+gradio interface for the mbti guesser. no quiz, no personality test vibes,
+just tell me about your friend and we'll figure it out.
 """
 
-with gr.Blocks(css=custom_css, title="mbti guesser") as demo:
+import gradio as gr
+from app import predict_mbti
+from photo_analysis import analyze_photo
 
-    gr.HTML("""
-    <div style='text-align:center;padding:80px 0 60px;animation:fadeUp 0.9s ease both;'>
-        <div style='font-size:10px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:#9B4F5E;margin-bottom:18px;font-family:"DM Sans",sans-serif;'>digital footprint analysis</div>
-        <div style='font-family:"Playfair Display",serif;font-size:clamp(64px,10vw,120px);font-weight:900;line-height:0.93;color:#1A1010;letter-spacing:-0.03em;margin-bottom:22px;'>read the<br><em style="font-style:italic;color:#B8607A;">room.</em></div>
-        <div style='font-size:15px;font-weight:400;color:#6B4A4A;max-width:420px;margin:0 auto;line-height:1.75;font-family:"DM Sans",sans-serif;'>paste in someone's online presence. get a personality read. no quiz, just signal.</div>
-    </div>
-    """)
+# descriptions for all 16 types
+MBTI_DESCRIPTIONS = {
+    "INTJ": "the architect — strategic, private, and always three steps ahead.",
+    "INTP": "the logician — lives in their head, loves a rabbit hole, skeptical of most things.",
+    "ENTJ": "the commander — natural leader, very sure of themselves, not always nice about it.",
+    "ENTP": "the debater — argues for fun, gets bored easily, full of ideas they won't follow through on.",
+    "INFJ": "the advocate — intense, private, somehow knows what you're thinking before you do.",
+    "INFP": "the mediator — idealistic, emotional, writes in their notes app at 2am.",
+    "ENFJ": "the protagonist — makes everyone feel seen, over-commits to plans, cries at ads.",
+    "ENFP": "the campaigner — energetic, all over the place, starts things they don't finish.",
+    "ISTJ": "the logistician — reliable to a fault, rule-follower, shows love through acts of service.",
+    "ISFJ": "the defender — takes care of everyone, forgets to take care of themselves.",
+    "ESTJ": "the executive — has a spreadsheet for everything, does not understand why you don't.",
+    "ESFJ": "the consul — the friend group mom, needs approval, genuinely warm.",
+    "ISTP": "the virtuoso — quiet but mechanically gifted, not big on feelings, very competent.",
+    "ISFP": "the adventurer — gentle, artistic, keeps their real thoughts to themselves.",
+    "ESTP": "the entrepreneur — impulsive, charismatic, probably dares you to do stuff.",
+    "ESFP": "the entertainer — the most fun person in the room, no plans, all vibes.",
+}
 
-    with gr.Row():
-        with gr.Column(scale=3):
-            gr.HTML(section_label("text signals"))
+AXIS_LABELS = {
+    "E_I": ("E", "I", "extraversion vs introversion"),
+    "N_S": ("N", "S", "intuition vs sensing"),
+    "T_F": ("T", "F", "thinking vs feeling"),
+    "J_P": ("J", "P", "judging vs perceiving"),
+}
 
-            bio = gr.Textbox(
-                label="instagram bio ✦ required",
-                placeholder="she/her | manifesting",
-                lines=2
+def format_results(mbti_type, axis_results):
+    """turn the prediction output into readable gradio markdown."""
+    if axis_results is None:
+        return "## couldn't get a prediction\n\nfill in a few more fields and try again!"
+
+    # header
+    lines = []
+
+    # type badge
+    type_display = mbti_type if "?" not in mbti_type else mbti_type
+    desc = MBTI_DESCRIPTIONS.get(mbti_type, "a rare or ambiguous type, interesting.")
+
+    lines.append(f"# {type_display}")
+    if mbti_type in MBTI_DESCRIPTIONS:
+        lines.append(f"*{desc}*")
+    else:
+        lines.append(f"*some axes were ambiguous, see breakdown below.*")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append("### axis breakdown")
+    lines.append("")
+
+    axis_order = ["E_I", "N_S", "T_F", "J_P"]
+    for axis in axis_order:
+        r = axis_results[axis]
+        first_key, second_key, axis_name = AXIS_LABELS[axis]
+
+        if r["is_ambiguous"]:
+            lines.append(
+                f"**{first_key}/{second_key}** ({axis_name}): **?** — "
+                f"not enough signal to call this one (gap: {r['gap']:.1f}pts)"
             )
-            captions = gr.Textbox(
-                label="recent captions",
-                placeholder="paste 5-10 captions",
-                lines=4
-            )
-            dms = gr.Textbox(
-                label="texts or dms",
-                placeholder="paste messages sent",
-                lines=3
+        else:
+            winner = r["winner"]
+            conf = r["confidence"]
+            lines.append(
+                f"**{first_key}/{second_key}** ({axis_name}): **{winner}** — {conf:.1f}% confidence"
             )
 
-            gr.HTML(section_label("more signals", "margin-top:28px;"))
+    return "\n".join(lines)
 
-            music = gr.Textbox(
-                label="spotify or music taste",
-                placeholder="top artists, a playlist name, wrapped screenshot description",
-                lines=2
-            )
-            opinions = gr.Textbox(
-                label="twitter, reddit, or any unfiltered takes",
-                placeholder="tweets, reddit comments, discord rants",
-                lines=3
-            )
 
-        with gr.Column(scale=2):
-            gr.HTML(section_label("the numbers"))
+def run_prediction(
+    spotify_artists,
+    humor_types,
+    punctuality,
+    group_archetypes,
+    what_they_talk_about,
+    weekend_activities,
+    text_length_slider,
+    texting_style,
+    stress_triggers,
+    party_vibe,
+    fav_media,
+    followers,
+    following,
+    social_media_checkboxes,
+    photo
+):
+    # handle photo if provided
+    photo_results = None
+    if photo is not None:
+        try:
+            photo_results = analyze_photo(photo)
+        except Exception as e:
+            print(f"photo analysis errored: {e}")
 
-            with gr.Row():
-                followers = gr.Number(label="followers", value=0)
-                following = gr.Number(label="following", value=0)
-
-            gr.HTML(section_label("profile photo — optional", "margin-top:28px;"))
-            profile_photo = gr.Image(label="profile photo", type="filepath")
-
-    gr.HTML("<div style='text-align:center;padding:40px 0 20px;'>")
-    analyze_btn = gr.Button("analyze ↗", variant="primary")
-    gr.HTML("</div>")
-
-    gr.HTML("<hr style='border:none;border-top:1px solid #DFC4C9;margin:48px 0;'>")
-
-    gr.HTML(f"<div style='font-family:\"Playfair Display\",serif;font-size:13px;font-style:italic;color:{PINK_DARK};letter-spacing:0.04em;margin-bottom:4px;'>your read</div>")
-
-    result_type = gr.HTML()
-
-    with gr.Row():
-        with gr.Column():
-            gr.HTML(section_label("axis confidence"))
-            result_breakdown = gr.HTML()
-        with gr.Column():
-            gr.HTML(section_label("photo read"))
-            result_photo = gr.HTML()
-
-    result_error = gr.HTML(visible=False)
-
-    analyze_btn.click(
-        fn=run_analysis,
-        inputs=[bio, captions, dms, music, opinions, followers, following, profile_photo],
-        outputs=[result_type, result_breakdown, result_photo, result_error]
+    # run prediction
+    mbti_type, axis_results = predict_mbti(
+        spotify_artists=spotify_artists or "",
+        humor_types=humor_types or [],
+        punctuality=punctuality,
+        group_archetypes=group_archetypes or [],
+        what_they_talk_about=what_they_talk_about or "",
+        weekend_activities=weekend_activities or "",
+        text_length_slider=int(text_length_slider) if text_length_slider else 3,
+        texting_style=texting_style or [],
+        stress_triggers=stress_triggers or "",
+        party_vibe=party_vibe or "",
+        fav_media=fav_media or "",
+        followers=followers,
+        following=following,
+        social_media_checkboxes=social_media_checkboxes or [],
+        photo_results=photo_results
     )
 
+    if axis_results is None:
+        return "fill in at least a few fields to get a prediction!"
+
+    return format_results(mbti_type, axis_results)
+
+
+# ----- BUILDING INTERFACE -----
+
+with gr.Blocks(
+    title="mbti guesser",
+    theme=gr.themes.Soft(),
+    css="""
+    .gradio-container { max-width: 860px !important; margin: 0 auto; }
+    h1 { font-size: 2rem !important; }
+    .result-box { font-size: 1.05rem; line-height: 1.7; }
+    """
+) as demo:
+    gr.Markdown(
+        """
+        # mbti guesser
+        tell me about your friend (or your crush, no judgment). no quiz, no personality test.
+        just describe them and we'll figure out their type.
+        """
+    )
+
+    with gr.Row():
+        with gr.Column(scale=2):
+
+            gr.Markdown("### the basics")
+
+            spotify_artists = gr.Textbox(
+                label="spotify top artists",
+                placeholder="e.g. mitski, brockhampton, clairo, glass animals",
+                info="their music taste says a lot; what are they always listening to?"
+            )
+
+            humor_types = gr.CheckboxGroup(
+                label="their humor",
+                choices=["dry", "chaotic", "wholesome", "dark", "sarcastic", "surreal", "self-deprecating"],
+                info="check everything that fits"
+            )
+
+            punctuality = gr.Radio(
+                label="early, on time, or always late?",
+                choices=["always early", "on time", "always late"],
+                info="their default setting"
+            )
+
+            group_archetypes = gr.CheckboxGroup(
+                label="what's their role in the friend group?",
+                choices=[
+                    "The Mom (plans everything)",
+                    "The Chaos Agent",
+                    "The Researcher (googles before anyone asks)",
+                    "The Therapist Friend",
+                    "The Flake",
+                    "The Hype Person",
+                    "The Background One",
+                    "The Realist"
+                ],
+                info="can pick more than one"
+            )
+
+            gr.Markdown("### what they're like")
+
+            what_they_talk_about = gr.Textbox(
+                label="what do they talk about most?",
+                placeholder="e.g. theories about the show they're watching, local drama, their job, philosophy",
+                lines=2
+            )
+
+            weekend_activities = gr.Textbox(
+                label="how do they spend their weekends?",
+                placeholder="e.g. hiking alone, hosting people, working on a project, sleeping, random errands",
+                lines=2
+            )
+
+            stress_triggers = gr.Textbox(
+                label="what stresses them out?",
+                placeholder="e.g. last minute changes, conflict, being behind, too many obligations",
+                lines=2
+            )
+
+            party_vibe = gr.Textbox(
+                label="vibe at parties / what kind of drunk are they?",
+                placeholder="e.g. disappears to talk to one person all night, the center of everything, goes home early",
+                lines=2,
+                info="best indirect intro/extrovert signal"
+            )
+
+            fav_media = gr.Textbox(
+                label="favorite shows, movies, or books",
+                placeholder="e.g. succession, studio ghibli, crime podcasts, philosophy youtube",
+                lines=2
+            )
+
+            gr.Markdown("### how they text")
+
+            text_length_slider = gr.Slider(
+                minimum=1,
+                maximum=5,
+                step=1,
+                value=3,
+                label="how long are their texts?",
+                info="1 = one-word replies  |  5 = full essays"
+            )
+
+            texting_style = gr.CheckboxGroup(
+                label="texting style",
+                choices=[
+                    "quick replies",
+                    "slow replies",
+                    "emoji heavy",
+                    "no emoji",
+                    "all lowercase",
+                    "uses punctuation",
+                    "leaves people on read"
+                ]
+            )
+
+            gr.Markdown("### social media")
+
+            with gr.Row():
+                followers = gr.Number(
+                    label="follower count",
+                    precision=0,
+                    minimum=0,
+                    info="on their main account"
+                )
+                following = gr.Number(
+                    label="following count",
+                    precision=0,
+                    minimum=0
+                )
+
+            social_media_checkboxes = gr.CheckboxGroup(
+                label="social media behavior",
+                choices=[
+                    "posts a lot",
+                    "mostly a lurker",
+                    "stories person",
+                    "feed poster",
+                    "has a spam/close friends account"
+                ]
+            )
+
+            # shows up only if they checked the spam account box
+            spam_friends_count = gr.Number(
+                label="how many people are on their close friends/spam list?",
+                minimum=0,
+                visible=False,
+                info="under 10 = very private, 110+ = basically a second public account"
+            )
+
+            # toggle the count input based on whether spam account is checked
+            social_media_checkboxes.change(
+                fn=lambda choices: gr.update(visible="has a spam/close friends account" in choices),
+                inputs=social_media_checkboxes,
+                outputs=spam_friends_count
+            )
+
+            gr.Markdown("### photo (optional)")
+
+            photo = gr.Image(
+                label="drop a photo of them: profile pic, tagged photo, anything works",
+                type="filepath",
+                sources=["upload", "clipboard"],
+                height=200
+            )
+
+            gr.Markdown(
+                "_photo is analyzed locally using deepface and opencv. "
+                "we look at facial expression, whether it's a group or solo photo, "
+                "and background context._"
+            )
+
+            submit_btn = gr.Button("figure out their type", variant="primary", size="lg")
+
+        with gr.Column(scale=1):
+            gr.Markdown("### result")
+            output = gr.Markdown(
+                value="*fill in the fields and hit the button.*",
+                elem_classes=["result-box"]
+            )
+
+    submit_btn.click(
+        fn=run_prediction,
+        inputs=[
+            spotify_artists,
+            humor_types,
+            punctuality,
+            group_archetypes,
+            what_they_talk_about,
+            weekend_activities,
+            text_length_slider,
+            texting_style,
+            stress_triggers,
+            party_vibe,
+            fav_media,
+            followers,
+            following,
+            social_media_checkboxes,
+            photo
+        ],
+        outputs=output
+    )
+
+    gr.Markdown(
+        """
+        ---
+        *predictions are based on zero-shot classification using facebook/bart-large-mnli.
+        if an axis shows "?" it means the signal wasn't strong enough to call it either way.*
+        """
+    )
+
+
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=False)
