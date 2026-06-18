@@ -98,7 +98,7 @@ def format_results(mbti_type, axis_results):
 
     return f"""
 <div class="result-wrap">
-  <span class="result-eyebrow">✦ predicted type</span>
+  <span class="result-eyebrow">˚₊· ͟͟͞͞➳ predicted type</span>
   <div class="result-type-row">{badges}</div>
   <div class="result-title-label">{title}</div>
   <p class="result-desc">{desc}</p>
@@ -205,7 +205,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
 
     gr.HTML("""
     <div class="mbti-hero">
-      <span class="hero-eyebrow">mbti guesser</span>
+      <span class="hero-eyebrow">˚₊· ͟͟͞͞➳ mbti guesser</span>
       <h1 class="hero-title">who are they, <em>really?</em></h1>
       <p class="hero-sub">describe anyone and we'll figure out their mbti type.</p>
     </div>
@@ -253,7 +253,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
                 lines=2,
             )
             party_vibe = gr.Textbox(
-                label="vibe at parties — or what kind of drunk are they?",
+                label="vibe at parties / what kind of drunk are they?",
                 placeholder="disappears to talk to one person, center of attention, goes home early…",
                 lines=2,
             )
