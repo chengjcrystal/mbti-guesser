@@ -1,7 +1,7 @@
 from transformers import pipeline
 import re
 
-# axis definitions 
+# axis definitions
 AXES = {
     "E_I": {
         "labels": [
@@ -107,7 +107,7 @@ def assemble_text(
         2: "Their texts are short and to the point.",
         3: "They write average-length texts, not too short or too long.",
         4: "They tend to write long texts with a lot of detail.",
-        5: "They send full essays -> their texts are extremely long and detailed."
+        5: "They send full essays: their texts are extremely long and detailed."
     }
     if text_length_slider and int(text_length_slider) in text_length_descriptions:
         parts.append(text_length_descriptions[int(text_length_slider)])
@@ -129,7 +129,7 @@ def assemble_text(
     return " ".join(parts)
 
 
-def numeric_signals(followers, following, social_media_checkboxes):
+def numeric_signals(followers, following, social_media_checkboxes, spam_friends_count=None):
     """
     returns a dict of axis -> score nudges based on follower counts
     and social media behavior checkboxes. scores are in [-1, 1] range
@@ -162,27 +162,32 @@ def numeric_signals(followers, following, social_media_checkboxes):
         if "posts a lot" in social_media_checkboxes:
             nudges["E_I"] -= 0.25
 
-        # spam/close friends account: nudge depends on how many people are on it
-        # small list = more selective/private = introvert lean, big list = basically public = extravert lean
+        # spam/close friends account: nudge depends on list size
+        # small list = selective/private = I lean, big list = basically public = E lean
         if "has a spam/close friends account" in social_media_checkboxes:
-            count = spam_friends_count  # comes from the number input below
-            if count is not None:
-                if count < 10:
-                    nudges["E_I"] += 0.4
-                elif count < 50:
-                    nudges["E_I"] += 0.2
-                elif count <= 80:
-                    pass
-                elif count <= 110:
-                    nudges["E_I"] -= 0.2
-                else:
-                    nudges["E_I"] -= 0.4
+            if spam_friends_count is not None:
+                try:
+                    count = int(spam_friends_count)
+                    if count < 10:
+                        nudges["E_I"] += 0.4    # very small circle, very introverted
+                    elif count < 50:
+                        nudges["E_I"] += 0.2    # still pretty selective
+                    elif count <= 80:
+                        pass                     # neutral zone, no lean either way
+                    elif count <= 110:
+                        nudges["E_I"] -= 0.2    # getting pretty social
+                    else:
+                        nudges["E_I"] -= 0.4    # 110+ = basically a second public account
+                except (ValueError, TypeError):
+                    nudges["E_I"] += 0.3        # has account but count unknown = mild I default
+            else:
+                nudges["E_I"] += 0.3            # no count provided, still an I nudge
 
-        # clamp to [-1, 1]
-        for k in nudges:
-            nudges[k] = max(-1.0, min(1.0, nudges[k]))
+    # clamp to [-1, 1]
+    for k in nudges:
+        nudges[k] = max(-1.0, min(1.0, nudges[k]))
 
-        return nudges
+    return nudges
 
 
 def classify_text(text):
@@ -241,7 +246,7 @@ def blend_signals(text_results, photo_results, numeric_nudges):
     final = {}
 
     for axis_name, axis_data in AXES.items():
-        keys = axis_data["keys"]  # i.e. ["E", "I"]
+        keys = axis_data["keys"]  # e.g. ["E", "I"]
 
         # start with text scores (in 0-100 range)
         if text_results and axis_name in text_results:
@@ -316,6 +321,7 @@ def predict_mbti(
     followers=None,
     following=None,
     social_media_checkboxes=None,
+    spam_friends_count=None,
     photo_results=None
 ):
     """
@@ -344,7 +350,7 @@ def predict_mbti(
     text_results = classify_text(text)
 
     # numeric signals
-    numeric_nudges = numeric_signals(followers, following, social_media_checkboxes or [])
+    numeric_nudges = numeric_signals(followers, following, social_media_checkboxes or [], spam_friends_count)
 
     # blend everything together
     final_results = blend_signals(text_results, photo_results, numeric_nudges)
