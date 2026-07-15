@@ -8,3 +8,5 @@ sdk_version: 6.18.0
 app_file: ui.py
 pinned: false
 ---
+
+MIT licensed, see [LICENSE](LICENSE).
