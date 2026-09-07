@@ -111,14 +111,6 @@ footer, .built-with { display: none !important; }
 }
 
 /* ── result panel HTML ── */
-.result-placeholder {
-  text-align: center;
-  color: #C9B4B4;
-  font-size: 14px;
-  font-weight: 300;
-  padding: 32px 0;
-  line-height: 1.8;
-}
 .result-empty { font-size: 13px; color: #A08888; line-height: 1.6; }
 
 .result-wrap { font-family: 'DM Sans', sans-serif; }
