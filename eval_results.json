@@ -1,0 +1,142 @@
+{
+  "E_I": {
+    "accuracy": 1.0,
+    "n": 4,
+    "rows": [
+      {
+        "text": "They're always the one organizing group hangouts, thrives at parties, and talks to strangers easily. Being alone for too long leaves them restless.",
+        "expected": "E",
+        "got": "E",
+        "confidence": 99.8,
+        "correct": true
+      },
+      {
+        "text": "They love being the center of attention at any gathering and get their energy from being surrounded by people. Quiet nights alone bore them fast.",
+        "expected": "E",
+        "got": "E",
+        "confidence": 99.4,
+        "correct": true
+      },
+      {
+        "text": "They need a lot of alone time to recharge and find big parties exhausting. They'd rather have one deep conversation than work a whole room.",
+        "expected": "I",
+        "got": "I",
+        "confidence": 99.5,
+        "correct": true
+      },
+      {
+        "text": "Loud group settings overwhelm them, and they usually leave social events early to go home and decompress by themselves.",
+        "expected": "I",
+        "got": "I",
+        "confidence": 99.4,
+        "correct": true
+      }
+    ]
+  },
+  "N_S": {
+    "accuracy": 1.0,
+    "n": 4,
+    "rows": [
+      {
+        "text": "They love debating abstract theories and hypothetical futures, and get bored fast by step-by-step instructions. Always thinking about the big picture and hidden patterns.",
+        "expected": "N",
+        "got": "N",
+        "confidence": 99.7,
+        "correct": true
+      },
+      {
+        "text": "They're constantly speculating about what things could become, drawn to symbolism and possibility over anything concrete or literal.",
+        "expected": "N",
+        "got": "N",
+        "confidence": 99.4,
+        "correct": true
+      },
+      {
+        "text": "They're extremely detail-oriented and practical, and trust what they can directly observe over abstract theory. They want the specifics, not the big idea.",
+        "expected": "S",
+        "got": "S",
+        "confidence": 99.9,
+        "correct": true
+      },
+      {
+        "text": "They focus on facts and what's directly in front of them, and get impatient with vague hypotheticals that aren't grounded in something real.",
+        "expected": "S",
+        "got": "S",
+        "confidence": 99.7,
+        "correct": true
+      }
+    ]
+  },
+  "T_F": {
+    "accuracy": 1.0,
+    "n": 4,
+    "rows": [
+      {
+        "text": "They make decisions based on pure logic and facts, can come across as blunt, and value being correct over being liked.",
+        "expected": "T",
+        "got": "T",
+        "confidence": 99.9,
+        "correct": true
+      },
+      {
+        "text": "They approach conflict by picking apart the argument for logical flaws, not by considering how anyone might feel about it.",
+        "expected": "T",
+        "got": "T",
+        "confidence": 93.5,
+        "correct": true
+      },
+      {
+        "text": "They make decisions based on how it will affect people's feelings, are deeply empathetic, and prioritize harmony over being technically right.",
+        "expected": "F",
+        "got": "F",
+        "confidence": 99.9,
+        "correct": true
+      },
+      {
+        "text": "They can't stand seeing someone upset and will bend their own opinion to keep the peace and make sure everyone feels okay.",
+        "expected": "F",
+        "got": "F",
+        "confidence": 95.3,
+        "correct": true
+      }
+    ]
+  },
+  "J_P": {
+    "accuracy": 1.0,
+    "n": 4,
+    "rows": [
+      {
+        "text": "They love making lists and sticking to plans, get anxious when things are last-minute or disorganized, and crave closure and structure.",
+        "expected": "J",
+        "got": "J",
+        "confidence": 99.9,
+        "correct": true
+      },
+      {
+        "text": "They plan every trip down to the hour and get visibly stressed when a schedule falls apart.",
+        "expected": "J",
+        "got": "J",
+        "confidence": 99.4,
+        "correct": true
+      },
+      {
+        "text": "They're spontaneous and flexible, hate rigid schedules, and would rather keep their options open than commit to a fixed plan.",
+        "expected": "P",
+        "got": "P",
+        "confidence": 99.9,
+        "correct": true
+      },
+      {
+        "text": "They decide what to do that day when they wake up, and find detailed itineraries suffocating.",
+        "expected": "P",
+        "got": "P",
+        "confidence": 85.8,
+        "correct": true
+      }
+    ]
+  },
+  "overall": {
+    "accuracy": 1.0,
+    "n": 16
+  }
+}

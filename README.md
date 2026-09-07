@@ -26,7 +26,9 @@ No training data, no fine-tuning. Text goes through zero-shot NLI classification
 
 ## Honest Limitations
 
-This is a heuristic sketch, not a validated model. There's no labeled ground truth to check it against, so "accuracy" isn't a number that exists here. The confidence scores describe the model's certainty, not correctness. The numeric and photo signals in particular are hand-tuned nudges, not learned from data, and should be read as flavor on top of the text signal, not independent evidence.
+This is a heuristic sketch, not a validated model. There's no labeled ground truth for real profiles, so "accuracy on real people" isn't a number that exists here. The confidence scores describe the model's certainty, not correctness. The numeric and photo signals in particular are hand-tuned nudges, not learned from data, and should be read as flavor on top of the text signal, not independent evidence.
+
+What is checked (`eval_axes.py`): 16 hand-written test snippets, four per axis, each written to unambiguously describe one pole (e.g. a clearly extroverted description vs. a clearly introverted one). The text pipeline recovers the intended label on all 16, with a mean confidence above 97%. That confirms the classifier reads clear-cut text correctly, it says nothing about how it handles the ambiguous, real-world profiles this app is actually used on. Results are in `eval_results.json`.
 
 ## Run It
 
