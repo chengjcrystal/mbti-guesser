@@ -216,7 +216,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
             gr.HTML('<span class="section-label">the basics</span>')
             spotify_artists = gr.Textbox(
                 label="spotify top artists",
-                placeholder="olivia rodrigo, daniel ceasar, le sserafim, clairo…",
+                placeholder="olivia rodrigo, daniel caesar, le sserafim, clairo…",
             )
             humor_types = gr.CheckboxGroup(
                 label="their humor",

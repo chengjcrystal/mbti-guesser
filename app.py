@@ -84,7 +84,9 @@ def assemble_text(
     # punctuality radio -> sentence
     punctuality_map = {
         "always early": "They are always early and plan ahead.",
+        "usually early": "They tend to be early, but it's not a hard rule.",
         "on time": "They tend to show up right on time.",
+        "usually late": "They tend to run late, but it's not chronic.",
         "always late": "They are usually late and go with the flow."
     }
     if punctuality and punctuality in punctuality_map:
