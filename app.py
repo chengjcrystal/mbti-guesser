@@ -129,7 +129,7 @@ def assemble_text(
     return " ".join(parts)
 
 
-def numeric_signals(followers, following, social_media_checkboxes, spam_friends_count=None):
+def numeric_signals(followers, social_media_checkboxes, spam_friends_count=None):
     """
     returns a dict of axis -> score nudges based on follower counts
     and social media behavior checkboxes. scores are in [-1, 1] range
@@ -319,7 +319,6 @@ def predict_mbti(
     party_vibe="",
     fav_media="",
     followers=None,
-    following=None,
     social_media_checkboxes=None,
     spam_friends_count=None,
     photo_results=None
@@ -350,7 +349,7 @@ def predict_mbti(
     text_results = classify_text(text)
 
     # numeric signals
-    numeric_nudges = numeric_signals(followers, following, social_media_checkboxes or [], spam_friends_count)
+    numeric_nudges = numeric_signals(followers, social_media_checkboxes or [], spam_friends_count)
 
     # blend everything together
     final_results = blend_signals(text_results, photo_results, numeric_nudges)

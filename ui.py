@@ -112,7 +112,7 @@ def run_prediction(
     spotify_artists, humor_types, punctuality, group_archetypes,
     what_they_talk_about, weekend_activities, text_length_slider,
     texting_style, stress_triggers, party_vibe, fav_media,
-    followers, following, social_media_checkboxes, spam_friends_count, photo,
+    followers, social_media_checkboxes, spam_friends_count, photo,
 ):
     photo_results = None
     if photo is not None:
@@ -134,7 +134,6 @@ def run_prediction(
         party_vibe              = party_vibe or "",
         fav_media               = fav_media or "",
         followers               = followers,
-        following               = following,
         social_media_checkboxes = social_media_checkboxes or [],
         spam_friends_count      = spam_friends_count,
         photo_results           = photo_results,
@@ -278,9 +277,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
 
         with gr.Group():
             gr.HTML('<span class="section-label">social media</span>')
-            with gr.Row():
-                followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
-                following = gr.Number(label="following count", precision=0, minimum=0, info="main account")
+            followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
             social_media_checkboxes = gr.CheckboxGroup(
                 label="social media behavior",
                 choices=["posts a lot", "mostly a lurker", "stories person",
@@ -319,7 +316,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
             spotify_artists, humor_types, punctuality, group_archetypes,
             what_they_talk_about, weekend_activities, text_length_slider,
             texting_style, stress_triggers, party_vibe, fav_media,
-            followers, following, social_media_checkboxes, spam_friends_count, photo,
+            followers, social_media_checkboxes, spam_friends_count, photo,
         ],
         outputs=output,
     )
