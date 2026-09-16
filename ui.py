@@ -1,5 +1,5 @@
 """
-ui.py — mbti guesser
+ui.py: mbti guesser
 Gradio handles all layout. CSS only touches colors, fonts, and custom HTML blocks.
 """
 
@@ -44,7 +44,7 @@ def format_results(mbti_type, axis_results):
         return '<div class="result-empty">fill in a few more fields and try again.</div>'
 
     if "?" in mbti_type:
-        title, desc = "mixed signals", "a few axes didn't have enough signal — see the breakdown below."
+        title, desc = "mixed signals", "a few axes didn't have enough signal, see the breakdown below."
     else:
         title, desc = MBTI_DESCRIPTIONS.get(mbti_type, ("unknown type", "an unusual combination."))
 
