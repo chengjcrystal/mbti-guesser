@@ -69,16 +69,17 @@ def format_results(mbti_type, axis_results):
             ltr       = r["winner"]
             conf_txt  = f"{r['confidence']:.0f}%"
             desc_txt  = meta["desc"][meta["poles"].index(r["winner"])]
-            ltr_cls   = "axis-letter"
+            lean_cls  = "axis-lean-1" if r["winner"] == p0 else "axis-lean-2"
+            ltr_cls   = f"axis-letter {lean_cls}"
             pct       = max(0.0, min(100.0, (r["confidence"] - 50) / 50 * 100))
             if r["winner"] == p0:
                 bar_inner = (f'<div class="bar-half bar-half-left">'
-                             f'<div class="bar-fill bar-fill-left" style="width:{pct}%"></div></div>'
+                             f'<div class="bar-fill-left" style="width:{pct}%"></div></div>'
                              f'<div class="bar-half bar-half-right"></div>')
             else:
                 bar_inner = (f'<div class="bar-half bar-half-left"></div>'
                              f'<div class="bar-half bar-half-right">'
-                             f'<div class="bar-fill bar-fill-right" style="width:{pct}%"></div></div>')
+                             f'<div class="bar-fill-right" style="width:{pct}%"></div></div>')
 
         bars += f"""
 <div class="axis-row">
@@ -151,56 +152,64 @@ def run_prediction(
 # ── build a Soft theme that matches the palette ───────────────────────────────
 theme = gr.themes.Soft(
     primary_hue=gr.themes.Color(
-        c50="#fdf0f3", c100="#f9dce3", c200="#f2bac6", c300="#e896a9",
-        c400="#dc738d", c500="#C2758A", c600="#a85d72", c700="#8c475a",
-        c800="#703344", c900="#54202f", c950="#380f1c",
+        c50="#F2F1FC", c100="#E5E2FA", c200="#CBC5F4", c300="#AEA4EC",
+        c400="#8A7DE0", c500="#3D34B0", c600="#332B94", c700="#282178",
+        c800="#1E195C", c900="#141140", c950="#0A0821",
     ),
-    secondary_hue="rose",
-    neutral_hue="stone",
-    font=gr.themes.GoogleFont("DM Sans"),
-    font_mono=gr.themes.GoogleFont("DM Sans"),
+    secondary_hue="emerald",
+    neutral_hue="slate",
+    font=gr.themes.GoogleFont("IBM Plex Sans"),
+    font_mono=gr.themes.GoogleFont("IBM Plex Sans"),
 ).set(
-    body_background_fill="#F4EDE4",
-    body_background_fill_dark="#F4EDE4",
-    block_background_fill="#FDFAF7",
-    block_border_color="#EDD5DC",
+    body_background_fill="#F3F4FA",
+    body_background_fill_dark="#F3F4FA",
+    block_background_fill="#FFFFFF",
+    block_border_color="#E1E3EE",
     block_border_width="1px",
-    block_radius="16px",
+    block_radius="14px",
     block_shadow="none",
     block_label_text_size="sm",
-    block_label_text_weight="500",
-    block_label_text_color="#1E1414",
-    input_background_fill="#FFFFFF",
-    input_border_color="#DEC8CE",
-    input_border_color_focus="#C2758A",
+    block_label_text_weight="600",
+    block_label_text_color="#14172A",
+    block_label_background_fill="transparent",
+    block_label_border_width="0px",
+    block_label_padding="0px",
+    block_label_margin="0px",
+    block_label_radius="0px",
+    block_label_shadow="none",
+    block_title_text_color="#14172A",
+    block_title_background_fill="transparent",
+    input_background_fill="#F3F4FA",
+    input_border_color="#CBCEE0",
+    input_border_color_focus="#3D34B0",
     input_shadow="none",
-    input_shadow_focus="0 0 0 3px rgba(194,117,138,0.12)",
-    input_radius="10px",
+    input_shadow_focus="0 0 0 3px rgba(61,52,176,0.12)",
+    input_radius="9px",
     checkbox_background_color="#FFFFFF",
-    checkbox_border_color="#DEC8CE",
-    checkbox_border_color_selected="#C2758A",
-    checkbox_background_color_selected="#C2758A",
+    checkbox_border_color="#CBCEE0",
+    checkbox_border_color_selected="#3D34B0",
+    checkbox_background_color_selected="#3D34B0",
     checkbox_label_background_fill="#FFFFFF",
-    checkbox_label_background_fill_hover="#F7EBF0",
-    checkbox_label_background_fill_selected="#C2758A",
-    checkbox_label_border_color="#DEC8CE",
-    checkbox_label_border_color_hover="#C2758A",
-    checkbox_label_border_color_selected="#C2758A",
-    checkbox_label_text_color="#1E1414",
-    checkbox_label_text_color_selected="#FFFFFF",
-    button_primary_background_fill="#1E1414",
-    button_primary_background_fill_hover="#C2758A",
-    button_primary_text_color="#F4EDE4",
+    checkbox_label_background_fill_hover="#ECEAFB",
+    checkbox_label_background_fill_selected="#ECEAFB",
+    checkbox_label_border_color="#CBCEE0",
+    checkbox_label_border_color_hover="#3D34B0",
+    checkbox_label_border_color_selected="#3D34B0",
+    checkbox_label_text_color="#565B72",
+    checkbox_label_text_color_selected="#3D34B0",
+    button_primary_background_fill="#3D34B0",
+    button_primary_background_fill_hover="#2F2890",
+    button_primary_text_color="#FFFFFF",
     button_primary_border_color="transparent",
-    button_large_radius="100px",
-    button_large_padding="16px 32px",
-    slider_color="#C2758A",
-    border_color_primary="#EDD5DC",
-    color_accent="#C2758A",
-    color_accent_soft="#F7EBF0",
-    link_text_color="#C2758A",
-    body_text_color="#1E1414",
-    body_text_color_subdued="#6B4C4C",
+    button_large_radius="10px",
+    button_large_padding="14px 32px",
+    slider_color="#3D34B0",
+    border_color_primary="#E1E3EE",
+    color_accent="#3D34B0",
+    color_accent_soft="#ECEAFB",
+    link_text_color="#3D34B0",
+    body_text_color="#14172A",
+    body_text_color_subdued="#565B72",
 )
 
 
@@ -217,7 +226,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
 
     with gr.Column(elem_classes=["main-content"]):
 
-        with gr.Group():
+        with gr.Group(elem_classes=["mbti-card"]):
             gr.HTML('<span class="section-label">the basics</span>')
             spotify_artists = gr.Textbox(
                 label="spotify top artists",
@@ -239,7 +248,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
                     "the flake", "the hype person", "the nonchalant one", "the instigator",
                 ],            )
 
-        with gr.Group():
+        with gr.Group(elem_classes=["mbti-card"]):
             gr.HTML('<span class="section-label">what they\'re like</span>')
             what_they_talk_about = gr.Textbox(
                 label="what do they talk about most?",
@@ -267,7 +276,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
                 lines=2,
             )
 
-        with gr.Group():
+        with gr.Group(elem_classes=["mbti-card"]):
             gr.HTML('<span class="section-label">how they text</span>')
             text_length_slider = gr.Slider(
                 minimum=1, maximum=5, step=1, value=3,
@@ -280,7 +289,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
                             "all lowercase", "uses punctuation", "leaves people on read"],
             )
 
-        with gr.Group():
+        with gr.Group(elem_classes=["mbti-card"]):
             gr.HTML('<span class="section-label">social media</span>')
             followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
             social_media_checkboxes = gr.CheckboxGroup(
@@ -299,8 +308,8 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
                 outputs=spam_friends_count,
             )
 
-        with gr.Group():
-            gr.HTML('<span class="section-label">photo <span style="font-size:10px;color:#C9B4B4;letter-spacing:0.1em">optional</span></span>')
+        with gr.Group(elem_classes=["mbti-card"]):
+            gr.HTML('<span class="section-label">photo <span style="font-size:10px;color:#9296AC;letter-spacing:0.1em">optional</span></span>')
             photo = gr.Image(
                 label="drop a photo of them",
                 type="filepath",
