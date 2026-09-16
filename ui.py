@@ -6,7 +6,6 @@ Gradio handles all layout. CSS only touches colors, fonts, and custom HTML block
 import pathlib
 import gradio as gr
 from app import predict_mbti
-from photo_analysis import analyze_photo
 
 CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
 
@@ -15,12 +14,12 @@ MBTI_DESCRIPTIONS = {
     "INTJ": ("the architect",    "strategic, private, always three steps ahead. probably already knows what you're going to say."),
     "INTP": ("the logician",     "lives in their head, loves a rabbit hole. argues for fun and calls it curiosity."),
     "ENTJ": ("the commander",    "natural leader, extremely sure of themselves, not always gentle about it."),
-    "ENTP": ("the debater",      "argues for fun, gets bored easily. devil's advocate as a personality."),
+    "ENTP": ("the debater",      "argues for fun, gets bored easily, always looking for the counterpoint no one else raised."),
     "INFJ": ("the advocate",     "intense, private, somehow knows what you're thinking before you do."),
     "INFP": ("the mediator",     "idealistic, emotional, writes in their notes app at 2am. feels everything deeply."),
-    "ENFJ": ("the protagonist",  "makes everyone feel seen, over-commits, cries at ads. checks in on you unprompted."),
+    "ENFJ": ("the protagonist",  "makes everyone feel seen, over-commits, and checks in on you before you ask."),
     "ENFP": ("the campaigner",   "energetic, all over the place, somehow still the most magnetic person in the room."),
-    "ISTJ": ("the logistician",  "reliable to a fault, shows love through acts of service. will send you a calendar invite."),
+    "ISTJ": ("the logistician",  "reliable to a fault, shows love through acts of service, keeps everyone else on schedule."),
     "ISFJ": ("the defender",     "takes care of everyone, forgets themselves. remembers your coffee order."),
     "ESTJ": ("the executive",    "has a spreadsheet for everything. gets things done, no vibes required."),
     "ESFJ": ("the consul",       "genuinely warm, needs approval. throws the best parties and stress-cleans before you arrive."),
@@ -98,7 +97,7 @@ def format_results(mbti_type, axis_results):
 
     return f"""
 <div class="result-wrap">
-  <span class="result-eyebrow">˚₊· ͟͟͞͞➳ predicted type</span>
+  <span class="result-eyebrow">predicted type</span>
   <div class="result-type-row">{badges}</div>
   <div class="result-title-label">{title}</div>
   <p class="result-desc">{desc}</p>
@@ -117,27 +116,33 @@ def run_prediction(
     photo_results = None
     if photo is not None:
         try:
+            from photo_analysis import analyze_photo
             photo_results = analyze_photo(photo)
         except Exception as e:
             print(f"photo analysis error: {e}")
 
-    mbti_type, axis_results = predict_mbti(
-        spotify_artists         = spotify_artists or "",
-        humor_types             = humor_types or [],
-        punctuality             = punctuality,
-        group_archetypes        = group_archetypes or [],
-        what_they_talk_about    = what_they_talk_about or "",
-        weekend_activities      = weekend_activities or "",
-        text_length_slider      = int(text_length_slider) if text_length_slider else 3,
-        texting_style           = texting_style or [],
-        stress_triggers         = stress_triggers or "",
-        party_vibe              = party_vibe or "",
-        fav_media               = fav_media or "",
-        followers               = followers,
-        social_media_checkboxes = social_media_checkboxes or [],
-        spam_friends_count      = spam_friends_count,
-        photo_results           = photo_results,
-    )
+    try:
+        mbti_type, axis_results = predict_mbti(
+            spotify_artists         = spotify_artists or "",
+            humor_types             = humor_types or [],
+            punctuality             = punctuality,
+            group_archetypes        = group_archetypes or [],
+            what_they_talk_about    = what_they_talk_about or "",
+            weekend_activities      = weekend_activities or "",
+            text_length_slider      = int(text_length_slider) if text_length_slider else 3,
+            texting_style           = texting_style or [],
+            stress_triggers         = stress_triggers or "",
+            party_vibe              = party_vibe or "",
+            fav_media               = fav_media or "",
+            followers               = followers,
+            social_media_checkboxes = social_media_checkboxes or [],
+            spam_friends_count      = spam_friends_count,
+            photo_results           = photo_results,
+        )
+    except Exception as e:
+        print(f"prediction error: {e}")
+        return '<div class="result-empty">having trouble right now, give it a moment and try again.</div>'
+
     if axis_results is None:
         return '<div class="result-empty">fill in at least a few fields to get a prediction.</div>'
     return format_results(mbti_type, axis_results)
@@ -204,7 +209,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
 
     gr.HTML("""
     <div class="mbti-hero">
-      <span class="hero-eyebrow">˚₊· ͟͟͞͞➳ mbti guesser</span>
+      <span class="hero-eyebrow">mbti guesser</span>
       <h1 class="hero-title">who are they, <em>really?</em></h1>
       <p class="hero-sub">describe anyone and we'll figure out their mbti type.</p>
     </div>

@@ -1,8 +1,8 @@
 ---
 title: MBTI Guesser
 emoji: 🧠
-colorFrom: pink
-colorTo: yellow
+colorFrom: gray
+colorTo: pink
 sdk: gradio
 sdk_version: 6.18.0
 app_file: ui.py
