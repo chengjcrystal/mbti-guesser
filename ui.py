@@ -58,11 +58,11 @@ IDENTITY_DESCRIPTIONS = {
 # the spoke grows toward; a low reading just means the opposite pole, same as
 # the axis itself, nothing invented here.
 SPOKES = [
-    ("E_I", "Extroversion", "E", "#8FA06E", "bolt"),
-    ("T_F", "Empathy",      "F", "#D9A0A6", "heart"),
-    ("J_P", "Spontaneity",  "P", "#C9A876", "swirl"),
-    ("N_S", "Vision",       "N", "#7B93B8", "star"),
-    ("A_T", "Assurance",    "A", "#6E9B96", "shield"),
+    ("E_I", "Energy",   "E", "#8FA06E", "bolt"),
+    ("T_F", "Empathy",  "F", "#D9A0A6", "heart"),
+    ("J_P", "Freedom",  "P", "#C9A876", "swirl"),
+    ("N_S", "Vision",   "N", "#7B93B8", "star"),
+    ("A_T", "Assurance", "A", "#6E9B96", "shield"),
 ]
 
 ICONS = {
@@ -86,10 +86,11 @@ def _point(i, n, r, cx, cy):
     return cx + r * math.cos(angle), cy + r * math.sin(angle)
 
 
-def _pentagon_svg(stats, size=120):
+def _pentagon_svg(stats, size=120, show_labels=False):
     cx = cy = size / 2
-    r_max = size * 0.65
+    r_max = size * 0.32 if show_labels else size * 0.42
     n = len(stats)
+    dot_r = max(4, size * 0.028)
     rings = ""
     for frac in (1, 0.66, 0.33):
         pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_point(i, n, r_max * frac, cx, cy) for i in range(n)))
@@ -103,8 +104,52 @@ def _pentagon_svg(stats, size=120):
     dots = ""
     for i, (name, pct, color, icon) in enumerate(stats):
         x, y = _point(i, n, r_max * (pct / 100), cx, cy)
-        dots += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{color}" stroke="#4A3B5C" stroke-width="1.5"></circle>'
-    return f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">{rings}{spokes}{poly}{dots}</svg>'
+        dots += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{dot_r:.1f}" fill="{color}" stroke="#4A3B5C" stroke-width="1.5"></circle>'
+    labels = ""
+    if show_labels:
+        for i, (name, pct, color, icon) in enumerate(stats):
+            x, y = _point(i, n, r_max + size * 0.14, cx, cy)
+            if x > cx + 2:
+                anchor = "end"
+            elif x < cx - 2:
+                anchor = "start"
+            else:
+                anchor = "middle"
+            labels += (f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" dominant-baseline="middle" '
+                       f'font-family="Silkscreen, monospace" font-size="{max(8, size*0.036):.0f}" '
+                       f'font-weight="700" fill="#6B5D7D">{name.upper()}</text>')
+    return f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">{rings}{spokes}{poly}{dots}{labels}</svg>'
+
+
+def progress_html(spotify_artists, humor_types, punctuality, weekend_activities, awkward_text):
+    """
+    honest progress panel for the live console: how many of the 5 signal
+    fields have anything in them yet. no per-axis leans, no fake confidence,
+    those only exist after the real classifier runs on submit.
+    """
+    filled = sum([
+        bool(spotify_artists and spotify_artists.strip()),
+        bool(humor_types),
+        bool(punctuality),
+        bool(weekend_activities and weekend_activities.strip()),
+        bool(awkward_text),
+    ])
+    total = len(SPOKES)
+    frac_pct = 20 + (filled / total) * 80  # symmetric radius: grows with fill, no directional claim
+    stats = [(name, frac_pct, color, icon) for _, name, _, color, icon in SPOKES]
+    pentagon = _pentagon_svg(stats, size=170, show_labels=True)
+
+    ready = filled == total
+    status_cls = "live-status ready" if ready else "live-status"
+    status_text = "ready, open their type pack below" if ready else f"{filled} of {total} traits answered"
+
+    return f"""
+    <div class="live-panel-inner">
+      <div class="card-eyebrow">Live Read</div>
+      <div class="{status_cls}">{status_text}</div>
+      <div class="progress-pentagon-wrap">{pentagon}</div>
+    </div>
+    """
 
 
 def build_reveal_html(mbti_type, axis_results):
@@ -144,8 +189,8 @@ def build_reveal_html(mbti_type, axis_results):
     else:
         rarity, rarity_color = "MIXED SIGNAL", "#C9A876"
 
-    creature = creature_svg(e_i, n_s, t_f, j_p, suffix, size=110)
-    pentagon = _pentagon_svg(stats, size=120)
+    creature = creature_svg(e_i, n_s, t_f, j_p, suffix, size=40)
+    pentagon = _pentagon_svg(stats, size=250, show_labels=True)
     index = TYPE_INDEX.get(core_display, 0)
 
     return f"""
@@ -173,11 +218,14 @@ def build_reveal_html(mbti_type, axis_results):
         </div>
 
         <div class="name-row">
-          <span class="card-code">{core_display}-{suffix}</span>
-          <span class="card-title">{title}</span>
+          <div class="name-row-text">
+            <span class="card-code">{core_display}-{suffix}</span>
+            <span class="card-title">{title}</span>
+          </div>
+          <div class="card-avatar">{creature}</div>
         </div>
 
-        <div class="art-panel">{creature}{pentagon}</div>
+        <div class="art-panel">{pentagon}</div>
 
         <div class="stage-banner"><span>{family_name} TYPE</span></div>
 
@@ -230,11 +278,17 @@ def run_prediction(
         )
     except Exception as e:
         print(f"prediction error: {e}")
-        return '<div class="result-empty">having trouble right now, give it a moment and try again.</div>'
+        return (
+            '<div class="result-empty">having trouble right now, give it a moment and try again.</div>',
+            gr.update(visible=True), gr.update(visible=False),
+        )
 
     if axis_results is None:
-        return '<div class="result-empty">fill in at least a few fields to get a read.</div>'
-    return build_reveal_html(mbti_type, axis_results)
+        return (
+            '<div class="result-empty">fill in at least a few fields to get a read.</div>',
+            gr.update(visible=True), gr.update(visible=False),
+        )
+    return build_reveal_html(mbti_type, axis_results), gr.update(visible=False), gr.update(visible=True)
 
 
 # ── theme ─────────────────────────────────────────────────────────────────────
@@ -312,120 +366,138 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     </div>
     """)
 
-    with gr.Column(elem_classes=["main-content"]):
+    with gr.Column(elem_classes=["main-content"]) as form_page:
+        with gr.Row(elem_classes=["console"]):
 
-        with gr.Group(elem_classes=["mbti-card"]):
-            gr.HTML('<span class="section-label">the basics</span>')
-            spotify_artists = gr.Textbox(
-                label="spotify top artists",
-                placeholder="olivia rodrigo, daniel caesar, le sserafim, clairo…",
-            )
-            humor_types = gr.CheckboxGroup(
-                label="their humor",
-                choices=["dry", "unhinged", "wholesome", "dark", "sarcastic", "self-deprecating"],
-            )
-            punctuality = gr.Radio(
-                label="early, on time, or late?",
-                choices=["always early", "usually early", "on time", "usually late", "always late"],
-            )
-            group_archetypes = gr.CheckboxGroup(
-                label="their role in the friend group",
-                choices=[
-                    "the mom (plans everything)", "the one who does it for the plot",
-                    "the researcher (googles before anyone asks)", "the therapist friend",
-                    "the flake", "the hype person", "the nonchalant one", "the instigator",
-                ],            )
+            with gr.Column(elem_classes=["form-col"]):
 
-        with gr.Group(elem_classes=["mbti-card"]):
-            gr.HTML('<span class="section-label">what they\'re like</span>')
-            what_they_talk_about = gr.Textbox(
-                label="what do they talk about most?",
-                placeholder="the nba finals, their love life, conspiracy theories…",
-                lines=2,
-            )
-            weekend_activities = gr.Textbox(
-                label="how do they spend their weekends?",
-                placeholder="hiking alone, cafe hopping, sleeping until noon…",
-                lines=2,
-            )
-            stress_triggers = gr.Textbox(
-                label="what stresses them out?",
-                placeholder="last-minute changes, overstimulating noises, falling behind…",
-                lines=2,
-            )
-            party_vibe = gr.Textbox(
-                label="vibe at parties / what kind of drunk are they?",
-                placeholder="disappears to talk to one person, center of attention, goes home early…",
-                lines=2,
-            )
-            fav_media = gr.Textbox(
-                label="favorite shows, movies, or books",
-                placeholder="lalaland, attack on titan, hunger games…",
-                lines=2,
-            )
-            awkward_text = gr.Radio(
-                label="they sent a slightly awkward text an hour ago. they...",
-                choices=["already forgot about it", "still replaying it in their head"],
-            )
+                with gr.Group(elem_classes=["mbti-card"]):
+                    gr.HTML('<span class="section-label">the basics</span>')
+                    spotify_artists = gr.Textbox(
+                        label="spotify top artists",
+                        placeholder="olivia rodrigo, daniel caesar, le sserafim, clairo…",
+                    )
+                    humor_types = gr.CheckboxGroup(
+                        label="their humor",
+                        choices=["dry", "unhinged", "wholesome", "dark", "sarcastic", "self-deprecating"],
+                    )
+                    punctuality = gr.Radio(
+                        label="early, on time, or late?",
+                        choices=["always early", "usually early", "on time", "usually late", "always late"],
+                    )
+                    group_archetypes = gr.CheckboxGroup(
+                        label="their role in the friend group",
+                        choices=[
+                            "the mom (plans everything)", "the one who does it for the plot",
+                            "the researcher (googles before anyone asks)", "the therapist friend",
+                            "the flake", "the hype person", "the nonchalant one", "the instigator",
+                        ],            )
 
-        with gr.Group(elem_classes=["mbti-card"]):
-            gr.HTML('<span class="section-label">how they text</span>')
-            text_length_slider = gr.Slider(
-                minimum=1, maximum=5, step=1, value=3,
-                label="how long are their texts?",
-                info="1 = one-word replies   ||   5 = full essays",
-            )
-            texting_style = gr.CheckboxGroup(
-                label="texting style",
-                choices=["quick replies", "slow replies", "emoji heavy", "no emojis",
-                            "all lowercase", "uses punctuation", "leaves people on read"],
-            )
+                with gr.Group(elem_classes=["mbti-card"]):
+                    gr.HTML('<span class="section-label">what they\'re like</span>')
+                    what_they_talk_about = gr.Textbox(
+                        label="what do they talk about most?",
+                        placeholder="the nba finals, their love life, conspiracy theories…",
+                        lines=2,
+                    )
+                    weekend_activities = gr.Textbox(
+                        label="how do they spend their weekends?",
+                        placeholder="hiking alone, cafe hopping, sleeping until noon…",
+                        lines=2,
+                    )
+                    stress_triggers = gr.Textbox(
+                        label="what stresses them out?",
+                        placeholder="last-minute changes, overstimulating noises, falling behind…",
+                        lines=2,
+                    )
+                    party_vibe = gr.Textbox(
+                        label="vibe at parties / what kind of drunk are they?",
+                        placeholder="disappears to talk to one person, center of attention, goes home early…",
+                        lines=2,
+                    )
+                    fav_media = gr.Textbox(
+                        label="favorite shows, movies, or books",
+                        placeholder="lalaland, attack on titan, hunger games…",
+                        lines=2,
+                    )
+                    awkward_text = gr.Radio(
+                        label="they sent a slightly awkward text an hour ago. they...",
+                        choices=["already forgot about it", "still replaying it in their head"],
+                    )
 
-        with gr.Group(elem_classes=["mbti-card"]):
-            gr.HTML('<span class="section-label">social media</span>')
-            followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
-            social_media_checkboxes = gr.CheckboxGroup(
-                label="social media behavior",
-                choices=["posts a lot", "mostly a lurker", "stories person",
-                            "feed poster", "has a spam/close friends account"],
-            )
-            spam_friends_count = gr.Number(
-                label="close friends / spam list size",
-                minimum=0, visible=False,
-                info="under 10 = very private || 110+ = basically a second public account",
-            )
-            social_media_checkboxes.change(
-                fn=lambda c: gr.update(visible="has a spam/close friends account" in c),
-                inputs=social_media_checkboxes,
-                outputs=spam_friends_count,
-            )
+                with gr.Group(elem_classes=["mbti-card"]):
+                    gr.HTML('<span class="section-label">how they text</span>')
+                    text_length_slider = gr.Slider(
+                        minimum=1, maximum=5, step=1, value=3,
+                        label="how long are their texts?",
+                        info="1 = one-word replies   ||   5 = full essays",
+                    )
+                    texting_style = gr.CheckboxGroup(
+                        label="texting style",
+                        choices=["quick replies", "slow replies", "emoji heavy", "no emojis",
+                                    "all lowercase", "uses punctuation", "leaves people on read"],
+                    )
 
-        with gr.Group(elem_classes=["mbti-card"]):
-            gr.HTML('<span class="section-label">photo <span style="font-size:10px;color:#9296AC;letter-spacing:0.1em">optional</span></span>')
-            photo = gr.Image(
-                label="drop a photo of them",
-                type="filepath",
-                sources=["upload", "clipboard"],
-                elem_classes=["photo-upload-wrap"],
-            )
-            gr.HTML('<p class="photo-note">expression, solo vs. group, eye contact, background context all analyzed locally.</p>')
+                with gr.Group(elem_classes=["mbti-card"]):
+                    gr.HTML('<span class="section-label">social media</span>')
+                    followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
+                    social_media_checkboxes = gr.CheckboxGroup(
+                        label="social media behavior",
+                        choices=["posts a lot", "mostly a lurker", "stories person",
+                                    "feed poster", "has a spam/close friends account"],
+                    )
+                    spam_friends_count = gr.Number(
+                        label="close friends / spam list size",
+                        minimum=0, visible=False,
+                        info="under 10 = very private || 110+ = basically a second public account",
+                    )
+                    social_media_checkboxes.change(
+                        fn=lambda c: gr.update(visible="has a spam/close friends account" in c),
+                        inputs=social_media_checkboxes,
+                        outputs=spam_friends_count,
+                    )
 
-        output = gr.HTML('<div class="result-empty">fill in a few fields, then open your pack.</div>')
+                with gr.Group(elem_classes=["mbti-card"]):
+                    gr.HTML('<span class="section-label">photo <span style="font-size:10px;color:#9296AC;letter-spacing:0.1em">optional</span></span>')
+                    photo = gr.Image(
+                        label="drop a photo of them",
+                        type="filepath",
+                        sources=["upload", "clipboard"],
+                        elem_classes=["photo-upload-wrap"],
+                    )
+                    gr.HTML('<p class="photo-note">expression, solo vs. group, eye contact, background context all analyzed locally.</p>')
 
-        submit_btn = gr.Button("open their type pack ↗", variant="primary", size="lg")
+                submit_btn = gr.Button("open their type pack ↗", variant="primary", size="lg")
+
+            with gr.Column(elem_classes=["live-col"]):
+                with gr.Group(elem_classes=["mbti-card"]):
+                    progress_panel = gr.HTML(progress_html("", [], None, "", None))
+
+    with gr.Column(elem_classes=["main-content", "reveal-page-inner"], visible=False) as reveal_page:
+        output = gr.HTML("")
+        with gr.Row(elem_classes=["again-row"]):
+            again_btn = gr.Button("answer again", size="sm")
 
     gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli || axes marked "?" had insufficient signal</div>')
 
-    submit_btn.click(
-        fn=run_prediction,
-        inputs=[
-            spotify_artists, humor_types, punctuality, group_archetypes,
-            what_they_talk_about, weekend_activities, text_length_slider,
-            texting_style, stress_triggers, party_vibe, fav_media,
-            followers, social_media_checkboxes, spam_friends_count, awkward_text, photo,
-        ],
-        outputs=output,
+    submit_inputs = [
+        spotify_artists, humor_types, punctuality, group_archetypes,
+        what_they_talk_about, weekend_activities, text_length_slider,
+        texting_style, stress_triggers, party_vibe, fav_media,
+        followers, social_media_checkboxes, spam_friends_count, awkward_text, photo,
+    ]
+    submit_btn.click(fn=run_prediction, inputs=submit_inputs, outputs=[output, form_page, reveal_page])
+    again_btn.click(
+        fn=lambda: (gr.update(visible=True), gr.update(visible=False)),
+        outputs=[form_page, reveal_page],
     )
+
+    progress_inputs = [spotify_artists, humor_types, punctuality, weekend_activities, awkward_text]
+    spotify_artists.blur(fn=progress_html, inputs=progress_inputs, outputs=progress_panel)
+    humor_types.change(fn=progress_html, inputs=progress_inputs, outputs=progress_panel)
+    punctuality.change(fn=progress_html, inputs=progress_inputs, outputs=progress_panel)
+    weekend_activities.blur(fn=progress_html, inputs=progress_inputs, outputs=progress_panel)
+    awkward_text.change(fn=progress_html, inputs=progress_inputs, outputs=progress_panel)
 
 if __name__ == "__main__":
     demo.launch(share=False)

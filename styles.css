@@ -27,6 +27,33 @@ body, .gradio-container {
   width: 100% !important;
 }
 .gradio-container { max-width: 100% !important; }
+
+/* ── phase 1: two-column console layout ── */
+.console {
+  display: grid !important;
+  grid-template-columns: 1.05fr 0.85fr !important;
+  gap: 20px !important;
+  max-width: 1000px !important;
+  margin: 0 auto !important;
+  align-items: start !important;
+}
+@media (max-width: 760px) {
+  .console { grid-template-columns: 1fr !important; }
+}
+.live-col { position: sticky; top: 20px; }
+
+.live-panel-inner { padding: 4px 2px; }
+.live-panel-inner .card-eyebrow {
+  font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; color: var(--ink-soft);
+  text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.04em;
+}
+.live-status { font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink); font-weight: 600; margin-bottom: 10px; }
+.live-status.ready { color: var(--sage); }
+.progress-pentagon-wrap { display: flex; justify-content: center; }
+
+/* ── reveal page ── */
+.reveal-page-inner { max-width: 900px; margin: 0 auto; padding: 40px 0 20px; text-align: center; }
+.again-row { margin-top: 24px; }
 html, body { overflow-x: hidden; }
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -111,10 +138,10 @@ footer, .built-with { display: none !important; }
 /* ── pack + card reveal ── */
 .reveal-wrap { max-width: 340px; margin: 0 auto; text-align: center; }
 
-.pack-stage { min-height: 360px; display: flex; align-items: center; justify-content: center; position: relative; }
+.pack-stage { display: flex; align-items: center; justify-content: center; padding: 20px 0; }
 
 .pack {
-  width: 210px; height: 300px; cursor: pointer;
+  width: 240px; height: 320px; cursor: pointer;
   background: var(--blush);
   border: 5px solid var(--plum); border-radius: 8px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
@@ -141,12 +168,11 @@ footer, .built-with { display: none !important; }
 .pack-tap { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--plum); z-index: 1; }
 
 .tcg-card {
-  width: 280px; display: none; border: 5px solid var(--plum); border-radius: 8px;
+  width: 320px; display: none; border: 5px solid var(--plum); border-radius: 8px;
   background: var(--cream); box-shadow: 10px 10px 0 rgba(0,0,0,0.25); text-align: left; margin: 0 auto;
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
 }
 .tcg-card.show { display: block; animation: card-in 0.5s cubic-bezier(.34,1.56,.64,1); }
-@keyframes card-in { from { transform: translate(-50%,-50%) scale(0.7) rotate(-6deg); opacity: 0; } to { transform: translate(-50%,-50%) scale(1) rotate(0); opacity: 1; } }
+@keyframes card-in { from { transform: scale(0.7) rotate(-6deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
 
 .tcg-inner { padding: 12px; }
 .tcg-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -155,11 +181,20 @@ footer, .built-with { display: none !important; }
 .family-label { font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
 .card-index { font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
 
-.name-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.card-code { font-family: 'Press Start 2P', monospace; font-size: 15px; color: var(--plum); }
-.card-title { font-family: 'Silkscreen', monospace; font-size: 13px; color: var(--ink-soft); text-transform: uppercase; }
+.name-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.name-row-text { display: flex; flex-direction: column; gap: 2px; }
+.card-code { font-family: 'Press Start 2P', monospace; font-size: 14px; color: var(--plum); }
+.card-title { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--ink-soft); text-transform: uppercase; }
+.card-avatar {
+  width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid var(--plum);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+}
+.card-avatar svg { width: 40px; height: 40px; }
 
-.art-panel { background: #fff; border: 3px solid var(--plum); border-radius: 4px; padding: 8px; display: flex; justify-content: center; align-items: center; gap: 14px; margin-bottom: 10px; }
+.art-panel {
+  background: #fff; border: 3px solid var(--plum); border-radius: 4px; padding: 14px;
+  display: flex; justify-content: center; align-items: center; margin-bottom: 10px;
+}
 .stage-banner { background: var(--cream); border-top: 3px solid var(--plum); border-bottom: 3px solid var(--plum); text-align: center; padding: 6px 0; margin-bottom: 12px; }
 .stage-banner span { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--plum); }
 
