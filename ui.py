@@ -1,13 +1,33 @@
 """
 ui.py: mbti guesser
 Gradio handles all layout. CSS only touches colors, fonts, and custom HTML blocks.
+The pack-open reveal is a small client-side toggle defined once in HEAD_JS;
+every value inside the card is rendered server-side from the real prediction.
 """
 
 import pathlib
 import gradio as gr
 from app import predict_mbti
+from creature import creature_svg, get_family
 
 CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
+
+HEAD_JS = """
+<script>
+function mbtiOpenPack(packId, cardId, btnId) {
+  var pack = document.getElementById(packId);
+  var card = document.getElementById(cardId);
+  if (!pack || !card) return;
+  pack.classList.add('opening');
+  setTimeout(function () {
+    pack.style.display = 'none';
+    card.classList.add('show');
+    var btn = btnId ? document.getElementById(btnId) : null;
+    if (btn) btn.classList.add('show');
+  }, 380);
+}
+</script>
+"""
 
 # ── type data ─────────────────────────────────────────────────────────────────
 MBTI_DESCRIPTIONS = {
@@ -29,90 +49,157 @@ MBTI_DESCRIPTIONS = {
     "ESFP": ("the entertainer",  "the most fun person in the room, no plans, all vibes."),
 }
 
-AXIS_META = {
-    "E_I": {"label": "energy",   "poles": ("E", "I"), "desc": ("extrovert", "introvert")},
-    "N_S": {"label": "thinking", "poles": ("N", "S"), "desc": ("intuitive", "sensing")},
-    "T_F": {"label": "deciding", "poles": ("T", "F"), "desc": ("thinker",   "feeler")},
-    "J_P": {"label": "living",   "poles": ("J", "P"), "desc": ("judger",    "perceiver")},
+IDENTITY_DESCRIPTIONS = {
+    "A": "confident and even-keeled, doesn't lose sleep over what they can't control.",
+    "T": "self-aware with a perfectionist streak, replays things more than they'd like to admit.",
 }
-AXIS_ORDER = ["E_I", "N_S", "T_F", "J_P"]
+
+# fixed spoke order for the pentagon + stat rows. "outward" is the named trait
+# the spoke grows toward; a low reading just means the opposite pole, same as
+# the axis itself, nothing invented here.
+SPOKES = [
+    ("E_I", "Extroversion", "E", "#8FA06E", "bolt"),
+    ("T_F", "Empathy",      "F", "#D9A0A6", "heart"),
+    ("J_P", "Spontaneity",  "P", "#C9A876", "swirl"),
+    ("N_S", "Vision",       "N", "#7B93B8", "star"),
+    ("A_T", "Assurance",    "A", "#6E9B96", "shield"),
+]
+
+ICONS = {
+    "bolt": '<polygon points="9,1 3,11 8,11 6,17 15,7 9,7" fill="currentColor"/>',
+    "star": '<polygon points="9,1 11,7 17,7 12,11 14,17 9,13 4,17 6,11 1,7 7,7" fill="currentColor"/>',
+    "heart": '<path d="M9,16 C2,10 3,3 8,3 C9,3 9,4 9,4 C9,4 9,3 10,3 C15,3 16,10 9,16 Z" fill="currentColor"/>',
+    "swirl": '<path d="M9,2 C13,2 16,5 16,9 C16,13 13,15 10,15 C7,15 6,13 6,11 C6,9 7.5,8 9.5,8.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>',
+    "shield": '<path d="M9,1 L16,4 V9 C16,13 13,16 9,17 C5,16 2,13 2,9 V4 Z" fill="currentColor"/>',
+}
+
+FAMILY_NAMES = {"NT": "ANALYST", "NF": "DIPLOMAT", "SJ": "SENTINEL", "SP": "EXPLORER"}
+
+TYPE_INDEX = {code: i + 1 for i, code in enumerate(sorted(MBTI_DESCRIPTIONS.keys()))}
+
+AXIS_ORDER = ["E_I", "N_S", "T_F", "J_P", "A_T"]
 
 
-# ── rendering ─────────────────────────────────────────────────────────────────
-def format_results(mbti_type, axis_results):
-    if axis_results is None:
-        return '<div class="result-empty">fill in a few more fields and try again.</div>'
+def _point(i, n, r, cx, cy):
+    import math
+    angle = math.radians(-90 + i * (360 / n))
+    return cx + r * math.cos(angle), cy + r * math.sin(angle)
 
-    if "?" in mbti_type:
-        title, desc = "mixed signals", "a few axes didn't have enough signal, see the breakdown below."
+
+def _pentagon_svg(stats, size=120):
+    cx = cy = size / 2
+    r_max = size * 0.65
+    n = len(stats)
+    rings = ""
+    for frac in (1, 0.66, 0.33):
+        pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_point(i, n, r_max * frac, cx, cy) for i in range(n)))
+        rings += f'<polygon points="{pts}" fill="none" stroke="#D9CFC0" stroke-width="1"></polygon>'
+    spokes = ""
+    for i in range(n):
+        x, y = _point(i, n, r_max, cx, cy)
+        spokes += f'<line x1="{cx}" y1="{cy}" x2="{x:.1f}" y2="{y:.1f}" stroke="#D9CFC0" stroke-width="1"></line>'
+    data_pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_point(i, n, r_max * (stats[i][1] / 100), cx, cy) for i in range(n)))
+    poly = f'<polygon points="{data_pts}" fill="#4A3B5C" fill-opacity="0.18" stroke="#4A3B5C" stroke-width="2.5"></polygon>'
+    dots = ""
+    for i, (name, pct, color, icon) in enumerate(stats):
+        x, y = _point(i, n, r_max * (pct / 100), cx, cy)
+        dots += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{color}" stroke="#4A3B5C" stroke-width="1.5"></circle>'
+    return f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">{rings}{spokes}{poly}{dots}</svg>'
+
+
+def build_reveal_html(mbti_type, axis_results):
+    core, suffix = mbti_type.split("-")
+    core_display = core.replace("?", "X")  # keep svg/lookups safe if an axis was ambiguous
+    title, desc = MBTI_DESCRIPTIONS.get(core_display, ("an unusual mix", "not enough signal to place them cleanly, that's a real result too."))
+    identity_desc = IDENTITY_DESCRIPTIONS.get(suffix, "signal was too close to call.")
+
+    e_i = core_display[0] if len(core_display) > 0 else "E"
+    n_s = core_display[1] if len(core_display) > 1 else "N"
+    t_f = core_display[2] if len(core_display) > 2 else "F"
+    j_p = core_display[3] if len(core_display) > 3 else "J"
+
+    family_key = ("N" if n_s == "N" else "S") + (t_f if n_s == "N" else j_p)
+    family_name, family_color = FAMILY_NAMES.get(family_key, "UNPLACED"), {
+        "NT": "#7B93B8", "NF": "#8FA06E", "SJ": "#6E9B96", "SP": "#C9A876"
+    }.get(family_key, "#8C6E8C")
+
+    stats = []
+    for axis_key, name, outward, color, icon in SPOKES:
+        r = axis_results.get(axis_key, {})
+        pct = round(r.get("scores", {}).get(outward, 50))
+        stats.append((name, pct, color, icon))
+
+    stat_rows = "".join(f'''
+    <div class="stat-row">
+      <svg class="stat-icon" viewBox="0 0 18 18" style="color:{color}">{ICONS[icon]}</svg>
+      <span class="stat-name">{name}</span>
+      <span class="stat-num">{pct}</span>
+    </div>''' for name, pct, color, icon in stats)
+
+    avg_spread = sum(abs(p - 50) for _, p, _, _ in stats) / len(stats)
+    if avg_spread > 30:
+        rarity, rarity_color = "RARE", "#D9A0A6"
+    elif avg_spread > 15:
+        rarity, rarity_color = "UNCOMMON", "#8FA06E"
     else:
-        title, desc = MBTI_DESCRIPTIONS.get(mbti_type, ("unknown type", "an unusual combination."))
+        rarity, rarity_color = "MIXED SIGNAL", "#C9A876"
 
-    badges = "".join(
-        f'<span class="{"type-letter-ambiguous" if c == "?" else "type-letter"}">{c}</span>'
-        for c in mbti_type
-    )
-
-    bars = ""
-    for i, axis in enumerate(AXIS_ORDER):
-        r    = axis_results[axis]
-        meta = AXIS_META[axis]
-        p0, p1 = meta["poles"]
-
-        if r["is_ambiguous"]:
-            ltr        = "?"
-            conf_txt   = f"only {r['gap']:.1f}pt gap"
-            desc_txt   = "not enough signal"
-            bar_inner  = '<div class="bar-center-tick"></div>'
-            ltr_cls    = "axis-letter axis-ambiguous"
-        else:
-            ltr       = r["winner"]
-            conf_txt  = f"{r['confidence']:.0f}%"
-            desc_txt  = meta["desc"][meta["poles"].index(r["winner"])]
-            lean_cls  = "axis-lean-1" if r["winner"] == p0 else "axis-lean-2"
-            ltr_cls   = f"axis-letter {lean_cls}"
-            pct       = max(0.0, min(100.0, (r["confidence"] - 50) / 50 * 100))
-            if r["winner"] == p0:
-                bar_inner = (f'<div class="bar-half bar-half-left">'
-                             f'<div class="bar-fill-left" style="width:{pct}%"></div></div>'
-                             f'<div class="bar-half bar-half-right"></div>')
-            else:
-                bar_inner = (f'<div class="bar-half bar-half-left"></div>'
-                             f'<div class="bar-half bar-half-right">'
-                             f'<div class="bar-fill-right" style="width:{pct}%"></div></div>')
-
-        bars += f"""
-<div class="axis-row">
-  <div class="axis-meta">
-    <span class="axis-eyebrow">{meta['label']}</span>
-    <span class="{ltr_cls}">{ltr}</span>
-    <span class="axis-winner-desc">{desc_txt}</span>
-    <span class="axis-conf">{conf_txt}</span>
-  </div>
-  <div class="axis-bar-wrap">
-    <span class="axis-pole">{p0}</span>
-    <div class="bar-track">{bar_inner}</div>
-    <span class="axis-pole">{p1}</span>
-  </div>
-</div>"""
+    creature = creature_svg(e_i, n_s, t_f, j_p, suffix, size=110)
+    pentagon = _pentagon_svg(stats, size=120)
+    index = TYPE_INDEX.get(core_display, 0)
 
     return f"""
-<div class="result-wrap">
-  <span class="result-eyebrow">predicted type</span>
-  <div class="result-type-row">{badges}</div>
-  <div class="result-title-label">{title}</div>
-  <p class="result-desc">{desc}</p>
-  <div class="result-divider"></div>
-  <span class="axes-eyebrow">axis breakdown</span>
-  {bars}
-</div>"""
+<div class="reveal-wrap">
+  <div class="pack-stage">
+    <div class="pack" id="pack1" onclick="mbtiOpenPack('pack1','card1','again1')">
+      <div class="pack-emblem-ring">
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <polygon points="20,4 24,15 36,15 26,22 30,34 20,26 10,34 14,22 4,15 16,15"
+                    fill="#C9A876" stroke="#4A3B5C" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="pack-banner"><span>TYPE PACK</span></div>
+      <div class="pack-tap">&#9656; TAP TO OPEN</div>
+    </div>
+
+    <div class="tcg-card" id="card1">
+      <div class="tcg-inner">
+        <div class="tcg-top">
+          <div class="family-badge">
+            <div class="family-swatch" style="background:{family_color}"></div>
+            <span class="family-label">{family_name}</span>
+          </div>
+          <span class="card-index">&#8470; {index:02d}</span>
+        </div>
+
+        <div class="name-row">
+          <span class="card-code">{core_display}-{suffix}</span>
+          <span class="card-title">{title}</span>
+        </div>
+
+        <div class="art-panel">{creature}{pentagon}</div>
+
+        <div class="stage-banner"><span>{family_name} TYPE</span></div>
+
+        <div class="stat-rows">{stat_rows}</div>
+
+        <div class="rarity-tag" style="background:{rarity_color}">{rarity}</div>
+
+        <div class="flavor-bar">{desc}</div>
+        <div class="identity-bar"><b>{suffix}-identity:</b> {identity_desc}</div>
+      </div>
+    </div>
+  </div>
+  <button class="again-btn" id="again1" onclick="document.getElementById('card1').classList.remove('show'); document.getElementById('pack1').style.display='flex'; document.getElementById('pack1').classList.remove('opening'); this.classList.remove('show');">OPEN ANOTHER PACK</button>
+</div>
+"""
 
 
 def run_prediction(
     spotify_artists, humor_types, punctuality, group_archetypes,
     what_they_talk_about, weekend_activities, text_length_slider,
     texting_style, stress_triggers, party_vibe, fav_media,
-    followers, social_media_checkboxes, spam_friends_count, photo,
+    followers, social_media_checkboxes, spam_friends_count, awkward_text, photo,
 ):
     photo_results = None
     if photo is not None:
@@ -138,6 +225,7 @@ def run_prediction(
             followers               = followers,
             social_media_checkboxes = social_media_checkboxes or [],
             spam_friends_count      = spam_friends_count,
+            awkward_text            = awkward_text,
             photo_results           = photo_results,
         )
     except Exception as e:
@@ -145,82 +233,82 @@ def run_prediction(
         return '<div class="result-empty">having trouble right now, give it a moment and try again.</div>'
 
     if axis_results is None:
-        return '<div class="result-empty">fill in at least a few fields to get a prediction.</div>'
-    return format_results(mbti_type, axis_results)
+        return '<div class="result-empty">fill in at least a few fields to get a read.</div>'
+    return build_reveal_html(mbti_type, axis_results)
 
 
-# ── build a Soft theme that matches the palette ───────────────────────────────
+# ── theme ─────────────────────────────────────────────────────────────────────
 theme = gr.themes.Soft(
     primary_hue=gr.themes.Color(
-        c50="#F2F1FC", c100="#E5E2FA", c200="#CBC5F4", c300="#AEA4EC",
-        c400="#8A7DE0", c500="#3D34B0", c600="#332B94", c700="#282178",
-        c800="#1E195C", c900="#141140", c950="#0A0821",
+        c50="#F7F3EA", c100="#EDE6D3", c200="#DED0AE", c300="#CBB989",
+        c400="#B69C6E", c500="#C9A876", c600="#9C8460", c700="#7C6A4E",
+        c800="#5C4E3B", c900="#4A3B5C", c950="#2E2440",
     ),
     secondary_hue="emerald",
-    neutral_hue="slate",
-    font=gr.themes.GoogleFont("IBM Plex Sans"),
-    font_mono=gr.themes.GoogleFont("IBM Plex Sans"),
+    neutral_hue="stone",
+    font=gr.themes.GoogleFont("Rubik"),
+    font_mono=gr.themes.GoogleFont("Silkscreen"),
 ).set(
-    body_background_fill="#F3F4FA",
-    body_background_fill_dark="#F3F4FA",
-    block_background_fill="#FFFFFF",
-    block_border_color="#E1E3EE",
-    block_border_width="1px",
-    block_radius="14px",
+    body_background_fill="#FFFDF9",
+    body_background_fill_dark="#FFFDF9",
+    block_background_fill="#EDE6D3",
+    block_border_color="#4A3B5C",
+    block_border_width="2px",
+    block_radius="8px",
     block_shadow="none",
     block_label_text_size="sm",
     block_label_text_weight="600",
-    block_label_text_color="#14172A",
+    block_label_text_color="#362B47",
     block_label_background_fill="transparent",
     block_label_border_width="0px",
     block_label_padding="0px",
     block_label_margin="0px",
     block_label_radius="0px",
     block_label_shadow="none",
-    block_title_text_color="#14172A",
+    block_title_text_color="#362B47",
     block_title_background_fill="transparent",
-    input_background_fill="#F3F4FA",
-    input_border_color="#CBCEE0",
-    input_border_color_focus="#3D34B0",
+    input_background_fill="#FFFFFF",
+    input_border_color="#4A3B5C",
+    input_border_color_focus="#8FA06E",
     input_shadow="none",
-    input_shadow_focus="0 0 0 3px rgba(61,52,176,0.12)",
-    input_radius="9px",
+    input_shadow_focus="0 0 0 3px rgba(143,160,110,0.25)",
+    input_radius="4px",
     checkbox_background_color="#FFFFFF",
-    checkbox_border_color="#CBCEE0",
-    checkbox_border_color_selected="#3D34B0",
-    checkbox_background_color_selected="#3D34B0",
+    checkbox_border_color="#4A3B5C",
+    checkbox_border_color_selected="#4A3B5C",
+    checkbox_background_color_selected="#8FA06E",
     checkbox_label_background_fill="#FFFFFF",
-    checkbox_label_background_fill_hover="#ECEAFB",
-    checkbox_label_background_fill_selected="#ECEAFB",
-    checkbox_label_border_color="#CBCEE0",
-    checkbox_label_border_color_hover="#3D34B0",
-    checkbox_label_border_color_selected="#3D34B0",
-    checkbox_label_text_color="#565B72",
-    checkbox_label_text_color_selected="#3D34B0",
-    button_primary_background_fill="#3D34B0",
-    button_primary_background_fill_hover="#2F2890",
-    button_primary_text_color="#FFFFFF",
+    checkbox_label_background_fill_hover="#F7F3EA",
+    checkbox_label_background_fill_selected="#8FA06E",
+    checkbox_label_border_color="#4A3B5C",
+    checkbox_label_border_color_hover="#4A3B5C",
+    checkbox_label_border_color_selected="#4A3B5C",
+    checkbox_label_text_color="#6B5D7D",
+    checkbox_label_text_color_selected="#FFFFFF",
+    button_primary_background_fill="#4A3B5C",
+    button_primary_background_fill_hover="#8FA06E",
+    button_primary_text_color="#EDE6D3",
     button_primary_border_color="transparent",
-    button_large_radius="10px",
+    button_large_radius="6px",
     button_large_padding="14px 32px",
-    slider_color="#3D34B0",
-    border_color_primary="#E1E3EE",
-    color_accent="#3D34B0",
-    color_accent_soft="#ECEAFB",
-    link_text_color="#3D34B0",
-    body_text_color="#14172A",
-    body_text_color_subdued="#565B72",
+    slider_color="#8FA06E",
+    border_color_primary="#4A3B5C",
+    color_accent="#8FA06E",
+    color_accent_soft="#F7F3EA",
+    link_text_color="#8FA06E",
+    body_text_color="#362B47",
+    body_text_color_subdued="#6B5D7D",
 )
 
 
 # ── layout ────────────────────────────────────────────────────────────────────
-with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
+with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     gr.HTML("""
     <div class="mbti-hero">
       <span class="hero-eyebrow">mbti guesser</span>
-      <h1 class="hero-title">who are they, <em>really?</em></h1>
-      <p class="hero-sub">describe anyone and we'll figure out their mbti type.</p>
+      <h1 class="hero-title">who are they,<br>really?</h1>
+      <p class="hero-sub">answer a few questions and open their type card.</p>
     </div>
     """)
 
@@ -275,6 +363,10 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
                 placeholder="lalaland, attack on titan, hunger games…",
                 lines=2,
             )
+            awkward_text = gr.Radio(
+                label="they sent a slightly awkward text an hour ago. they...",
+                choices=["already forgot about it", "still replaying it in their head"],
+            )
 
         with gr.Group(elem_classes=["mbti-card"]):
             gr.HTML('<span class="section-label">how they text</span>')
@@ -318,9 +410,9 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
             )
             gr.HTML('<p class="photo-note">expression, solo vs. group, eye contact, background context all analyzed locally.</p>')
 
-        output = gr.HTML("")
+        output = gr.HTML('<div class="result-empty">fill in a few fields, then open your pack.</div>')
 
-        submit_btn = gr.Button("figure out their mbti ↗", variant="primary", size="lg")
+        submit_btn = gr.Button("open their type pack ↗", variant="primary", size="lg")
 
     gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli || axes marked "?" had insufficient signal</div>')
 
@@ -330,7 +422,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme) as demo:
             spotify_artists, humor_types, punctuality, group_archetypes,
             what_they_talk_about, weekend_activities, text_length_slider,
             texting_style, stress_triggers, party_vibe, fav_media,
-            followers, social_media_checkboxes, spam_friends_count, photo,
+            followers, social_media_checkboxes, spam_friends_count, awkward_text, photo,
         ],
         outputs=output,
     )

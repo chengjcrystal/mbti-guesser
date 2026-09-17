@@ -29,6 +29,13 @@ AXES = {
             "tends to prefer going with the flow and keeping their options open"
         ],
         "keys": ["J", "P"]
+    },
+    "A_T": {
+        "labels": [
+            "tends to feel confident and secure, rarely doubts their decisions or dwells on stress",
+            "tends to feel self-conscious and sensitive to stress, often doubts their decisions and seeks to improve"
+        ],
+        "keys": ["A", "T"]
     }
 }
 
@@ -63,7 +70,8 @@ def assemble_text(
     texting_style,
     stress_triggers,
     party_vibe,
-    fav_media
+    fav_media,
+    awkward_text=None
 ):
     """
     combine all the free-text and picker fields into one labeled blob.
@@ -126,6 +134,14 @@ def assemble_text(
 
     if fav_media and fav_media.strip():
         parts.append(f"Their favorite shows and media: {fav_media.strip()}")
+
+    # awkward-text radio -> sentence (assurance/identity signal)
+    awkward_text_map = {
+        "already forgot about it": "If they send a slightly awkward text, they forget about it fast and move on.",
+        "still replaying it in their head": "If they send a slightly awkward text, they replay it in their head for a while after."
+    }
+    if awkward_text and awkward_text in awkward_text_map:
+        parts.append(awkward_text_map[awkward_text])
 
     return " ".join(parts)
 
@@ -322,6 +338,7 @@ def predict_mbti(
     followers=None,
     social_media_checkboxes=None,
     spam_friends_count=None,
+    awkward_text=None,
     photo_results=None
 ):
     """
@@ -340,7 +357,8 @@ def predict_mbti(
         texting_style=texting_style or [],
         stress_triggers=stress_triggers,
         party_vibe=party_vibe,
-        fav_media=fav_media
+        fav_media=fav_media,
+        awkward_text=awkward_text
     )
 
     if not text.strip():
@@ -355,8 +373,8 @@ def predict_mbti(
     # blend everything together
     final_results = blend_signals(text_results, photo_results, numeric_nudges)
 
-    # build the type string
-    axis_order = ["E_I", "N_S", "T_F", "J_P"]
+    # build the type string: 4 core letters, then a dash, then the identity suffix (A/T)
+    axis_order = ["E_I", "N_S", "T_F", "J_P", "A_T"]
     type_letters = []
     for axis in axis_order:
         r = final_results[axis]
@@ -365,6 +383,6 @@ def predict_mbti(
         else:
             type_letters.append(r["winner"])
 
-    mbti_type = "".join(type_letters)
+    mbti_type = "".join(type_letters[:4]) + "-" + type_letters[4]
 
     return mbti_type, final_results
