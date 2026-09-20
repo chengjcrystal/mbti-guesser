@@ -29,6 +29,73 @@ function mbtiOpenPack(packId, cardId, btnId) {
 </script>
 """
 
+def hero_scene_svg():
+    """
+    a small pixel-game landscape banner: softened classic-handheld-game palette
+    (dusty blue/teal/mauve mountains, sage grass, warm dirt), plus the app's
+    own trait icons (star, heart) floating in the sky as a brand callback.
+    fixed piece of art, not a repeating pattern.
+    """
+    W, H = 1200, 220
+    sky_y, grass_y, dirt_y = 0, 150, 188
+
+    clouds = [(90, 34, 1.0), (430, 22, 0.8), (760, 42, 0.9), (1040, 26, 0.75)]
+    cloud_svg = "".join(f'''
+    <g transform="translate({cx},{cy}) scale({s})">
+      <rect x="0" y="10" width="58" height="16" rx="8" fill="#FFFDF9"/>
+      <rect x="13" y="0" width="32" height="18" rx="8" fill="#FFFDF9"/>
+      <rect x="-9" y="13" width="28" height="11" rx="6" fill="#FFFDF9"/>
+    </g>''' for cx, cy, s in clouds)
+
+    mountains = [
+        (30, grass_y, 220, 92, "#7B93B8"),
+        (230, grass_y, 250, 118, "#6E9B96"),
+        (470, grass_y, 220, 88, "#8C6E8C"),
+        (700, grass_y, 250, 122, "#7B93B8"),
+        (930, grass_y, 230, 96, "#6E9B96"),
+    ]
+    mtn_svg = ""
+    for bx, by, w, h, color in mountains:
+        peak_x, peak_y = bx + w / 2, by - h
+        mtn_svg += f'<polygon points="{bx},{by} {peak_x},{peak_y} {bx+w},{by}" fill="{color}"/>'
+        cap_w, cap_h = w * 0.24, h * 0.26
+        mtn_svg += (f'<polygon points="{peak_x-cap_w/2:.0f},{peak_y+cap_h:.0f} '
+                    f'{peak_x:.0f},{peak_y:.0f} {peak_x+cap_w/2:.0f},{peak_y+cap_h:.0f}" fill="#FFFDF9"/>')
+
+    icon_spots = [(170, 70, "star", "#C9A876", 0.9), (940, 55, "star", "#C9A876", 0.7), (610, 28, "heart", "#D9A0A6", 0.8)]
+    icon_svg = ""
+    for x, y, shape, color, s in icon_spots:
+        colored_icon = ICONS[shape].replace("currentColor", color)
+        icon_svg += f'<g transform="translate({x},{y}) scale({s})">{colored_icon}</g>'
+
+    flowers = [80, 190, 340, 500, 640, 790, 900, 1030, 1130]
+    flower_svg = "".join(f'''
+    <g transform="translate({fx},{grass_y+18})">
+      <rect x="-2" y="-6" width="4" height="4" fill="#FFFDF9"/>
+      <rect x="-6" y="-2" width="4" height="4" fill="#FFFDF9"/>
+      <rect x="2" y="-2" width="4" height="4" fill="#FFFDF9"/>
+      <rect x="-2" y="2" width="4" height="4" fill="#FFFDF9"/>
+      <rect x="-1" y="-1" width="2" height="2" fill="#C9A876"/>
+    </g>''' for fx in flowers)
+
+    rocks = [(60, 205, 10), (210, 212, 7), (390, 203, 9), (560, 210, 6),
+             (720, 204, 10), (880, 211, 7), (1020, 205, 9), (1150, 210, 6)]
+    rock_svg = "".join(f'<ellipse cx="{rx}" cy="{ry}" rx="{rr}" ry="{rr*0.7:.0f}" fill="#5C4A38"/>' for rx, ry, rr in rocks)
+
+    return f'''
+    <svg width="100%" viewBox="0 0 {W} {H}" preserveAspectRatio="xMidYMid slice" style="display:block">
+      <rect x="0" y="0" width="{W}" height="{grass_y}" fill="#A3DBD8"/>
+      {cloud_svg}
+      {mtn_svg}
+      {icon_svg}
+      <rect x="0" y="{grass_y}" width="{W}" height="{dirt_y-grass_y}" fill="#8FA06E"/>
+      {flower_svg}
+      <rect x="0" y="{dirt_y}" width="{W}" height="{H-dirt_y}" fill="#A67C52"/>
+      {rock_svg}
+    </svg>
+    '''
+
+
 # ── type data ─────────────────────────────────────────────────────────────────
 MBTI_DESCRIPTIONS = {
     "INTJ": ("the architect",    "strategic, private, always three steps ahead. probably already knows what you're going to say."),
@@ -430,12 +497,13 @@ def next3_handler(spotify_artists, humor_types, punctuality, group_archetypes,
 # ── layout ────────────────────────────────────────────────────────────────────
 with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
-    gr.HTML("""
+    gr.HTML(f"""
     <div class="mbti-hero">
       <span class="hero-eyebrow">mbti guesser</span>
       <h1 class="hero-title">type radar</h1>
       <p class="hero-sub">answer a few questions and open their type card.</p>
     </div>
+    <div class="hero-scene">{hero_scene_svg()}</div>
     """)
 
     with gr.Column(elem_classes=["main-content"]) as form_page:
@@ -465,6 +533,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                                 "the mom", "the one who does it for the plot",
                                 "the navigator", "the therapist friend",
                                 "the flake", "the nonchalant one", "the instigator",
+                                "the yapper", "the listener",
                             ],            )
                     next1_btn = gr.Button("Next →", variant="primary", size="lg")
 
