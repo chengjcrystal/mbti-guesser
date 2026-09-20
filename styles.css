@@ -113,8 +113,9 @@ footer, .built-with { display: none !important; }
   color: var(--ink-soft);
   font-weight: 500;
   line-height: 1.7;
-  max-width: 50ch;
-  margin: 0 auto;
+  max-width: 50ch !important;
+  margin: 0 auto !important;
+  text-align: center !important;
 }
 
 /* ── card sections (gr.Group wrappers) ── */

@@ -240,7 +240,7 @@ def live_pentagon_html(axis_results):
 
 def run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
                  what_they_talk_about="", weekend_activities="", stress_triggers="", party_vibe="",
-                 fav_media="", awkward_text=None, text_length_slider=3, texting_style=None,
+                 fav_media="", awkward_text=None, text_length_slider=None, texting_style=None,
                  followers=None, social_media_checkboxes=None, spam_friends_count=None):
     try:
         mbti_type, axis_results = predict_mbti(
@@ -250,7 +250,7 @@ def run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
             group_archetypes        = group_archetypes or [],
             what_they_talk_about    = what_they_talk_about or "",
             weekend_activities      = weekend_activities or "",
-            text_length_slider      = int(text_length_slider) if text_length_slider else 3,
+            text_length_slider      = int(text_length_slider) if text_length_slider else None,
             texting_style           = texting_style or [],
             stress_triggers         = stress_triggers or "",
             party_vibe              = party_vibe or "",
