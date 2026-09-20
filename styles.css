@@ -56,6 +56,8 @@ body {
 .live-col { position: sticky; top: 20px; }
 
 .step-indicator {
+  position: relative;
+  z-index: 1;
   margin-bottom: 16px;
   background: var(--field);
   border: 3px solid var(--plum);
@@ -88,6 +90,8 @@ footer, .built-with { display: none !important; }
 
 /* ── hero ── */
 .mbti-hero {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 640px;
   margin: 32px auto 24px;
@@ -170,6 +174,8 @@ footer, .built-with { display: none !important; }
 
 /* ── footer ── */
 .mbti-footer {
+  position: relative;
+  z-index: 1;
   text-align: center; font-size: 11px; color: var(--ink-soft); line-height: 1.7;
   max-width: 640px; margin: 20px auto 48px; padding: 10px 16px;
   background: var(--field); border: 2px solid var(--plum); border-radius: 6px;
