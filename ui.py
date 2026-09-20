@@ -462,9 +462,9 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                         group_archetypes = gr.CheckboxGroup(
                             label="their role in the friend group",
                             choices=[
-                                "the mom (plans everything)", "the one who does it for the plot",
-                                "the researcher (googles before anyone asks)", "the therapist friend",
-                                "the flake", "the hype person", "the nonchalant one", "the instigator",
+                                "the mom", "the one who does it for the plot",
+                                "the navigator", "the therapist friend",
+                                "the flake", "the nonchalant one", "the instigator",
                             ],            )
                     next1_btn = gr.Button("Next →", variant="primary", size="lg")
 
@@ -488,7 +488,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                         )
                         party_vibe = gr.Textbox(
                             label="vibe at parties / what kind of drunk are they?",
-                            placeholder="disappears to talk to one person, center of attention, goes home early…",
+                            placeholder="talks to one person all night, or works the whole room…",
                             lines=2,
                         )
                         fav_media = gr.Textbox(
