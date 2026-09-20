@@ -433,7 +433,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     gr.HTML("""
     <div class="mbti-hero">
       <span class="hero-eyebrow">mbti guesser</span>
-      <h1 class="hero-title">who are they,<br>really?</h1>
+      <h1 class="hero-title">type radar</h1>
       <p class="hero-sub">answer a few questions and open their type card.</p>
     </div>
     """)
