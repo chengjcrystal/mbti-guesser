@@ -42,6 +42,14 @@ body, .gradio-container {
 }
 .live-col { position: sticky; top: 20px; }
 
+.step-indicator { margin-bottom: 16px; }
+.step-indicator span {
+  font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; color: var(--ink-soft);
+  letter-spacing: 0.05em;
+}
+.step-bar-track { height: 8px; background: var(--cream); border: 2px solid var(--plum); border-radius: 5px; margin-top: 7px; overflow: hidden; }
+.step-bar-fill { height: 100%; background: var(--sage); transition: width 0.35s ease; }
+
 .live-panel-inner { padding: 4px 2px; }
 .live-panel-inner .card-eyebrow {
   font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; color: var(--ink-soft);
@@ -122,10 +130,17 @@ footer, .built-with { display: none !important; }
 }
 
 /* ── photo upload ── */
-.photo-upload-wrap { font-size: 11px !important; }
+.photo-upload-wrap { font-size: 12px !important; }
 .photo-upload-wrap [data-testid="image"] { min-height: 100px !important; }
 .photo-upload-wrap [data-testid="image"] .wrap { min-height: 100px !important; }
-.photo-upload-wrap span, .photo-upload-wrap button, .photo-upload-wrap label { font-size: 11px !important; }
+.photo-upload-wrap span, .photo-upload-wrap button, .photo-upload-wrap label { font-size: 12px !important; }
+.photo-upload-wrap .upload-container,
+.photo-upload-wrap .upload-container * {
+  font-family: 'Rubik', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--ink-soft) !important;
+}
 .photo-upload-wrap svg { width: 16px !important; height: 16px !important; }
 .photo-note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin-top: 8px; }
 
