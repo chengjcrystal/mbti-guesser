@@ -31,15 +31,16 @@ function mbtiOpenPack(packId, cardId, btnId) {
 
 def hero_scene_svg():
     """
-    a small pixel-game landscape banner: softened classic-handheld-game palette
-    (dusty blue/teal/mauve mountains, sage grass, warm dirt), plus the app's
-    own trait icons (star, heart) floating in the sky as a brand callback.
-    fixed piece of art, not a repeating pattern.
+    a full-viewport pixel-game landscape wallpaper: softened classic-handheld-game
+    palette (dusty blue/teal/mauve mountains, sage grass, warm dirt), plus the
+    app's own trait icons (star, heart) floating in the sky as a brand callback.
+    fixed piece of art, not a repeating pattern. canvas is close to a viewport's
+    own proportions so the "cover" crop doesn't have to zoom in hard on one corner.
     """
-    W, H = 1200, 220
-    sky_y, grass_y, dirt_y = 0, 150, 188
+    W, H = 1200, 900
+    grass_y, dirt_y = 560, 720
 
-    clouds = [(90, 34, 1.0), (430, 22, 0.8), (760, 42, 0.9), (1040, 26, 0.75)]
+    clouds = [(120, 110, 1.4), (520, 70, 1.1), (880, 150, 1.3), (1080, 90, 1.0)]
     cloud_svg = "".join(f'''
     <g transform="translate({cx},{cy}) scale({s})">
       <rect x="0" y="10" width="58" height="16" rx="8" fill="#FFFDF9"/>
@@ -48,38 +49,38 @@ def hero_scene_svg():
     </g>''' for cx, cy, s in clouds)
 
     mountains = [
-        (30, grass_y, 220, 92, "#7B93B8"),
-        (230, grass_y, 250, 118, "#6E9B96"),
-        (470, grass_y, 220, 88, "#8C6E8C"),
-        (700, grass_y, 250, 122, "#7B93B8"),
-        (930, grass_y, 230, 96, "#6E9B96"),
+        (10, grass_y, 300, 230, "#7B93B8"),
+        (260, grass_y, 340, 300, "#6E9B96"),
+        (560, grass_y, 300, 220, "#8C6E8C"),
+        (820, grass_y, 340, 310, "#7B93B8"),
+        (1090, grass_y, 300, 240, "#6E9B96"),
     ]
     mtn_svg = ""
     for bx, by, w, h, color in mountains:
         peak_x, peak_y = bx + w / 2, by - h
         mtn_svg += f'<polygon points="{bx},{by} {peak_x},{peak_y} {bx+w},{by}" fill="{color}"/>'
-        cap_w, cap_h = w * 0.24, h * 0.26
+        cap_w, cap_h = w * 0.24, h * 0.22
         mtn_svg += (f'<polygon points="{peak_x-cap_w/2:.0f},{peak_y+cap_h:.0f} '
                     f'{peak_x:.0f},{peak_y:.0f} {peak_x+cap_w/2:.0f},{peak_y+cap_h:.0f}" fill="#FFFDF9"/>')
 
-    icon_spots = [(170, 70, "star", "#C9A876", 0.9), (940, 55, "star", "#C9A876", 0.7), (610, 28, "heart", "#D9A0A6", 0.8)]
+    icon_spots = [(190, 200, "star", "#C9A876", 1.6), (990, 160, "star", "#C9A876", 1.3), (640, 90, "heart", "#D9A0A6", 1.5)]
     icon_svg = ""
     for x, y, shape, color, s in icon_spots:
         colored_icon = ICONS[shape].replace("currentColor", color)
         icon_svg += f'<g transform="translate({x},{y}) scale({s})">{colored_icon}</g>'
 
-    flowers = [80, 190, 340, 500, 640, 790, 900, 1030, 1130]
+    flowers = [60, 170, 320, 470, 610, 760, 880, 1010, 1130]
     flower_svg = "".join(f'''
-    <g transform="translate({fx},{grass_y+18})">
-      <rect x="-2" y="-6" width="4" height="4" fill="#FFFDF9"/>
-      <rect x="-6" y="-2" width="4" height="4" fill="#FFFDF9"/>
-      <rect x="2" y="-2" width="4" height="4" fill="#FFFDF9"/>
-      <rect x="-2" y="2" width="4" height="4" fill="#FFFDF9"/>
-      <rect x="-1" y="-1" width="2" height="2" fill="#C9A876"/>
+    <g transform="translate({fx},{grass_y+70})">
+      <rect x="-4" y="-11" width="8" height="8" fill="#FFFDF9"/>
+      <rect x="-11" y="-4" width="8" height="8" fill="#FFFDF9"/>
+      <rect x="3" y="-4" width="8" height="8" fill="#FFFDF9"/>
+      <rect x="-4" y="3" width="8" height="8" fill="#FFFDF9"/>
+      <rect x="-2" y="-2" width="4" height="4" fill="#C9A876"/>
     </g>''' for fx in flowers)
 
-    rocks = [(60, 205, 10), (210, 212, 7), (390, 203, 9), (560, 210, 6),
-             (720, 204, 10), (880, 211, 7), (1020, 205, 9), (1150, 210, 6)]
+    rocks = [(50, dirt_y+55, 18), (200, dirt_y+75, 13), (370, dirt_y+45, 16), (540, dirt_y+70, 11),
+             (700, dirt_y+50, 18), (860, dirt_y+78, 13), (1000, dirt_y+48, 16), (1140, dirt_y+72, 11)]
     rock_svg = "".join(f'<ellipse cx="{rx}" cy="{ry}" rx="{rr}" ry="{rr*0.7:.0f}" fill="#5C4A38"/>' for rx, ry, rr in rocks)
 
     return f'''
@@ -292,9 +293,9 @@ def build_reveal_html(mbti_type, axis_results):
     stat_rows = "".join(f'''
     <div class="stat-row">
       <svg class="stat-icon" viewBox="0 0 18 18" style="color:{color}">{ICONS[icon]}</svg>
-      <span class="stat-name">{name}</span>
+      <span class="stat-name">{name} <span class="stat-letter">({outward})</span></span>
       <span class="stat-num">{pct}</span>
-    </div>''' for name, pct, color, icon in stats)
+    </div>''' for (name, pct, color, icon), (_, _, outward, _, _) in zip(stats, SPOKES))
 
     avg_spread = sum(abs(p - 50) for _, p, _, _ in stats) / len(stats)
     if avg_spread > 30:
@@ -498,12 +499,12 @@ def next3_handler(spotify_artists, humor_types, punctuality, group_archetypes,
 with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     gr.HTML(f"""
+    <div class="hero-scene">{hero_scene_svg()}</div>
     <div class="mbti-hero">
       <span class="hero-eyebrow">mbti guesser</span>
       <h1 class="hero-title">type radar</h1>
       <p class="hero-sub">answer a few questions and open their type card.</p>
     </div>
-    <div class="hero-scene">{hero_scene_svg()}</div>
     """)
 
     with gr.Column(elem_classes=["main-content"]) as form_page:

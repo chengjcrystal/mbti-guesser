@@ -14,22 +14,25 @@
   --ink-soft: #6B5D7D;
 }
 
-/* ── page background: plain field, the illustrated hero scene carries the pixel-game feel ── */
-body, .gradio-container {
+/* ── page background: solid fallback, the fixed scene layer below paints the real backdrop ── */
+body {
   background-color: var(--field) !important;
+}
+.gradio-container {
+  background-color: transparent !important;
   background-image: none !important;
 }
 
-/* ── hero scene banner: fixed pixel-art landscape, not a repeating pattern ── */
+/* ── hero scene: fixed full-viewport pixel-art wallpaper, not a repeating pattern ── */
 .hero-scene {
-  max-width: 900px;
-  margin: 0 auto 12px;
-  border: 4px solid var(--plum);
-  border-radius: 8px;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  box-shadow: 6px 6px 0 rgba(0,0,0,0.15);
   line-height: 0;
 }
+.hero-scene svg { width: 100%; height: 100%; display: block; }
 
 .main-content {
   max-width: 850px !important;
@@ -52,7 +55,13 @@ body, .gradio-container {
 }
 .live-col { position: sticky; top: 20px; }
 
-.step-indicator { margin-bottom: 16px; }
+.step-indicator {
+  margin-bottom: 16px;
+  background: var(--field);
+  border: 3px solid var(--plum);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
 .step-indicator span {
   font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; color: var(--ink-soft);
   letter-spacing: 0.05em;
@@ -80,10 +89,14 @@ footer, .built-with { display: none !important; }
 /* ── hero ── */
 .mbti-hero {
   width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: 640px;
+  margin: 32px auto 24px;
   text-align: center;
-  padding: 56px 24px 36px;
+  padding: 32px 24px;
+  background: var(--field);
+  border: 4px solid var(--plum);
+  border-radius: 10px;
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
 }
 .hero-eyebrow {
   display: inline-block;
@@ -156,7 +169,11 @@ footer, .built-with { display: none !important; }
 .photo-note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin-top: 8px; }
 
 /* ── footer ── */
-.mbti-footer { text-align: center; font-size: 11px; color: var(--ink-soft); padding: 20px 0 48px; line-height: 1.7; }
+.mbti-footer {
+  text-align: center; font-size: 11px; color: var(--ink-soft); line-height: 1.7;
+  max-width: 640px; margin: 20px auto 48px; padding: 10px 16px;
+  background: var(--field); border: 2px solid var(--plum); border-radius: 6px;
+}
 
 /* ── empty state ── */
 .result-empty { font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink-soft); line-height: 1.6; text-align: center; padding: 20px 0; }
@@ -228,6 +245,7 @@ footer, .built-with { display: none !important; }
 .stat-row { display: flex; align-items: center; gap: 8px; }
 .stat-icon { width: 18px; height: 18px; flex-shrink: 0; }
 .stat-name { font-family: 'Rubik', sans-serif; font-size: 11px; font-weight: 600; color: var(--ink); flex: 1; }
+.stat-letter { font-family: 'Silkscreen', monospace; font-weight: 700; color: var(--ink-soft); }
 .stat-num { font-family: 'Silkscreen', monospace; font-size: 15px; font-weight: 700; color: var(--plum); width: 32px; text-align: right; }
 
 .rarity-tag { display: inline-block; font-family: 'Silkscreen', monospace; font-size: 10px; font-weight: 700; padding: 3px 8px; border: 2px solid var(--plum); border-radius: 3px; margin-bottom: 10px; }
