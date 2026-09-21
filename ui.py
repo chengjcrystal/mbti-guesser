@@ -636,16 +636,16 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     step2_fields = step1_fields + [what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text]
     step3_fields = step2_fields + [text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count]
 
-    next1_btn.click(fn=next1_handler, inputs=step1_fields, outputs=[progress_panel, step1, step2, step_indicator])
-    next2_btn.click(fn=next2_handler, inputs=step2_fields, outputs=[progress_panel, step2, step3, step_indicator])
-    next3_btn.click(fn=next3_handler, inputs=step3_fields, outputs=[progress_panel, step3, step4, step_indicator])
+    next1_btn.click(fn=next1_handler, inputs=step1_fields, outputs=[progress_panel, step1, step2, step_indicator], show_progress="minimal")
+    next2_btn.click(fn=next2_handler, inputs=step2_fields, outputs=[progress_panel, step2, step3, step_indicator], show_progress="minimal")
+    next3_btn.click(fn=next3_handler, inputs=step3_fields, outputs=[progress_panel, step3, step4, step_indicator], show_progress="minimal")
 
     back2_btn.click(fn=lambda: (gr.update(visible=True), gr.update(visible=False), step_indicator_html(1, TOTAL_STEPS)), outputs=[step1, step2, step_indicator])
     back3_btn.click(fn=lambda: (gr.update(visible=True), gr.update(visible=False), step_indicator_html(2, TOTAL_STEPS)), outputs=[step2, step3, step_indicator])
     back4_btn.click(fn=lambda: (gr.update(visible=True), gr.update(visible=False), step_indicator_html(3, TOTAL_STEPS)), outputs=[step3, step4, step_indicator])
 
     submit_inputs = step3_fields + [photo]
-    submit_btn.click(fn=run_prediction, inputs=submit_inputs, outputs=[output, form_page, reveal_page])
+    submit_btn.click(fn=run_prediction, inputs=submit_inputs, outputs=[output, form_page, reveal_page], show_progress="minimal")
     again_btn.click(
         fn=lambda: (gr.update(visible=True), gr.update(visible=False)),
         outputs=[form_page, reveal_page],

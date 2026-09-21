@@ -362,7 +362,7 @@ def predict_mbti(
     )
 
     if not text.strip():
-        return None, "fill in at least a few fields to get a prediction!"
+        return None, None
 
     # classify text
     text_results = classify_text(text)
