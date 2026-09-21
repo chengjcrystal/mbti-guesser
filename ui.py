@@ -122,14 +122,15 @@ IDENTITY_DESCRIPTIONS = {
     "T": "self-aware with a perfectionist streak, replays things more than they'd like to admit.",
 }
 
-# fixed spoke order for the pentagon + stat rows. "outward" is the named trait
-# the spoke grows toward; a low reading just means the opposite pole, same as
-# the axis itself, nothing invented here.
+# spoke order matches the printed type code (E/I, N/S, T/F, J/P, then A/T) so
+# the pentagon and stat rows read in the same order as "ENFP-A" above them.
+# "outward" is the named trait the spoke grows toward; a low reading just
+# means the opposite pole, same as the axis itself, nothing invented here.
 SPOKES = [
-    ("E_I", "Energy",   "E", "#8FA06E", "bolt"),
-    ("T_F", "Empathy",  "F", "#D9A0A6", "heart"),
-    ("J_P", "Freedom",  "P", "#C9A876", "swirl"),
-    ("N_S", "Vision",   "N", "#7B93B8", "star"),
+    ("E_I", "Energy",    "E", "#8FA06E", "bolt"),
+    ("N_S", "Vision",    "N", "#7B93B8", "star"),
+    ("T_F", "Empathy",   "F", "#D9A0A6", "heart"),
+    ("J_P", "Freedom",   "P", "#C9A876", "swirl"),
     ("A_T", "Assurance", "A", "#6E9B96", "shield"),
 ]
 
@@ -144,8 +145,6 @@ ICONS = {
 FAMILY_NAMES = {"NT": "ANALYST", "NF": "DIPLOMAT", "SJ": "SENTINEL", "SP": "EXPLORER"}
 
 TYPE_INDEX = {code: i + 1 for i, code in enumerate(sorted(MBTI_DESCRIPTIONS.keys()))}
-
-AXIS_ORDER = ["E_I", "N_S", "T_F", "J_P", "A_T"]
 
 
 def _point(i, n, r, cx, cy):
@@ -289,13 +288,23 @@ def build_reveal_html(mbti_type, axis_results):
     }.get(family_key, "#8C6E8C")
 
     stats = _extract_stats(axis_results)
+    pentagon = _pentagon_svg(stats, size=250, show_labels=True)
 
-    stat_rows = "".join(f'''
+    # the pentagon spoke always grows toward "outward" so the shape stays
+    # readable, but the row below it should name the actual winner (or "?" if
+    # the axis never cleared the ambiguity threshold) with THAT letter's own
+    # confidence -- not "outward" and its score regardless of who actually won.
+    stat_rows = ""
+    for axis_key, name, outward, color, icon in SPOKES:
+        r = axis_results.get(axis_key, {})
+        letter = "?" if r.get("is_ambiguous") else r.get("winner", outward)
+        num = round(r.get("confidence", 50))
+        stat_rows += f'''
     <div class="stat-row">
       <svg class="stat-icon" viewBox="0 0 18 18" style="color:{color}">{ICONS[icon]}</svg>
-      <span class="stat-name">{name} <span class="stat-letter">({outward})</span></span>
-      <span class="stat-num">{pct}</span>
-    </div>''' for (name, pct, color, icon), (_, _, outward, _, _) in zip(stats, SPOKES))
+      <span class="stat-name">{name} <span class="stat-letter">({letter})</span></span>
+      <span class="stat-num">{num}</span>
+    </div>'''
 
     avg_spread = sum(abs(p - 50) for _, p, _, _ in stats) / len(stats)
     if avg_spread > 30:
@@ -306,7 +315,6 @@ def build_reveal_html(mbti_type, axis_results):
         rarity, rarity_color = "MIXED SIGNAL", "#C9A876"
 
     creature = creature_svg(e_i, n_s, t_f, j_p, suffix, size=40)
-    pentagon = _pentagon_svg(stats, size=250, show_labels=True)
     index = TYPE_INDEX.get(core_display, 0)
 
     return f"""
@@ -517,7 +525,6 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     <div class="mbti-hero">
       <span class="hero-eyebrow">mbti guesser</span>
       <h1 class="hero-title">type radar</h1>
-      <p class="hero-sub">answer a few questions and open their type card.</p>
     </div>
     """)
 
@@ -531,19 +538,19 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                     with gr.Group(elem_classes=["mbti-card"]):
                         gr.HTML('<span class="section-label">the basics</span>')
                         spotify_artists = gr.Textbox(
-                            label="spotify top artists",
+                            label="spotify top artists (optional)",
                             placeholder="olivia rodrigo, daniel caesar, le sserafim, clairo…",
                         )
                         humor_types = gr.CheckboxGroup(
-                            label="their humor",
+                            label="their humor (required)",
                             choices=["dry", "unhinged", "wholesome", "dark", "sarcastic", "self-deprecating"],
                         )
                         punctuality = gr.Radio(
-                            label="early, on time, or late?",
+                            label="early, on time, or late? (required)",
                             choices=["always early", "usually early", "on time", "usually late", "always late"],
                         )
                         group_archetypes = gr.CheckboxGroup(
-                            label="their role in the friend group",
+                            label="their role in the friend group (required)",
                             choices=[
                                 "the mom", "the one who does it for the plot",
                                 "the navigator", "the therapist friend",
@@ -562,32 +569,32 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                     with gr.Group(elem_classes=["mbti-card"]):
                         gr.HTML('<span class="section-label">what they\'re like</span>')
                         what_they_talk_about = gr.Textbox(
-                            label="what do they talk about most?",
+                            label="what do they talk about most? (optional)",
                             placeholder="the nba finals, their love life, conspiracy theories…",
                             lines=2,
                         )
                         weekend_activities = gr.Textbox(
-                            label="how do they spend their weekends?",
+                            label="how do they spend their weekends? (optional)",
                             placeholder="hiking alone, cafe hopping, sleeping until noon…",
                             lines=2,
                         )
                         stress_triggers = gr.Textbox(
-                            label="what stresses them out?",
+                            label="what stresses them out? (optional)",
                             placeholder="last-minute changes, overstimulating noises, falling behind…",
                             lines=2,
                         )
                         party_vibe = gr.Textbox(
-                            label="vibe at parties / what kind of drunk are they?",
+                            label="vibe at parties / what kind of drunk are they? (optional)",
                             placeholder="talks to one person all night, or works the whole room…",
                             lines=2,
                         )
                         fav_media = gr.Textbox(
-                            label="favorite shows, movies, or books",
-                            placeholder="lalaland, attack on titan, hunger games…",
+                            label="favorite shows, movies, or books (optional)",
+                            placeholder="la la land, attack on titan, hunger games…",
                             lines=2,
                         )
                         awkward_text = gr.Radio(
-                            label="they sent a slightly awkward text an hour ago. they...",
+                            label="they sent a slightly awkward text an hour ago. they... (required)",
                             choices=["already forgot about it", "still replaying it in their head"],
                         )
                     with gr.Row():
@@ -600,22 +607,22 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                         gr.HTML('<span class="section-label">digital habits</span>')
                         text_length_slider = gr.Slider(
                             minimum=1, maximum=5, step=1, value=3,
-                            label="how long are their texts?",
+                            label="how long are their texts? (optional)",
                             info="1 = one-word replies   ||   5 = full essays",
                         )
                         texting_style = gr.CheckboxGroup(
-                            label="texting style",
+                            label="texting style (required)",
                             choices=["quick replies", "slow replies", "emoji heavy", "no emojis",
                                         "all lowercase", "uses punctuation", "leaves people on read"],
                         )
-                        followers = gr.Number(label="follower count", precision=0, minimum=0, info="main account")
+                        followers = gr.Number(label="follower count (optional)", precision=0, minimum=0, info="main account")
                         social_media_checkboxes = gr.CheckboxGroup(
-                            label="social media behavior",
+                            label="social media behavior (required)",
                             choices=["posts a lot", "mostly a lurker", "stories person",
                                         "feed poster", "has a spam/close friends account"],
                         )
                         spam_friends_count = gr.Number(
-                            label="close friends / spam list size",
+                            label="close friends / spam list size (optional)",
                             minimum=0, visible=False,
                             info="under 10 = very private || 110+ = basically a second public account",
                         )
@@ -655,7 +662,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     with gr.Column(elem_classes=["main-content", "reveal-page-inner"], visible=False) as reveal_page:
         output = gr.HTML("")
         with gr.Row(elem_classes=["again-row"]):
-            again_btn = gr.Button("answer again", size="sm")
+            again_btn = gr.Button("↺ retake the quiz", size="sm")
 
     gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli || axes marked "?" had insufficient signal</div>')
 
