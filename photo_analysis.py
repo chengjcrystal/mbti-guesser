@@ -34,7 +34,6 @@ def analyze_photo(image_path):
         if isinstance(analysis, list):
             analysis = analysis[0]
 
-        dominant_emotion = analysis.get("dominant_emotion", "")
         emotion_scores = analysis.get("emotion", {})
 
         # F types tend toward warmer emotions, T types toward neutral/analytical

@@ -45,8 +45,10 @@ First run downloads `facebook/bart-large-mnli` (~1.6 GB) from Hugging Face.
 |---|---|
 | `app.py` | Text assembly, zero-shot NLI classification, numeric signals, fusion |
 | `photo_analysis.py` | DeepFace + OpenCV photo signals |
+| `creature.py` | Procedural creature SVG, one visual part per trait letter |
 | `ui.py` | Gradio layout and theme |
 | `styles.css` | Custom styling on top of the Gradio theme |
+| `eval_axes.py` | Sanity-check script for the text classifier, writes `eval_results.json` |
 
 ## License
 

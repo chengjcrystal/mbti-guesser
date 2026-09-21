@@ -8,7 +8,7 @@ every value inside the card is rendered server-side from the real prediction.
 import pathlib
 import gradio as gr
 from app import predict_mbti
-from creature import creature_svg, get_family
+from creature import creature_svg
 
 CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
 
