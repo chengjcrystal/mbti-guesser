@@ -192,10 +192,10 @@ def _pentagon_svg(stats, size=120, show_labels=False):
 def empty_progress_html():
     """starting state, before step 1 has been submitted: nothing to read yet."""
     stats = [(name, 20, color, icon) for _, name, _, color, icon in SPOKES]
-    pentagon = _pentagon_svg(stats, size=170, show_labels=True)
+    pentagon = _pentagon_svg(stats, size=230, show_labels=True)
     return f"""
     <div class="live-panel-inner">
-      <div class="card-eyebrow">Live Read</div>
+      <div class="card-eyebrow">Live Radar</div>
       <div class="live-status">answer step 1 to start their read</div>
       <div class="progress-pentagon-wrap">{pentagon}</div>
     </div>
@@ -229,10 +229,10 @@ def live_pentagon_html(axis_results):
     fabricated numbers at any point.
     """
     stats = _extract_stats(axis_results)
-    pentagon = _pentagon_svg(stats, size=190, show_labels=True)
+    pentagon = _pentagon_svg(stats, size=230, show_labels=True)
     return f"""
     <div class="live-panel-inner">
-      <div class="card-eyebrow">Live Read</div>
+      <div class="card-eyebrow">Live Radar</div>
       <div class="live-status">reading their answers so far</div>
       <div class="progress-pentagon-wrap">{pentagon}</div>
     </div>
@@ -474,6 +474,20 @@ theme = gr.themes.Soft(
 TOTAL_STEPS = 4
 
 
+def _step1_valid(humor_types, punctuality, group_archetypes):
+    ok = bool(humor_types) and bool(punctuality) and bool(group_archetypes)
+    return gr.update(interactive=ok)
+
+
+def _step2_valid(awkward_text):
+    return gr.update(interactive=bool(awkward_text))
+
+
+def _step3_valid(texting_style, social_media_checkboxes):
+    ok = bool(texting_style) and bool(social_media_checkboxes)
+    return gr.update(interactive=ok)
+
+
 def next1_handler(spotify_artists, humor_types, punctuality, group_archetypes):
     panel = run_partial(spotify_artists, humor_types, punctuality, group_archetypes)
     return panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(2, TOTAL_STEPS)
@@ -536,7 +550,13 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                                 "the flake", "the nonchalant one", "the instigator",
                                 "the yapper", "the listener",
                             ],            )
-                    next1_btn = gr.Button("Next →", variant="primary", size="lg")
+                    next1_btn = gr.Button("Next →", variant="primary", size="lg", interactive=False)
+                    for _comp in (humor_types, punctuality, group_archetypes):
+                        _comp.change(
+                            fn=_step1_valid,
+                            inputs=[humor_types, punctuality, group_archetypes],
+                            outputs=next1_btn,
+                        )
 
                 with gr.Column(visible=False) as step2:
                     with gr.Group(elem_classes=["mbti-card"]):
@@ -572,7 +592,8 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                         )
                     with gr.Row():
                         back2_btn = gr.Button("← Back", variant="secondary")
-                        next2_btn = gr.Button("Next →", variant="primary")
+                        next2_btn = gr.Button("Next →", variant="primary", interactive=False)
+                    awkward_text.change(fn=_step2_valid, inputs=awkward_text, outputs=next2_btn)
 
                 with gr.Column(visible=False) as step3:
                     with gr.Group(elem_classes=["mbti-card"]):
@@ -605,7 +626,13 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                         )
                     with gr.Row():
                         back3_btn = gr.Button("← Back", variant="secondary")
-                        next3_btn = gr.Button("Next →", variant="primary")
+                        next3_btn = gr.Button("Next →", variant="primary", interactive=False)
+                    for _comp in (texting_style, social_media_checkboxes):
+                        _comp.change(
+                            fn=_step3_valid,
+                            inputs=[texting_style, social_media_checkboxes],
+                            outputs=next3_btn,
+                        )
 
                 with gr.Column(visible=False) as step4:
                     with gr.Group(elem_classes=["mbti-card"]):
@@ -646,9 +673,47 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
 
     submit_inputs = step3_fields + [photo]
     submit_btn.click(fn=run_prediction, inputs=submit_inputs, outputs=[output, form_page, reveal_page], show_progress="minimal")
+
+    def again_reset_pages():
+        return gr.update(visible=True), gr.update(visible=False)  # form_page, reveal_page
+
+    def again_reset_late_steps():
+        return gr.update(visible=False), gr.update(visible=False)  # step3, step4
+
+    def again_reset_early_steps():
+        return gr.update(visible=True), gr.update(visible=False)  # step1, step2
+
+    def again_reset_panels():
+        return (
+            step_indicator_html(1, TOTAL_STEPS),
+            empty_progress_html(),
+            gr.update(interactive=False), gr.update(interactive=False), gr.update(interactive=False),  # next1/2/3 btns
+        )
+
+    def again_reset_step1_fields():
+        # step2-4's own field values are left as-is: writing into a field that
+        # lives inside an already-hidden sibling column, in the same batch as
+        # other sibling-column visibility changes, triggers a Gradio render
+        # glitch that leaves an empty ghost card in the layout. Answering
+        # those steps again on the next pass through the wizard overwrites
+        # them naturally, so nothing stale ever reaches a real prediction.
+        return "", [], None, []
+
+    # Gradio's Column-visibility diffing only stays clean up to 2 sibling
+    # columns changing per event (matching how Next/Back already only ever
+    # flip 2 siblings each) -- so the 4-sibling step1..4 reset is split into
+    # two lockstep-safe stages instead of one batch.
     again_btn.click(
-        fn=lambda: (gr.update(visible=True), gr.update(visible=False)),
-        outputs=[form_page, reveal_page],
+        fn=again_reset_pages, outputs=[form_page, reveal_page],
+    ).then(
+        fn=again_reset_late_steps, outputs=[step3, step4],
+    ).then(
+        fn=again_reset_early_steps, outputs=[step1, step2],
+    ).then(
+        fn=again_reset_panels, outputs=[step_indicator, progress_panel, next1_btn, next2_btn, next3_btn],
+    ).then(
+        fn=again_reset_step1_fields,
+        outputs=[spotify_artists, humor_types, punctuality, group_archetypes],
     )
 
 if __name__ == "__main__":
