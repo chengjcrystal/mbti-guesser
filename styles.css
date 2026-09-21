@@ -99,6 +99,15 @@ body {
 .live-status.ready { color: var(--sage); }
 .progress-pentagon-wrap { display: flex; justify-content: center; }
 
+.ai-read { margin-top: 14px; padding-top: 12px; border-top: 2px dashed var(--plum); text-align: left; }
+.ai-read-label {
+  font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; color: var(--ink-soft);
+  text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;
+}
+.ai-read-snippet { font-family: 'Rubik', sans-serif; font-size: 12px; font-style: italic; color: var(--ink) !important; line-height: 1.5; margin-bottom: 6px; }
+.ai-read-line { font-family: 'Rubik', sans-serif; font-size: 12px; color: var(--ink-soft) !important; line-height: 1.5; }
+.ai-read-line b { color: var(--plum) !important; }
+
 /* ── reveal page ── */
 .reveal-page-inner { max-width: 900px; margin: 0 auto; padding: 24px 0 20px; text-align: center; }
 .again-row { margin-top: 20px; display: flex; justify-content: center; }

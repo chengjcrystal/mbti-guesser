@@ -362,7 +362,7 @@ def predict_mbti(
     )
 
     if not text.strip():
-        return None, None
+        return None, None, ""
 
     # classify text
     text_results = classify_text(text)
@@ -385,4 +385,4 @@ def predict_mbti(
 
     mbti_type = "".join(type_letters[:4]) + "-" + type_letters[4]
 
-    return mbti_type, final_results
+    return mbti_type, final_results, text

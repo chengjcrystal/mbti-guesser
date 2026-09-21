@@ -220,7 +220,38 @@ def _extract_stats(axis_results):
     return stats
 
 
-def live_pentagon_html(axis_results):
+def ai_read_html(text, axis_results):
+    """
+    proof-of-work, not just a progress bar: the literal blob just sent to
+    the zero-shot classifier, plus its single most confident non-ambiguous
+    read so far. nothing here is a lookup table -- it's the actual model
+    output for the actual text, updating step to step.
+    """
+    if not text or not axis_results:
+        return ""
+
+    snippet = text.strip()
+    if len(snippet) > 140:
+        snippet = snippet[:140].rsplit(" ", 1)[0] + "…"
+
+    confident = {k: r for k, r in axis_results.items() if not r.get("is_ambiguous")}
+    if confident:
+        axis_key, r = max(confident.items(), key=lambda kv: kv[1]["confidence"])
+        axis_name = next((name for k, name, *_ in SPOKES if k == axis_key), axis_key)
+        read_line = f'model reads this as <b>{r["winner"]}</b>-leaning on {axis_name} ({round(r["confidence"])}% confident)'
+    else:
+        read_line = "still gathering signal, nothing decisive yet"
+
+    return f"""
+    <div class="ai-read">
+      <div class="ai-read-label">What The Model Is Reading</div>
+      <div class="ai-read-snippet">&ldquo;{snippet}&rdquo;</div>
+      <div class="ai-read-line">{read_line}</div>
+    </div>
+    """
+
+
+def live_pentagon_html(axis_results, text=""):
     """
     real partial read: whatever's been answered through this step, classified
     for real against all 5 axes (the shared-blob design means even one field
@@ -234,6 +265,7 @@ def live_pentagon_html(axis_results):
       <div class="card-eyebrow">Live Radar</div>
       <div class="live-status">reading their answers so far</div>
       <div class="progress-pentagon-wrap">{pentagon}</div>
+      {ai_read_html(text, axis_results)}
     </div>
     """
 
@@ -243,7 +275,7 @@ def run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
                  fav_media="", awkward_text=None, text_length_slider=None, texting_style=None,
                  followers=None, social_media_checkboxes=None, spam_friends_count=None):
     try:
-        mbti_type, axis_results = predict_mbti(
+        mbti_type, axis_results, text = predict_mbti(
             spotify_artists         = spotify_artists or "",
             humor_types             = humor_types or [],
             punctuality             = punctuality,
@@ -268,7 +300,7 @@ def run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
     if axis_results is None:
         return empty_progress_html()
 
-    return live_pentagon_html(axis_results)
+    return live_pentagon_html(axis_results, text)
 
 
 def build_reveal_html(mbti_type, axis_results):
@@ -381,7 +413,7 @@ def run_prediction(
             print(f"photo analysis error: {e}")
 
     try:
-        mbti_type, axis_results = predict_mbti(
+        mbti_type, axis_results, _text = predict_mbti(
             spotify_artists         = spotify_artists or "",
             humor_types             = humor_types or [],
             punctuality             = punctuality,
