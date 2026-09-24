@@ -1,12 +1,14 @@
 ---
 title: MBTI Guesser
 emoji: 🧠
-colorFrom: gray
-colorTo: pink
+colorFrom: green
+colorTo: blue
 sdk: gradio
 sdk_version: 6.18.0
 app_file: ui.py
 pinned: false
+thumbnail: >-
+  https://huggingface.co/spaces/chengjcrystal/mbti-guesser/resolve/main/thumbnail.png
 ---
 
 # MBTI Guesser
