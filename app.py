@@ -71,7 +71,8 @@ def assemble_text(
     stress_triggers,
     party_vibe,
     fav_media,
-    awkward_text=None
+    awkward_text=None,
+    text_length_touched=False,
 ):
     """
     combine all the free-text and picker fields into one labeled blob.
@@ -118,7 +119,11 @@ def assemble_text(
         4: "They tend to write long texts with a lot of detail.",
         5: "They send full essays: their texts are extremely long and detailed."
     }
-    if text_length_slider and int(text_length_slider) in text_length_descriptions:
+    # the slider always has *some* value (range inputs can't be blank), so
+    # without tracking whether the user actually moved it, its untouched
+    # default would get read into the text every time as if it were a real
+    # answer.
+    if text_length_touched and text_length_slider and int(text_length_slider) in text_length_descriptions:
         parts.append(text_length_descriptions[int(text_length_slider)])
 
     # texting style checkboxes -> sentence
@@ -153,6 +158,20 @@ def numeric_signals(followers, social_media_checkboxes, spam_friends_count=None)
     where -1 is strong first label (E/N/T/J) and +1 is strong second (I/S/F/P).
     """
     nudges = {"E_I": 0.0}
+    social_media_checkboxes = social_media_checkboxes or []
+
+    # "not sure" is an honest admission of no signal, not a guess -- don't
+    # let a stray follower-count number (left over from before, or just the
+    # field's own default) sneak in a nudge it isn't meant to carry.
+    if "not sure / don't know" in social_media_checkboxes:
+        return nudges
+
+    # no account at all is itself a real, fairly strong I signal, and it
+    # makes the follower-count field meaningless, so it short-circuits the
+    # usual threshold math below rather than feeding it a bogus 0.
+    if "no social media" in social_media_checkboxes:
+        nudges["E_I"] += 0.6
+        return nudges
 
     # follower count thresholds for E/I
     # positive = I lean, negative = E lean
@@ -339,7 +358,8 @@ def predict_mbti(
     social_media_checkboxes=None,
     spam_friends_count=None,
     awkward_text=None,
-    photo_results=None
+    photo_results=None,
+    text_length_touched=False,
 ):
     """
     main entry point. takes all inputs, runs classification, returns
@@ -358,7 +378,8 @@ def predict_mbti(
         stress_triggers=stress_triggers,
         party_vibe=party_vibe,
         fav_media=fav_media,
-        awkward_text=awkward_text
+        awkward_text=awkward_text,
+        text_length_touched=text_length_touched,
     )
 
     if not text.strip():

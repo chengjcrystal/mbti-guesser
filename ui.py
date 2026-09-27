@@ -348,7 +348,8 @@ def live_pentagon_html(axis_results, text=""):
 def run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
                  what_they_talk_about="", weekend_activities="", stress_triggers="", party_vibe="",
                  fav_media="", awkward_text=None, text_length_slider=None, texting_style=None,
-                 followers=None, social_media_checkboxes=None, spam_friends_count=None):
+                 followers=None, social_media_checkboxes=None, spam_friends_count=None,
+                 text_length_touched=False):
     try:
         mbti_type, axis_results, text = predict_mbti(
             spotify_artists         = spotify_artists or "",
@@ -367,6 +368,7 @@ def run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
             spam_friends_count      = spam_friends_count,
             awkward_text            = awkward_text,
             photo_results           = None,
+            text_length_touched     = text_length_touched,
         )
     except Exception as e:
         print(f"partial prediction error: {e}")
@@ -477,7 +479,8 @@ def build_reveal_html(mbti_type, axis_results):
 def run_prediction(
     spotify_artists, humor_types, punctuality, group_archetypes,
     what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
-    text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count, photo,
+    text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
+    text_length_touched, photo,
 ):
     # generator: the photo analysis + classifier call below can take a
     # while, so the button flips to a disabled loading label the instant
@@ -512,6 +515,7 @@ def run_prediction(
             spam_friends_count      = spam_friends_count,
             awkward_text            = awkward_text,
             photo_results           = photo_results,
+            text_length_touched     = text_length_touched,
         )
     except Exception as e:
         print(f"prediction error: {e}")
@@ -666,11 +670,13 @@ def next2_handler(spotify_artists, humor_types, punctuality, group_archetypes,
 
 def next3_handler(spotify_artists, humor_types, punctuality, group_archetypes,
                    what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
-                   text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count):
+                   text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
+                   text_length_touched):
     yield loading_panel_html(), gr.update(), gr.update(), gr.update(), gr.update(value="Loading…", interactive=False)
     panel = run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
                          what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
-                         text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count)
+                         text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
+                         text_length_touched)
     yield panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(4, TOTAL_STEPS), gr.update(value="Next →", interactive=True)
 
 
@@ -767,26 +773,49 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                             label="how long are their texts? (optional)",
                             info="1 = one-word replies   ||   5 = full essays",
                         )
+                        # a slider can't render "blank" the way a text box can --
+                        # it always reports *some* number -- so whether the
+                        # default was ever actually chosen has to be tracked
+                        # separately instead of trusting the value alone.
+                        text_length_touched = gr.State(False)
+                        text_length_slider.input(fn=lambda: True, outputs=text_length_touched)
                         texting_style = gr.CheckboxGroup(
                             label="texting style (required)",
                             choices=["quick replies", "slow replies", "emoji heavy", "no emojis",
                                         "all lowercase", "uses punctuation", "leaves people on read"],
                         )
-                        followers = gr.Number(label="follower count (optional)", precision=0, minimum=0, info="main account")
+                        # gr.Number renders a blank/None value as a literal "0" in
+                        # this gradio version -- indistinguishable from someone
+                        # actually answering "0" -- so this uses a plain textbox
+                        # (genuinely empty by default) instead.
+                        followers = gr.Textbox(label="follower count (optional)", placeholder="e.g. 340 -- leave blank if unsure", info="main account")
                         social_media_checkboxes = gr.CheckboxGroup(
                             label="social media behavior (required)",
                             choices=["posts a lot", "mostly a lurker", "stories person",
-                                        "feed poster", "has a spam/close friends account"],
+                                        "feed poster", "has a spam/close friends account",
+                                        "no social media", "not sure / don't know"],
                         )
-                        spam_friends_count = gr.Number(
+                        spam_friends_count = gr.Textbox(
                             label="close friends / spam list size (optional)",
-                            minimum=0, visible=False,
+                            placeholder="e.g. 25", visible=False,
                             info="under 10 = very private || 110+ = basically a second public account",
                         )
+
+                        def _social_media_visibility(checkboxes):
+                            # a real number here is only meaningful once "no social
+                            # media" / "not sure" are ruled out -- otherwise it's
+                            # either contradictory or a guess dressed up as data.
+                            checkboxes = checkboxes or []
+                            has_no_signal = "no social media" in checkboxes or "not sure / don't know" in checkboxes
+                            return (
+                                gr.update(visible=not has_no_signal),
+                                gr.update(visible=(not has_no_signal) and "has a spam/close friends account" in checkboxes),
+                            )
+
                         social_media_checkboxes.change(
-                            fn=lambda c: gr.update(visible="has a spam/close friends account" in c),
+                            fn=_social_media_visibility,
                             inputs=social_media_checkboxes,
-                            outputs=spam_friends_count,
+                            outputs=[followers, spam_friends_count],
                         )
                     with gr.Row():
                         back3_btn = gr.Button("← Back", variant="secondary")
@@ -825,7 +854,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
 
     step1_fields = [spotify_artists, humor_types, punctuality, group_archetypes]
     step2_fields = step1_fields + [what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text]
-    step3_fields = step2_fields + [text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count]
+    step3_fields = step2_fields + [text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count, text_length_touched]
 
     next1_btn.click(fn=next1_handler, inputs=step1_fields, outputs=[progress_panel, step1, step2, step_indicator, next1_btn], show_progress="hidden")
     next2_btn.click(fn=next2_handler, inputs=step2_fields, outputs=[progress_panel, step2, step3, step_indicator, next2_btn], show_progress="hidden")
