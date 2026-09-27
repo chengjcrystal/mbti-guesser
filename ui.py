@@ -26,6 +26,31 @@ function mbtiOpenPack(packId, cardId, btnId) {
     if (btn) btn.classList.add('show');
   }, 380);
 }
+
+// gradio only re-fits a textarea's height to its own content on typing, so
+// resizing the window (which rewraps placeholder/typed text into a
+// different line count at the *old* fixed height) leaves it scroll-locked
+// until the next keystroke. re-measure every textarea ourselves whenever
+// the layout width could have changed.
+(function () {
+  function mbtiFitTextareas() {
+    document.querySelectorAll('.gradio-container textarea').forEach(function (t) {
+      t.style.height = 'auto';
+      t.style.height = t.scrollHeight + 'px';
+    });
+  }
+  var timer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(timer);
+    timer = setTimeout(mbtiFitTextareas, 150);
+  });
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      clearTimeout(timer);
+      timer = setTimeout(mbtiFitTextareas, 150);
+    }).observe(document.body);
+  }
+})();
 </script>
 """
 
