@@ -249,9 +249,21 @@ def confidence_bars_html(stats):
     return f'<div class="conf-bars">{rows}</div>'
 
 
+def loading_panel_html():
+    """shown the instant a Next/submit click fires, before the (slow) real
+    classifier call returns -- so the wait reads as "working" instead of a
+    frozen page."""
+    return """
+    <div class="live-panel-inner">
+      <div class="card-eyebrow">Live Radar</div>
+      <div class="live-status loading"><span class="mbti-spinner"></span> reading their answers…</div>
+    </div>
+    """
+
+
 def empty_progress_html():
     """starting state, before step 1 has been submitted: nothing to read yet."""
-    stats = [(name, 20, color, icon) for _, name, _, color, icon in SPOKES]
+    stats = [(name, 0, color, icon) for _, name, _, color, icon in SPOKES]
     pentagon = _pentagon_svg(stats, size=340, show_labels=True, fill_container=True)
     return f"""
     <div class="live-panel-inner">
@@ -467,6 +479,11 @@ def run_prediction(
     what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
     text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count, photo,
 ):
+    # generator: the photo analysis + classifier call below can take a
+    # while, so the button flips to a disabled loading label the instant
+    # it's clicked instead of just sitting there looking unresponsive.
+    yield gr.update(), gr.update(), gr.update(), gr.update(value="Reading their type…", interactive=False)
+
     photo_results = None
     if photo is not None:
         try:
@@ -474,6 +491,8 @@ def run_prediction(
             photo_results = analyze_photo(photo)
         except Exception as e:
             print(f"photo analysis error: {e}")
+
+    reset_btn = gr.update(value="open their type pack ↗", interactive=True)
 
     try:
         mbti_type, axis_results, _text = predict_mbti(
@@ -496,17 +515,19 @@ def run_prediction(
         )
     except Exception as e:
         print(f"prediction error: {e}")
-        return (
+        yield (
             '<div class="result-empty">having trouble right now, give it a moment and try again.</div>',
-            gr.update(visible=True), gr.update(visible=False),
+            gr.update(visible=True), gr.update(visible=False), reset_btn,
         )
+        return
 
     if axis_results is None:
-        return (
+        yield (
             '<div class="result-empty">fill in at least a few fields to get a read.</div>',
-            gr.update(visible=True), gr.update(visible=False),
+            gr.update(visible=True), gr.update(visible=False), reset_btn,
         )
-    return build_reveal_html(mbti_type, axis_results), gr.update(visible=False), gr.update(visible=True)
+        return
+    yield build_reveal_html(mbti_type, axis_results), gr.update(visible=False), gr.update(visible=True), reset_btn
 
 
 # ── theme ─────────────────────────────────────────────────────────────────────
@@ -627,24 +648,30 @@ def _step3_valid(texting_style, social_media_checkboxes):
 
 
 def next1_handler(spotify_artists, humor_types, punctuality, group_archetypes):
+    # a generator so the loading state reaches the page immediately, before
+    # the (slow) classifier call below even starts -- the real result
+    # replaces it in a second yield once run_partial returns.
+    yield loading_panel_html(), gr.update(), gr.update(), gr.update(), gr.update(value="Loading…", interactive=False)
     panel = run_partial(spotify_artists, humor_types, punctuality, group_archetypes)
-    return panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(2, TOTAL_STEPS)
+    yield panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(2, TOTAL_STEPS), gr.update(value="Next →", interactive=True)
 
 
 def next2_handler(spotify_artists, humor_types, punctuality, group_archetypes,
                    what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text):
+    yield loading_panel_html(), gr.update(), gr.update(), gr.update(), gr.update(value="Loading…", interactive=False)
     panel = run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
                          what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text)
-    return panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(3, TOTAL_STEPS)
+    yield panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(3, TOTAL_STEPS), gr.update(value="Next →", interactive=True)
 
 
 def next3_handler(spotify_artists, humor_types, punctuality, group_archetypes,
                    what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
                    text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count):
+    yield loading_panel_html(), gr.update(), gr.update(), gr.update(), gr.update(value="Loading…", interactive=False)
     panel = run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
                          what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
                          text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count)
-    return panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(4, TOTAL_STEPS)
+    yield panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(4, TOTAL_STEPS), gr.update(value="Next →", interactive=True)
 
 
 # ── layout ────────────────────────────────────────────────────────────────────
@@ -662,7 +689,7 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
         with gr.Row(elem_classes=["console"]):
 
             with gr.Column(elem_classes=["form-col"]):
-                step_indicator = gr.HTML(step_indicator_html(1, TOTAL_STEPS))
+                step_indicator = gr.HTML(step_indicator_html(1, TOTAL_STEPS), elem_classes=["step-indicator-wrap"])
 
                 with gr.Column(visible=True) as step1:
                     with gr.Group(elem_classes=["mbti-card"]):
@@ -800,16 +827,16 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     step2_fields = step1_fields + [what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text]
     step3_fields = step2_fields + [text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count]
 
-    next1_btn.click(fn=next1_handler, inputs=step1_fields, outputs=[progress_panel, step1, step2, step_indicator], show_progress="minimal")
-    next2_btn.click(fn=next2_handler, inputs=step2_fields, outputs=[progress_panel, step2, step3, step_indicator], show_progress="minimal")
-    next3_btn.click(fn=next3_handler, inputs=step3_fields, outputs=[progress_panel, step3, step4, step_indicator], show_progress="minimal")
+    next1_btn.click(fn=next1_handler, inputs=step1_fields, outputs=[progress_panel, step1, step2, step_indicator, next1_btn], show_progress="hidden")
+    next2_btn.click(fn=next2_handler, inputs=step2_fields, outputs=[progress_panel, step2, step3, step_indicator, next2_btn], show_progress="hidden")
+    next3_btn.click(fn=next3_handler, inputs=step3_fields, outputs=[progress_panel, step3, step4, step_indicator, next3_btn], show_progress="hidden")
 
     back2_btn.click(fn=lambda: (gr.update(visible=True), gr.update(visible=False), step_indicator_html(1, TOTAL_STEPS)), outputs=[step1, step2, step_indicator])
     back3_btn.click(fn=lambda: (gr.update(visible=True), gr.update(visible=False), step_indicator_html(2, TOTAL_STEPS)), outputs=[step2, step3, step_indicator])
     back4_btn.click(fn=lambda: (gr.update(visible=True), gr.update(visible=False), step_indicator_html(3, TOTAL_STEPS)), outputs=[step3, step4, step_indicator])
 
     submit_inputs = step3_fields + [photo]
-    submit_btn.click(fn=run_prediction, inputs=submit_inputs, outputs=[output, form_page, reveal_page], show_progress="minimal")
+    submit_btn.click(fn=run_prediction, inputs=submit_inputs, outputs=[output, form_page, reveal_page, submit_btn], show_progress="hidden")
 
     def again_reset_pages():
         return gr.update(visible=True), gr.update(visible=False)  # form_page, reveal_page

@@ -63,6 +63,16 @@ body {
 }
 .live-col { position: sticky; top: 20px; }
 
+/* gradio wraps raw gr.HTML output in its own default markdown/"prose"
+   padding, which the mbti-card's gr.Group border doesn't get -- without
+   zeroing it out here the step indicator ends up narrower than, and
+   inset from, the quiz card sitting right below it. */
+.step-indicator-wrap,
+.step-indicator-wrap .prose,
+.step-indicator-wrap .html-container {
+  padding: 0 !important;
+  margin: 0 !important;
+}
 .step-indicator {
   position: relative;
   z-index: 1;
@@ -103,6 +113,22 @@ body {
 }
 .live-status { font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink); font-weight: 600; margin-bottom: 10px; }
 .live-status.ready { color: var(--sage); }
+.live-status.loading { display: flex; align-items: center; gap: 8px; }
+.live-status.loading .mbti-spinner {
+  width: 14px; height: 14px; flex-shrink: 0;
+  /* gradio's own base reset zeroes border-width and forces
+     border-color to currentColor on every element, at the same
+     specificity as a lone class selector would be -- !important alone
+     isn't enough to win an equal-specificity tie against a rule that
+     loads after ours, so this needs the extra class nesting too. */
+  border-width: 3px !important; border-style: solid !important;
+  border-top-color: var(--plum) !important;
+  border-right-color: var(--cream) !important;
+  border-bottom-color: var(--cream) !important;
+  border-left-color: var(--cream) !important;
+  border-radius: 50%; display: inline-block; animation: mbti-spin 0.7s linear infinite;
+}
+@keyframes mbti-spin { to { transform: rotate(360deg); } }
 .progress-pentagon-wrap { display: flex; justify-content: center; }
 .progress-pentagon-wrap svg { width: 100%; max-width: 440px; height: auto; }
 
