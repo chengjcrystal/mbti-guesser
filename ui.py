@@ -674,10 +674,17 @@ def _is_substantial(text, min_chars=8):
     return True
 
 
-def _field_hint_html(text):
+def _field_hint_info(text):
+    # a gr.HTML component sitting between two fields breaks gradio's own
+    # grouping of consecutive fields into one bordered "form" block -- that
+    # grouping is what draws the divider lines and keeps spacing even, so
+    # an inserted hint element (even an empty one) was silently knocking two
+    # fields out of the group and leaving them with no divider and extra
+    # blank space around them. updating the field's own `info` line instead
+    # never touches the DOM structure, so the group stays intact.
     if text and text.strip() and not _is_substantial(text):
-        return '<div class="field-hint">add a bit more detail, the model needs something real to read</div>'
-    return ""
+        return gr.update(info="add a bit more detail, the model needs something real to read")
+    return gr.update(info=None)
 
 
 def _step2_valid(what_they_talk_about, weekend_activities, awkward_text):
@@ -775,13 +782,11 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                             placeholder="the nba finals, their love life, conspiracy theories…",
                             lines=2,
                         )
-                        what_they_talk_about_hint = gr.HTML("", elem_classes=["field-hint-wrap"])
                         weekend_activities = gr.Textbox(
                             label="how do they spend their weekends? (required)",
                             placeholder="hiking alone, cafe hopping, sleeping until noon…",
                             lines=2,
                         )
-                        weekend_activities_hint = gr.HTML("", elem_classes=["field-hint-wrap"])
                         stress_triggers = gr.Textbox(
                             label="what stresses them out? (optional)",
                             placeholder="last-minute changes, overstimulating noises, falling behind…",
@@ -807,8 +812,8 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                     step2_gate_fields = [what_they_talk_about, weekend_activities, awkward_text]
                     for _comp in (what_they_talk_about, weekend_activities, awkward_text):
                         _comp.change(fn=_step2_valid, inputs=step2_gate_fields, outputs=next2_btn)
-                    what_they_talk_about.change(fn=_field_hint_html, inputs=what_they_talk_about, outputs=what_they_talk_about_hint)
-                    weekend_activities.change(fn=_field_hint_html, inputs=weekend_activities, outputs=weekend_activities_hint)
+                    what_they_talk_about.change(fn=_field_hint_info, inputs=what_they_talk_about, outputs=what_they_talk_about)
+                    weekend_activities.change(fn=_field_hint_info, inputs=weekend_activities, outputs=weekend_activities)
 
                 with gr.Column(visible=False) as step3:
                     with gr.Group(elem_classes=["mbti-card"]):

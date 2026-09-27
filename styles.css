@@ -251,16 +251,6 @@ footer, .built-with { display: none !important; }
   text-transform: uppercase;
 }
 
-/* ── low-effort input warning ── */
-.field-hint-wrap { margin: -10px 0 10px; }
-.field-hint {
-  font-family: 'Rubik', sans-serif; font-size: 11px; font-weight: 600;
-  color: var(--mauve); display: flex; align-items: center; gap: 5px;
-}
-.field-hint::before { content: '!'; display: inline-flex; align-items: center; justify-content: center;
-  width: 13px; height: 13px; border-radius: 50%; background: var(--mauve); color: var(--field);
-  font-size: 10px; font-weight: 700; flex-shrink: 0; }
-
 /* ── photo upload ── */
 .photo-upload-wrap { font-size: 12px !important; }
 .photo-upload-wrap [data-testid="image"] { min-height: 100px !important; }
