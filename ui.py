@@ -153,11 +153,23 @@ def _point(i, n, r, cx, cy):
     return cx + r * math.cos(angle), cy + r * math.sin(angle)
 
 
-def _pentagon_svg(stats, size=120, show_labels=False):
+def _pentagon_svg(stats, size=120, show_labels=False, fill_container=False):
+    """
+    the shape itself is always drawn at `size` -- fixed relative to a
+    cx,cy centered in that square. labels need extra room on top of that:
+    the widest one ("ASSURANCE") reaches further out than `size` alone
+    leaves room for, so the canvas the shape sits in is padded wider
+    (mostly horizontal, since labels read left-to-right off side spokes;
+    a little vertical for the top spoke's label) whenever labels are on.
+    """
     cx = cy = size / 2
     r_max = size * 0.32 if show_labels else size * 0.42
     n = len(stats)
     dot_r = max(4, size * 0.028)
+    canvas_w = size * 1.55 if show_labels else size
+    canvas_h = size * 1.1 if show_labels else size
+    ox, oy = (canvas_w - size) / 2, (canvas_h - size) / 2
+    cx, cy = cx + ox, cy + oy
     rings = ""
     for frac in (1, 0.66, 0.33):
         pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_point(i, n, r_max * frac, cx, cy) for i in range(n)))
@@ -176,22 +188,28 @@ def _pentagon_svg(stats, size=120, show_labels=False):
     if show_labels:
         for i, (name, pct, color, icon) in enumerate(stats):
             x, y = _point(i, n, r_max + size * 0.14, cx, cy)
+            # anchor points away from the shape (right side grows rightward,
+            # left side grows leftward) so long labels like "assurance"
+            # read outward instead of back over the pentagon.
             if x > cx + 2:
-                anchor = "end"
-            elif x < cx - 2:
                 anchor = "start"
+            elif x < cx - 2:
+                anchor = "end"
             else:
                 anchor = "middle"
             labels += (f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" dominant-baseline="middle" '
                        f'font-family="Silkscreen, monospace" font-size="{max(8, size*0.036):.0f}" '
                        f'font-weight="700" fill="#6B5D7D">{name.upper()}</text>')
-    return f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}">{rings}{spokes}{poly}{dots}{labels}</svg>'
+    width_attr = "100%" if fill_container else f"{canvas_w:.0f}"
+    height_attr = "auto" if fill_container else f"{canvas_h:.0f}"
+    return (f'<svg width="{width_attr}" height="{height_attr}" viewBox="0 0 {canvas_w:.0f} {canvas_h:.0f}" '
+            f'preserveAspectRatio="xMidYMid meet">{rings}{spokes}{poly}{dots}{labels}</svg>')
 
 
 def empty_progress_html():
     """starting state, before step 1 has been submitted: nothing to read yet."""
     stats = [(name, 20, color, icon) for _, name, _, color, icon in SPOKES]
-    pentagon = _pentagon_svg(stats, size=320, show_labels=True)
+    pentagon = _pentagon_svg(stats, size=340, show_labels=True, fill_container=True)
     return f"""
     <div class="live-panel-inner">
       <div class="card-eyebrow">Live Radar</div>
@@ -259,7 +277,7 @@ def live_pentagon_html(axis_results, text=""):
     fabricated numbers at any point.
     """
     stats = _extract_stats(axis_results)
-    pentagon = _pentagon_svg(stats, size=320, show_labels=True)
+    pentagon = _pentagon_svg(stats, size=340, show_labels=True, fill_container=True)
     return f"""
     <div class="live-panel-inner">
       <div class="card-eyebrow">Live Radar</div>
@@ -320,7 +338,7 @@ def build_reveal_html(mbti_type, axis_results):
     }.get(family_key, "#8C6E8C")
 
     stats = _extract_stats(axis_results)
-    pentagon = _pentagon_svg(stats, size=250, show_labels=True)
+    pentagon = _pentagon_svg(stats, size=250, show_labels=True, fill_container=True)
 
     # the pentagon spoke always grows toward "outward" so the shape stays
     # readable, but the row below it should name the actual winner (or "?" if

@@ -98,7 +98,7 @@ body {
 .live-status { font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink); font-weight: 600; margin-bottom: 10px; }
 .live-status.ready { color: var(--sage); }
 .progress-pentagon-wrap { display: flex; justify-content: center; }
-.progress-pentagon-wrap svg { max-width: 100%; height: auto; }
+.progress-pentagon-wrap svg { width: 100%; max-width: 440px; height: auto; }
 
 .ai-read { margin-top: 14px; padding-top: 12px; border-top: 2px dashed var(--plum); text-align: left; }
 .ai-read-label {
