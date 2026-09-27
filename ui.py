@@ -191,7 +191,7 @@ def _pentagon_svg(stats, size=120, show_labels=False):
 def empty_progress_html():
     """starting state, before step 1 has been submitted: nothing to read yet."""
     stats = [(name, 20, color, icon) for _, name, _, color, icon in SPOKES]
-    pentagon = _pentagon_svg(stats, size=230, show_labels=True)
+    pentagon = _pentagon_svg(stats, size=320, show_labels=True)
     return f"""
     <div class="live-panel-inner">
       <div class="card-eyebrow">Live Radar</div>
@@ -259,7 +259,7 @@ def live_pentagon_html(axis_results, text=""):
     fabricated numbers at any point.
     """
     stats = _extract_stats(axis_results)
-    pentagon = _pentagon_svg(stats, size=230, show_labels=True)
+    pentagon = _pentagon_svg(stats, size=320, show_labels=True)
     return f"""
     <div class="live-panel-inner">
       <div class="card-eyebrow">Live Radar</div>
@@ -458,55 +458,90 @@ theme = gr.themes.Soft(
     font=gr.themes.GoogleFont("Rubik"),
     font_mono=gr.themes.GoogleFont("Silkscreen"),
 ).set(
+    # every color below also sets its _dark twin to the same value: this
+    # theme is a fixed cream/plum look, not one that should reflow when the
+    # os is in dark mode, so nothing here is allowed to diverge between the
+    # two.
     body_background_fill="#FFFDF9",
     body_background_fill_dark="#FFFDF9",
     block_background_fill="#EDE6D3",
+    block_background_fill_dark="#EDE6D3",
     block_border_color="#4A3B5C",
+    block_border_color_dark="#4A3B5C",
     block_border_width="2px",
     block_radius="8px",
     block_shadow="none",
     block_label_text_size="sm",
     block_label_text_weight="600",
     block_label_text_color="#362B47",
+    block_label_text_color_dark="#362B47",
     block_label_background_fill="transparent",
+    block_label_background_fill_dark="transparent",
     block_label_border_width="0px",
     block_label_padding="0px",
     block_label_margin="0px",
     block_label_radius="0px",
     block_label_shadow="none",
     block_title_text_color="#362B47",
+    block_title_text_color_dark="#362B47",
     block_title_background_fill="transparent",
+    block_title_background_fill_dark="transparent",
     input_background_fill="#FFFFFF",
+    input_background_fill_dark="#FFFFFF",
     input_border_color="#4A3B5C",
+    input_border_color_dark="#4A3B5C",
     input_border_color_focus="#8FA06E",
+    input_border_color_focus_dark="#8FA06E",
     input_shadow="none",
     input_shadow_focus="0 0 0 3px rgba(143,160,110,0.25)",
     input_radius="4px",
     checkbox_background_color="#FFFFFF",
+    checkbox_background_color_dark="#FFFFFF",
     checkbox_border_color="#4A3B5C",
+    checkbox_border_color_dark="#4A3B5C",
     checkbox_border_color_selected="#4A3B5C",
+    checkbox_border_color_selected_dark="#4A3B5C",
     checkbox_background_color_selected="#8FA06E",
+    checkbox_background_color_selected_dark="#8FA06E",
     checkbox_label_background_fill="#FFFFFF",
+    checkbox_label_background_fill_dark="#FFFFFF",
     checkbox_label_background_fill_hover="#F7F3EA",
+    checkbox_label_background_fill_hover_dark="#F7F3EA",
     checkbox_label_background_fill_selected="#8FA06E",
+    checkbox_label_background_fill_selected_dark="#8FA06E",
     checkbox_label_border_color="#4A3B5C",
+    checkbox_label_border_color_dark="#4A3B5C",
     checkbox_label_border_color_hover="#4A3B5C",
+    checkbox_label_border_color_hover_dark="#4A3B5C",
     checkbox_label_border_color_selected="#4A3B5C",
+    checkbox_label_border_color_selected_dark="#4A3B5C",
     checkbox_label_text_color="#6B5D7D",
+    checkbox_label_text_color_dark="#6B5D7D",
     checkbox_label_text_color_selected="#FFFFFF",
+    checkbox_label_text_color_selected_dark="#FFFFFF",
     button_primary_background_fill="#4A3B5C",
+    button_primary_background_fill_dark="#4A3B5C",
     button_primary_background_fill_hover="#8FA06E",
+    button_primary_background_fill_hover_dark="#8FA06E",
     button_primary_text_color="#EDE6D3",
+    button_primary_text_color_dark="#EDE6D3",
     button_primary_border_color="transparent",
+    button_primary_border_color_dark="transparent",
     button_large_radius="6px",
     button_large_padding="14px 32px",
     slider_color="#8FA06E",
+    slider_color_dark="#8FA06E",
     border_color_primary="#4A3B5C",
+    border_color_primary_dark="#4A3B5C",
     color_accent="#8FA06E",
     color_accent_soft="#F7F3EA",
+    color_accent_soft_dark="#F7F3EA",
     link_text_color="#8FA06E",
+    link_text_color_dark="#8FA06E",
     body_text_color="#362B47",
+    body_text_color_dark="#362B47",
     body_text_color_subdued="#6B5D7D",
+    body_text_color_subdued_dark="#6B5D7D",
 )
 
 
