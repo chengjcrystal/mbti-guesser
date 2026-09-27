@@ -642,8 +642,32 @@ def _step1_valid(humor_types, punctuality, group_archetypes):
     return gr.update(interactive=ok)
 
 
-def _step2_valid(awkward_text):
-    return gr.update(interactive=bool(awkward_text))
+def _is_substantial(text, min_chars=8):
+    """
+    catches the "typed a single letter to get past a required field" case --
+    not a judgment of quality, just a floor: too short, or too little
+    actual variety in the characters (a repeated key mashed a few times),
+    isn't enough for the model to read anything real off of.
+    """
+    if not text:
+        return False
+    stripped = text.strip()
+    if len(stripped) < min_chars:
+        return False
+    if len(set(stripped.lower().replace(" ", ""))) <= 2:
+        return False
+    return True
+
+
+def _field_hint_html(text):
+    if text and text.strip() and not _is_substantial(text):
+        return '<div class="field-hint">add a bit more detail, the model needs something real to read</div>'
+    return ""
+
+
+def _step2_valid(what_they_talk_about, weekend_activities, awkward_text):
+    ok = _is_substantial(what_they_talk_about) and _is_substantial(weekend_activities) and bool(awkward_text)
+    return gr.update(interactive=ok)
 
 
 def _step3_valid(texting_style, social_media_checkboxes):
@@ -732,15 +756,17 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                     with gr.Group(elem_classes=["mbti-card"]):
                         gr.HTML('<span class="section-label">what they\'re like</span>')
                         what_they_talk_about = gr.Textbox(
-                            label="what do they talk about most? (optional)",
+                            label="what do they talk about most? (required)",
                             placeholder="the nba finals, their love life, conspiracy theories…",
                             lines=2,
                         )
+                        what_they_talk_about_hint = gr.HTML("", elem_classes=["field-hint-wrap"])
                         weekend_activities = gr.Textbox(
-                            label="how do they spend their weekends? (optional)",
+                            label="how do they spend their weekends? (required)",
                             placeholder="hiking alone, cafe hopping, sleeping until noon…",
                             lines=2,
                         )
+                        weekend_activities_hint = gr.HTML("", elem_classes=["field-hint-wrap"])
                         stress_triggers = gr.Textbox(
                             label="what stresses them out? (optional)",
                             placeholder="last-minute changes, overstimulating noises, falling behind…",
@@ -763,7 +789,11 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                     with gr.Row():
                         back2_btn = gr.Button("← Back", variant="secondary")
                         next2_btn = gr.Button("Next →", variant="primary", interactive=False)
-                    awkward_text.change(fn=_step2_valid, inputs=awkward_text, outputs=next2_btn)
+                    step2_gate_fields = [what_they_talk_about, weekend_activities, awkward_text]
+                    for _comp in (what_they_talk_about, weekend_activities, awkward_text):
+                        _comp.change(fn=_step2_valid, inputs=step2_gate_fields, outputs=next2_btn)
+                    what_they_talk_about.change(fn=_field_hint_html, inputs=what_they_talk_about, outputs=what_they_talk_about_hint)
+                    weekend_activities.change(fn=_field_hint_html, inputs=weekend_activities, outputs=weekend_activities_hint)
 
                 with gr.Column(visible=False) as step3:
                     with gr.Group(elem_classes=["mbti-card"]):
@@ -910,4 +940,4 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     )
 
 if __name__ == "__main__":
-    demo.launch(share=False)
+    demo.launch(share=False, favicon_path="favicon.svg")
