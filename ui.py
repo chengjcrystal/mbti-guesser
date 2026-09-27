@@ -203,15 +203,22 @@ def _pentagon_svg(stats, size=120, show_labels=False, fill_container=False):
     for i in range(n):
         x, y = _point(i, n, r_max, cx, cy)
         spokes += f'<line x1="{cx}" y1="{cy}" x2="{x:.1f}" y2="{y:.1f}" stroke="#D9CFC0" stroke-width="1"></line>'
-    data_pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_point(i, n, r_max * (stats[i][1] / 100), cx, cy) for i in range(n)))
+    # an ambiguous axis draws at the center (no lean either way) instead of
+    # its raw score -- that score is either already near-neutral (a real
+    # near-tie) or was forced ambiguous because nothing eligible has been
+    # answered yet, in which case plotting it for real would draw a
+    # confident-looking point the axis hasn't earned.
+    shape_pct = [0 if is_ambiguous else pct for _, pct, _, _, is_ambiguous in stats]
+    data_pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_point(i, n, r_max * (shape_pct[i] / 100), cx, cy) for i in range(n)))
     poly = f'<polygon points="{data_pts}" fill="#4A3B5C" fill-opacity="0.18" stroke="#4A3B5C" stroke-width="2.5"></polygon>'
     dots = ""
-    for i, (name, pct, color, icon) in enumerate(stats):
-        x, y = _point(i, n, r_max * (pct / 100), cx, cy)
-        dots += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{dot_r:.1f}" fill="{color}" stroke="#4A3B5C" stroke-width="1.5"></circle>'
+    for i, (name, pct, color, icon, is_ambiguous) in enumerate(stats):
+        dot_color = "#C7BFAE" if is_ambiguous else color
+        x, y = _point(i, n, r_max * (shape_pct[i] / 100), cx, cy)
+        dots += f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{dot_r:.1f}" fill="{dot_color}" stroke="#4A3B5C" stroke-width="1.5"></circle>'
     labels = ""
     if show_labels:
-        for i, (name, pct, color, icon) in enumerate(stats):
+        for i, (name, pct, color, icon, is_ambiguous) in enumerate(stats):
             x, y = _point(i, n, r_max + size * 0.14, cx, cy)
             # anchor points away from the shape (right side grows rightward,
             # left side grows leftward) so long labels like "assurance"
@@ -239,8 +246,16 @@ def confidence_bars_html(stats):
     at a glance without doing that math yourself.
     """
     rows = ""
-    for name, pct, color, icon in stats:
-        rows += f"""
+    for name, pct, color, icon, is_ambiguous in stats:
+        if is_ambiguous:
+            rows += f"""
+    <div class="conf-row conf-row-ambiguous">
+      <span class="conf-name">{name}</span>
+      <div class="conf-track"><div class="conf-fill" style="width:0%"></div></div>
+      <span class="conf-pct">?</span>
+    </div>"""
+        else:
+            rows += f"""
     <div class="conf-row">
       <span class="conf-name">{name}</span>
       <div class="conf-track"><div class="conf-fill" style="width:{pct}%;background:{color}"></div></div>
@@ -263,7 +278,7 @@ def loading_panel_html():
 
 def empty_progress_html():
     """starting state, before step 1 has been submitted: nothing to read yet."""
-    stats = [(name, 0, color, icon) for _, name, _, color, icon in SPOKES]
+    stats = [(name, 0, color, icon, True) for _, name, _, color, icon in SPOKES]
     pentagon = _pentagon_svg(stats, size=340, show_labels=True, fill_container=True)
     return f"""
     <div class="live-panel-inner">
@@ -290,7 +305,7 @@ def _extract_stats(axis_results):
     for axis_key, name, outward, color, icon in SPOKES:
         r = axis_results.get(axis_key, {})
         pct = round(r.get("scores", {}).get(outward, 50))
-        stats.append((name, pct, color, icon))
+        stats.append((name, pct, color, icon, bool(r.get("is_ambiguous"))))
     return stats
 
 
@@ -415,7 +430,7 @@ def build_reveal_html(mbti_type, axis_results):
       <span class="stat-num">{num}</span>
     </div>'''
 
-    avg_spread = sum(abs(p - 50) for _, p, _, _ in stats) / len(stats)
+    avg_spread = sum(abs(p - 50) for _, p, _, _, _ in stats) / len(stats)
     if avg_spread > 30:
         rarity, rarity_color = "RARE", "#D9A0A6"
     elif avg_spread > 15:

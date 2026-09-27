@@ -145,6 +145,11 @@ body {
 .conf-track { flex: 1 1 0%; min-width: 0; height: 8px; background: var(--field); border: 1px solid var(--plum); border-radius: 4px; overflow: hidden; }
 .conf-fill { height: 100%; max-width: 100%; transition: width 0.35s ease; }
 .conf-pct { flex: 0 0 28px; text-align: right; font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; color: var(--plum); }
+/* not enough answered yet to trust this axis -- shown empty and muted
+   rather than a possibly-noisy percentage, same honesty as the "?" on
+   the reveal card. */
+.conf-row-ambiguous .conf-name { color: #B8AFA0; }
+.conf-row-ambiguous .conf-pct { color: #B8AFA0; }
 
 .ai-read { margin-top: 14px; padding-top: 12px; border-top: 2px dashed var(--plum); text-align: left; }
 .ai-read-label {

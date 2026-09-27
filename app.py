@@ -47,6 +47,54 @@ NUMERIC_WEIGHT = 0.10
 # gap below this = axis is ambiguous, show "?" instead of a letter
 AMBIGUITY_THRESHOLD = 8.0
 
+# ── axis relevance gating ───────────────────────────────────────────────────
+# a fixed-choice field (radio/checkboxes) is written with one specific axis
+# in mind, so answering it is real evidence for that axis. free-text fields
+# are open-ended -- someone could write about anything -- so they can't be
+# pinned to one axis ahead of time, but substantial free text is still real
+# evidence *something* is being read, for whichever axis it turns out to
+# touch. without either kind of evidence, a "confident" score off that axis
+# is the classifier polarizing on text that was never about it -- so it
+# gets forced to "?" regardless of what the raw gap says.
+AXIS_DEDICATED_FIELDS = {
+    "E_I": ["group_archetypes"],
+    "N_S": [],
+    "T_F": [],
+    "J_P": ["punctuality"],
+    "A_T": ["awkward_text"],
+}
+FREE_TEXT_FIELDS = [
+    "spotify_artists", "what_they_talk_about", "weekend_activities",
+    "stress_triggers", "party_vibe", "fav_media",
+]
+
+
+def _has_content(value, min_chars=8):
+    if isinstance(value, list):
+        return len(value) > 0
+    if value is None:
+        return False
+    text = str(value).strip()
+    if len(text) < min_chars:
+        return False
+    if len(set(text.lower().replace(" ", ""))) <= 2:
+        return False
+    return True
+
+
+def axis_eligibility(fields):
+    """
+    fields: dict of the raw input names (matching predict_mbti's own
+    parameter names) -> their raw values for this prediction.
+    """
+    any_free_text = any(_has_content(fields.get(f)) for f in FREE_TEXT_FIELDS)
+    eligible = {}
+    for axis, dedicated in AXIS_DEDICATED_FIELDS.items():
+        has_dedicated = any(_has_content(fields.get(f)) for f in dedicated)
+        eligible[axis] = has_dedicated or any_free_text
+    return eligible
+
+
 _classifier = None
 
 def get_classifier():
@@ -269,17 +317,19 @@ def classify_text(text):
     return results
 
 
-def blend_signals(text_results, photo_results, numeric_nudges):
+def blend_signals(text_results, photo_results, numeric_nudges, axis_eligible=None):
     """
     combine text, photo, and numeric signals using weighted blending.
-    
+
     text_results: output from classify_text()
     photo_results: dict from photo_analysis.py, or None
     numeric_nudges: dict from numeric_signals()
-    
+    axis_eligible: dict from axis_eligibility(), or None to skip gating
+
     returns final axis decisions as dict
     """
     final = {}
+    axis_eligible = axis_eligible or {}
 
     for axis_name, axis_data in AXES.items():
         keys = axis_data["keys"]  # e.g. ["E", "I"]
@@ -329,7 +379,12 @@ def blend_signals(text_results, photo_results, numeric_nudges):
         winner = keys[0] if first_key_pct > second_key_pct else keys[1]
         winner_pct = max(first_key_pct, second_key_pct)
         gap = abs(first_key_pct - second_key_pct)
-        is_ambiguous = gap < AMBIGUITY_THRESHOLD
+
+        # a photo actually scored on this axis is its own real evidence,
+        # independent of whatever text has been answered so far.
+        has_photo_signal = photo_results is not None and axis_name in photo_results
+        has_real_signal = axis_eligible.get(axis_name, True) or has_photo_signal
+        is_ambiguous = (gap < AMBIGUITY_THRESHOLD) or not has_real_signal
 
         final[axis_name] = {
             "winner": winner,
@@ -391,8 +446,21 @@ def predict_mbti(
     # numeric signals
     numeric_nudges = numeric_signals(followers, social_media_checkboxes or [], spam_friends_count)
 
+    # which axes actually have something answered that speaks to them
+    eligible = axis_eligibility({
+        "spotify_artists": spotify_artists,
+        "group_archetypes": group_archetypes,
+        "what_they_talk_about": what_they_talk_about,
+        "weekend_activities": weekend_activities,
+        "stress_triggers": stress_triggers,
+        "party_vibe": party_vibe,
+        "fav_media": fav_media,
+        "punctuality": punctuality,
+        "awkward_text": awkward_text,
+    })
+
     # blend everything together
-    final_results = blend_signals(text_results, photo_results, numeric_nudges)
+    final_results = blend_signals(text_results, photo_results, numeric_nudges, eligible)
 
     # build the type string: 4 core letters, then a dash, then the identity suffix (A/T)
     axis_order = ["E_I", "N_S", "T_F", "J_P", "A_T"]
