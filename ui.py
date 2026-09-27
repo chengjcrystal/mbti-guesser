@@ -231,6 +231,24 @@ def _pentagon_svg(stats, size=120, show_labels=False, fill_container=False):
             f'preserveAspectRatio="xMidYMid meet">{rings}{spokes}{poly}{dots}{labels}</svg>')
 
 
+def confidence_bars_html(stats):
+    """
+    per-axis reading, always on screen next to the pentagon -- the shape
+    alone requires cross-referencing five points against a five-sided
+    outline, the bars just say the same numbers in a form you can read
+    at a glance without doing that math yourself.
+    """
+    rows = ""
+    for name, pct, color, icon in stats:
+        rows += f"""
+    <div class="conf-row">
+      <span class="conf-name">{name}</span>
+      <div class="conf-track"><div class="conf-fill" style="width:{pct}%;background:{color}"></div></div>
+      <span class="conf-pct">{pct}</span>
+    </div>"""
+    return f'<div class="conf-bars">{rows}</div>'
+
+
 def empty_progress_html():
     """starting state, before step 1 has been submitted: nothing to read yet."""
     stats = [(name, 20, color, icon) for _, name, _, color, icon in SPOKES]
@@ -240,6 +258,7 @@ def empty_progress_html():
       <div class="card-eyebrow">Live Radar</div>
       <div class="live-status">answer step 1 to start their read</div>
       <div class="progress-pentagon-wrap">{pentagon}</div>
+      {confidence_bars_html(stats)}
     </div>
     """
 
@@ -308,6 +327,7 @@ def live_pentagon_html(axis_results, text=""):
       <div class="card-eyebrow">Live Radar</div>
       <div class="live-status">reading their answers so far</div>
       <div class="progress-pentagon-wrap">{pentagon}</div>
+      {confidence_bars_html(stats)}
       {ai_read_html(text, axis_results)}
     </div>
     """

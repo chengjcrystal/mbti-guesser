@@ -21,6 +21,12 @@ body {
 .gradio-container {
   background-color: transparent !important;
   background-image: none !important;
+  /* gradio's own default sets overflow:hidden here, which makes this the
+     nearest scrolling ancestor for anything sticky inside it -- but this
+     box itself never scrolls (the real scroll happens on body/html
+     outside it), so position:sticky on .live-col had no scrollport to
+     stick within and just drifted with the page instead of pinning. */
+  overflow: visible !important;
 }
 
 /* ── hero scene: fixed full-viewport pixel-art wallpaper, not a repeating pattern ── */
@@ -100,6 +106,16 @@ body {
 .progress-pentagon-wrap { display: flex; justify-content: center; }
 .progress-pentagon-wrap svg { width: 100%; max-width: 440px; height: auto; }
 
+.conf-bars { margin-top: 14px; text-align: left; }
+.conf-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.conf-name {
+  width: 70px; flex-shrink: 0; font-family: 'Silkscreen', monospace; font-size: 10px; font-weight: 700;
+  color: var(--ink-soft); text-transform: uppercase;
+}
+.conf-track { flex: 1; height: 8px; background: var(--field); border: 1px solid var(--plum); border-radius: 4px; overflow: hidden; }
+.conf-fill { height: 100%; transition: width 0.35s ease; }
+.conf-pct { width: 28px; flex-shrink: 0; text-align: right; font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; color: var(--plum); }
+
 .ai-read { margin-top: 14px; padding-top: 12px; border-top: 2px dashed var(--plum); text-align: left; }
 .ai-read-label {
   font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; color: var(--ink-soft);
@@ -126,7 +142,17 @@ body {
   width: auto !important;
 }
 .again-row button:hover { background: var(--cream) !important; }
-html, body { overflow-x: hidden; }
+/* overflow-x:hidden forces the browser to auto-compute the other axis
+   to auto too (can't have one axis clipped and the other genuinely
+   "visible" -- the spec bumps visible to auto), so setting this on
+   *both* html and body turns each into its own independent scroll
+   container. real scrolling only ever happens on html
+   (document.scrollingElement); body's own auto scrollbox then never
+   moves, and since body sits closer to .live-col than html does,
+   that's the box position:sticky measured against -- so it never saw
+   a scroll event to react to. only setting this on html keeps it the
+   sole real vertical scroller and lets sticky work again. */
+html { overflow-x: hidden; }
 *, *::before, *::after { box-sizing: border-box; }
 
 footer, .built-with { display: none !important; }
