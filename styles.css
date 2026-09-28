@@ -380,8 +380,8 @@ footer, .built-with { display: none !important; }
 .tcg-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .family-badge { display: flex; align-items: center; gap: 6px; }
 .family-swatch { width: 14px; height: 14px; border: 2px solid var(--plum); }
-.family-label { font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
-.card-index { font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.family-label { font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.card-index { font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
 
 .name-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .name-row-text { display: flex; flex-direction: column; gap: 2px; }
@@ -402,16 +402,16 @@ footer, .built-with { display: none !important; }
 
 .stat-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .stat-row { display: flex; align-items: center; gap: 8px; }
-.stat-icon { width: 18px; height: 18px; flex-shrink: 0; }
-.stat-name { font-family: 'Rubik', sans-serif; font-size: 11px; font-weight: 600; color: var(--ink); flex: 1; }
+.stat-icon { width: 20px; height: 20px; flex-shrink: 0; }
+.stat-name { min-width: 0; font-family: 'Rubik', sans-serif; font-size: 16px; font-weight: 600; color: var(--ink); flex: 1; }
 .stat-letter { font-family: 'Silkscreen', monospace; font-weight: 700; color: var(--ink-soft); }
-.stat-num { font-family: 'Silkscreen', monospace; font-size: 15px; font-weight: 700; color: var(--plum); width: 32px; text-align: right; }
+.stat-num { font-family: 'Silkscreen', monospace; font-size: 20px; font-weight: 700; color: var(--plum); width: 38px; text-align: right; }
 
-.rarity-tag { display: inline-block; font-family: 'Silkscreen', monospace; font-size: 10px; font-weight: 700; padding: 3px 8px; border: 2px solid var(--plum); border-radius: 3px; margin-bottom: 10px; }
+.rarity-tag { display: inline-block; font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; padding: 3px 8px; border: 2px solid var(--plum); border-radius: 3px; margin-bottom: 10px; }
 /* !important beats gradio's own `.prose *{color:var(--body-text-color)}` rule,
    which otherwise renders this light text as near-invisible dark-on-dark */
-.flavor-bar { background: var(--plum); color: var(--cream) !important; font-family: 'Rubik', sans-serif; font-size: 10.5px; font-weight: 500; padding: 8px 10px; border-radius: 4px; line-height: 1.5; margin-bottom: 6px; }
-.identity-bar { font-family: 'Rubik', sans-serif; font-size: 10.5px; color: var(--ink-soft); line-height: 1.5; }
+.flavor-bar { background: var(--plum); color: var(--cream) !important; font-family: 'Rubik', sans-serif; font-size: 15.5px; font-weight: 500; padding: 11px 13px; border-radius: 4px; line-height: 1.45; margin-bottom: 6px; }
+.identity-bar { font-family: 'Rubik', sans-serif; font-size: 15.5px; color: var(--ink-soft); line-height: 1.5; }
 .identity-bar b { color: var(--ink); }
 
 .again-btn {
@@ -578,13 +578,13 @@ footer, .built-with { display: none !important; }
 }
 .rstage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
 .rname { display: flex; flex-direction: column; gap: 3px; }
-.rcode { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--plum); }
-.rtitle { font-family: 'Silkscreen', monospace; font-size: 13px; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.04em; }
+.rcode { font-family: 'Press Start 2P', monospace; font-size: 24px; color: var(--plum); }
+.rtitle { font-family: 'Silkscreen', monospace; font-size: 15px; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.04em; }
 .rradar { background: #fff; border: 3px solid var(--plum); border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; }
 .rradar svg { width: 100%; height: auto; display: block; }
 .rarity-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.rclose { font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mauve); }
-.rhint { margin-top: auto; text-align: center; font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mauve); }
+.rclose { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mauve); }
+.rhint { margin-top: auto; text-align: center; font-family: 'Silkscreen', monospace; font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--plum); padding-top: 8px; }
 
 .wide-card {
   display: none; flex-direction: column; gap: 10px; text-align: left; background: var(--cream);
@@ -608,7 +608,7 @@ footer, .built-with { display: none !important; }
 @media (max-width: 480px) { .rv-tools { gap: 8px; } .rv-tool { font-size: 11px; padding: 10px 6px; } }
 .rv-tool:hover { background: var(--field); }
 
-.stat-soft { font-family: 'Silkscreen', monospace; font-size: 8px; font-weight: 400; color: var(--mauve); letter-spacing: 0.04em; text-transform: uppercase; margin-left: 4px; }
+.stat-soft { white-space: nowrap; font-family: 'Silkscreen', monospace; font-size: 10px; font-weight: 400; color: var(--mauve); letter-spacing: 0.04em; text-transform: uppercase; margin-left: 4px; }
 
 /* the answers the model just read, in your own words */
 .ai-read-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
@@ -616,7 +616,7 @@ footer, .built-with { display: none !important; }
 .ai-lean { font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--mauve); }
 .ai-lean b { color: var(--plum); }
 
-.rblurb { font-family: 'Rubik', sans-serif; font-size: 13px; font-style: italic; color: var(--ink-soft); margin-top: 2px; }
+.rblurb { font-family: 'Rubik', sans-serif; font-size: 16px; font-style: italic; color: var(--ink-soft); margin-top: 2px; }
 
 /* the composer's question sits on its own line above the bar and chip, so a long one never wraps the star onto its own row */
 .composer-label { font-family: 'Rubik', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); }
