@@ -164,8 +164,8 @@ body {
 .ai-read-line b { color: var(--plum) !important; }
 
 /* ── reveal page ── */
-.reveal-page-inner { max-width: 900px; margin: 0 auto; padding: 24px 0 20px; text-align: center; }
-.again-row { margin-top: 20px; display: flex; justify-content: center; }
+.reveal-page-inner { max-width: 900px; margin: 0 auto; padding: 12px 0 8px; text-align: center; }
+.again-row { margin-top: 12px; display: flex; justify-content: center; }
 .again-row button {
   font-family: 'Silkscreen', monospace !important;
   font-weight: 700 !important;
@@ -598,8 +598,12 @@ footer, .built-with { display: none !important; }
 .wide-who { font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; color: var(--plum); letter-spacing: 0.03em; }
 @media (max-width: 640px) { .wide-row, .wide-stats { grid-template-columns: 1fr; } }
 
-.rv-tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 22px; }
+.rv-tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
 .rv[data-layout="wide"] .rv-tools { grid-template-columns: repeat(4, 1fr); }
+@media (min-width: 700px) {
+  .rv:not([data-layout="wide"]) .rv-tools { grid-template-columns: repeat(4, 1fr); width: 660px; max-width: calc(100vw - 32px); position: relative; left: 50%; transform: translateX(-50%); }
+}
+.card-scene .flip { margin-left: auto; margin-right: auto; }
 .rv-tool {
   font-family: 'Silkscreen', monospace; font-weight: 700; font-size: 13px; color: var(--plum); background: var(--cream);
   border: 3px solid var(--plum); border-radius: 4px; padding: 11px 8px; cursor: pointer; min-width: 0;
@@ -678,7 +682,8 @@ footer, .built-with { display: none !important; }
 .ttitle { font-family: 'Silkscreen', monospace; font-size: 12px; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.04em; }
 .tblurb { font-family: 'Rubik', sans-serif; font-size: 12px; font-style: italic; color: var(--ink-soft); line-height: 1.4; }
 .tdesc { font-family: 'Rubik', sans-serif; font-size: 12.5px; color: var(--ink); line-height: 1.45; margin-top: 2px; }
-.types-page .rv-tools { grid-template-columns: 1fr; max-width: 320px; margin: 6px auto 0; }
+.types-foot { display: flex; justify-content: center; margin-top: 6px; }
+.types-foot .rv-tool { padding: 11px 22px; white-space: nowrap; }
 
 /* name box for the exported card */
 .export-panel { display: none; margin-top: 14px; padding: 14px; text-align: left; background: var(--field); border: 3px solid var(--plum); border-radius: 6px; box-shadow: 4px 4px 0 rgba(0,0,0,.18); }
@@ -694,3 +699,10 @@ footer, .built-with { display: none !important; }
 .export-row .rv-tool { flex: 0 0 auto; }
 .export-note { margin: 10px 0 0; font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink-soft); line-height: 1.45; }
 @media (max-width: 480px) { .export-row { flex-direction: column; } }
+
+/* on a short screen the title banner steps aside once the card is out, so the card, its buttons and
+   the retake button all fit without scrolling */
+@media (max-height: 940px) and (min-width: 700px) {
+  .mbti-hero.stepped-aside { display: none; }
+}
+

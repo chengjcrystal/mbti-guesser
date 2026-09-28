@@ -71,7 +71,7 @@ function mbtiSlice() {
   var w = mbtiRv();
   if (!w || w.classList.contains('slicing')) return;
   w.classList.add('slicing');
-  setTimeout(function () { w.classList.add('sliced'); }, 520);
+  setTimeout(function () { w.classList.add('sliced'); mbtiFit(); setTimeout(mbtiFit, 650); }, 520);
 }
 function mbtiFlip() {
   var f = document.getElementById('flip1');
@@ -83,6 +83,7 @@ function mbtiLayout() {
   var wide = w.getAttribute('data-layout') !== 'wide';
   w.setAttribute('data-layout', wide ? 'wide' : 'card');
   if (wide) mbtiWho();
+  mbtiFit();
   var b = document.getElementById('layoutBtn');
   if (b) b.textContent = wide ? 'card view' : 'wide view';
 }
@@ -90,12 +91,46 @@ function mbtiTypes(open) {   // the gallery of all 16 types, in place of the pac
   var w = mbtiRv();
   if (!w) return;
   if (open) w.setAttribute('data-view', 'all'); else w.removeAttribute('data-view');
+  mbtiFit();
   w.scrollIntoView({ behavior: 'smooth', block: 'start' });
   if (open) {
     var mine = w.querySelector('.tcard.mine');
     if (mine) setTimeout(function () { mine.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 350);
   }
 }
+// sizes the card so the card, the buttons under it and the retake button all fit on
+// one screen. it only ever shrinks (a tall window keeps the full size), and not below 55%.
+function mbtiHeroSync() {
+  // the title banner steps aside (on a short screen, see the css) while the card is showing
+  var w = mbtiRv(), h = document.querySelector('.mbti-hero');
+  if (h) h.classList.toggle('stepped-aside', !!w && w.classList.contains('sliced') && w.getAttribute('data-layout') !== 'wide' && w.getAttribute('data-view') !== 'all');
+}
+function mbtiFit() {
+  mbtiHeroSync();
+  var w = mbtiRv();
+  var f = document.getElementById('flip1');
+  if (!w || !f) return;
+  f.style.transform = ''; f.style.marginBottom = '';
+  if (window.innerWidth < 700) return;   // on a phone the page just scrolls, a shrunken card would be too small to read
+  if (!w.classList.contains('sliced') || w.getAttribute('data-layout') === 'wide' || w.getAttribute('data-view') === 'all') return;
+  var again = document.querySelector('.again-row');
+  var panel = document.getElementById('exportPanel');
+  var fr = f.getBoundingClientRect();
+  var top = fr.top + window.scrollY;
+  var end = (again ? again.getBoundingClientRect().bottom : fr.bottom) + window.scrollY;
+  var below = end - (fr.bottom + window.scrollY) - (panel && panel.classList.contains('open') ? panel.offsetHeight + 14 : 0);
+  var s = Math.max(0.55, Math.min(1, (window.innerHeight - top - below - 20) / fr.height));
+  if (s < 1) {
+    // scale from the top centre and pull the space it no longer takes back up
+    f.style.transformOrigin = 'top center';
+    f.style.transform = 'scale(' + s + ')';
+    f.style.marginBottom = (-(fr.height * (1 - s))) + 'px';
+  }
+}
+(function () {
+  var t = null;
+  window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(mbtiFit, 120); });
+})();
 function mbtiPack() {   // back to a sealed pack
   var w = mbtiRv();
   if (!w) return;
@@ -292,6 +327,7 @@ document.addEventListener('keydown', function (e) {
   }
   function sync() {
     highlight();
+    if (window.mbtiHeroSync) mbtiHeroSync();
     var r = document.querySelector('#f-posting_frequency input[type=radio]:checked');
     var label = r ? (r.closest('label') ? r.closest('label').innerText.trim() : r.value) : '';
     flag('no-social', NO_SOCIAL.indexOf(label) >= 0);
@@ -770,7 +806,7 @@ def all_types_html(mine=None):
       <button class="rv-tool" onclick="mbtiTypes(false)">&larr; back</button>
     </div>
     {groups}
-    <div class="rv-tools"><button class="rv-tool" onclick="mbtiTypes(false)">&larr; back to your result</button></div>
+    <div class="types-foot"><button class="rv-tool" onclick="mbtiTypes(false)">&larr; back to your result</button></div>
   </div>"""
 
 
