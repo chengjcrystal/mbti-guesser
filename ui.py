@@ -339,6 +339,15 @@ document.addEventListener('keydown', function (e) {
     var label = r ? (r.closest('label') ? r.closest('label').innerText.trim() : r.value) : '';
     flag('no-social', NO_SOCIAL.indexOf(label) >= 0);
     flag('has-spam', !!document.querySelector('#f-social_media_checkboxes input[type=checkbox]:checked'));
+    // the "quiet chat" question waits until the group chat part is settled
+    var picked = function (id) { var i = document.querySelector('#f-' + id + ' input[type=checkbox]'); return !!(i && i.checked); };
+    var typed = function (sel) { var e = document.querySelector(sel); return !!(e && e.value.trim()); };
+    flag('chat-done', picked('chat_choice_read')
+      || (picked('chat_choice_reply') && typed('#f-chat_reply textarea'))
+      || (picked('chat_choice_ask') && typed('#f-chat_final textarea')));
+    // the texts slider starts at 0 (no answer), with no thumb showing, until it has been moved
+    var sl = document.querySelector('#f-text_length_slider');
+    if (sl) sl.classList.toggle('unset', (sl.querySelector('input[type=range]') || {}).value === '0');
     // the chips act like a radio, but the server only unticks the old one after a round trip.
     // going by the one clicked last keeps the wrong panel from flashing open in between.
     document.querySelectorAll('.chip-row').forEach(function (row) {
@@ -360,6 +369,7 @@ document.addEventListener('keydown', function (e) {
     });
   }
   document.addEventListener('change', sync, true);
+  document.addEventListener('input', sync, true);
   document.addEventListener('click', function (e) {
     var chip = e.target.closest && e.target.closest('.read-chip');
     if (chip && chip.closest('.chip-row')) chip.closest('.chip-row')._last = chip.id;
@@ -1236,17 +1246,13 @@ theme = gr.themes.Soft(
 # steps, required answers and the "answered so far" lists never drift apart.
 TOTAL_STEPS = len(STEPS)
 LAST_STEP = STEPS[-1]
-SLIDER_STEP = BY_ID["text_length_slider"]["step"]
 
 STEP_NAMES = {s: answer_ids(s) for s in STEPS}
 STEP_REQUIRED = {s: required_ids(s) for s in STEPS}
 
 
 def _cumulative_names(step):
-    names = [n for s in STEPS if s <= step for n in STEP_NAMES[s]]
-    # the slider always reports *some* number, so whether it was ever touched
-    # travels with the answers
-    return names + (["text_length_touched"] if step >= SLIDER_STEP else [])
+    return [n for s in STEPS if s <= step for n in STEP_NAMES[s]]
 
 
 CUM_NAMES = {s: _cumulative_names(s) for s in STEPS}
@@ -1306,6 +1312,11 @@ def _step_problems(step, data):
         if q["kind"] == "msg":
             # a typed reply or one of its chips both count
             why = None if any(data.get(c["id"]) for c in q["chips"]) or (data.get(name) or "").strip() else q["hint"]
+        elif q["kind"] == "pick":
+            why = None if any(data.get(c["id"]) for c in q["chips"]) else q["hint"]
+        elif q["kind"] == "slider":
+            # the slider starts at 0, which isn't an answer, so it has to be moved
+            why = None if (data.get(name) or 0) >= 1 else q["hint"]
         else:
             why = _problem(name, data.get(name))
         if why:
@@ -1461,7 +1472,7 @@ def build_component(q):
         return gr.Radio(choices=q["choices"], info=q.get("info"), **common)
     if kind == "msg":
         return gr.Textbox(
-            lines=1, max_lines=4, scale=4, show_label=False,
+            lines=1, max_lines=4, scale=4, show_label=False, placeholder=q.get("placeholder"),
             **{**common, "elem_classes": common["elem_classes"] + ["composer-box"]},
         )
     if kind == "text":
@@ -1471,7 +1482,8 @@ def build_component(q):
             **common,
         )
     if kind == "slider":
-        return gr.Slider(minimum=1, maximum=5, step=1, value=3, info=q.get("info"), **common)
+        # 0 is "not answered yet": it starts there so the slider has to be moved, even to land on 3
+        return gr.Slider(minimum=0, maximum=5, step=1, value=0, info=q.get("info"), **common)
     if kind == "image":
         return gr.Image(
             show_label=False, type="filepath", sources=["upload"], height=190,
@@ -1485,6 +1497,13 @@ def build_question(q):
     """lay out one question from the registry inside the current step."""
     if q["kind"] == "scene":
         gr.HTML(scene_html(q), elem_classes=[q["extra_class"]] if q.get("extra_class") else [])
+        return
+    if q["kind"] == "pick":
+        # a row of pills, pick one
+        gr.HTML(f'<div class="composer-label">{q["label"]}{"<i class=req-star></i>" if q.get("required") else ""}</div>')
+        with gr.Row(elem_classes=["chip-row"], elem_id=f"f-{q['id']}"):
+            for chip in q["chips"]:
+                C[chip["id"]] = gr.Checkbox(label=chip["label"], elem_id=f"f-{chip['id']}", elem_classes=["read-chip"], container=False)
         return
     if q["kind"] == "msg":
         # a small phone-thread look: the text bar with a send arrow, and the
@@ -1500,12 +1519,6 @@ def build_question(q):
     if q["kind"] == "image":
         gr.HTML(PHOTO_INTRO_HTML)
     C[q["id"]] = build_component(q)
-    if q["kind"] == "slider":
-        # a slider can't render "blank" the way a text box can -- it always
-        # reports *some* number -- so whether the default was ever actually
-        # chosen has to be tracked separately instead of trusting the value alone.
-        C["text_length_touched"] = gr.State(False)
-        C[q["id"]].input(fn=lambda: True, outputs=C["text_length_touched"], show_progress="hidden")
 
 
 C = {}
@@ -1560,6 +1573,11 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
                                         for x in group:
                                             build_question(x)
                                     i += len(group)
+                                elif q.get("reveal"):
+                                    # hidden until what it waits on is done (see the flags in the head script)
+                                    with gr.Column(elem_classes=["reveal-col", f"rv-{q['reveal']}"]):
+                                        build_question(q)
+                                    i += 1
                                 else:
                                     build_question(q)
                                     i += 1
@@ -1610,20 +1628,23 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     for s in STEPS:
         for q in step_questions(s):
-            if q["kind"] == "msg":
-                # a ticked chip means no typed reply, so the bar goes quiet, and
-                # the chips act like a radio: ticking one clears the others
-                ids = [c["id"] for c in q["chips"]]
-                # (the questions a chip reveals are shown by css, see the flags in the head script)
-                for i, cid in enumerate(ids):
-                    def on_chip(*vals, i=i):
-                        new = [vals[i] if j == i else (False if vals[i] else vals[j]) for j in range(len(vals))]
-                        typed = gr.update(interactive=not any(new), value="" if any(new) else gr.skip())
-                        # only touch the chips that actually changed, so nothing else re-renders
-                        return [typed] + [gr.skip() if new[j] == vals[j] else gr.update(value=new[j]) for j in range(len(vals))]
-                    C[cid].change(fn=on_chip, inputs=[C[x] for x in ids],
-                                  outputs=[C[q["id"]]] + [C[x] for x in ids],
-                                  show_progress="hidden", trigger_mode="always_last")
+            if q["kind"] not in ("pick", "msg") or not q["chips"]:
+                continue
+            # the pills act like a radio: ticking one clears the others
+            ids = [c["id"] for c in q["chips"]]
+            has_text = q["kind"] == "msg"   # a composer with chips also goes quiet when one is ticked
+            # (the questions a pill reveals are shown by css, see the flags in the head script)
+            for i, cid in enumerate(ids):
+                def on_chip(*vals, i=i, has_text=has_text):
+                    new = [vals[i] if j == i else (False if vals[i] else vals[j]) for j in range(len(vals))]
+                    # only touch the pills that actually changed, so nothing else re-renders
+                    out = [gr.skip() if new[j] == vals[j] else gr.update(value=new[j]) for j in range(len(vals))]
+                    if has_text:
+                        out = [gr.update(interactive=not any(new), value="" if any(new) else gr.skip())] + out
+                    return out
+                C[cid].change(fn=on_chip, inputs=[C[x] for x in ids],
+                              outputs=([C[q["id"]]] if has_text else []) + [C[x] for x in ids],
+                              show_progress="hidden", trigger_mode="always_last")
 
     for s in STEPS[1:]:
         back_btns[s].click(
@@ -1632,10 +1653,19 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
             show_progress="hidden",
         )
 
+    def submit_handler(*values):
+        data = dict(zip(ALL_FIELD_NAMES + ["photo"], values))
+        problems = _step_problems(LAST_STEP, data)
+        if problems:
+            yield (gr.skip(),) * 4 + (callout_update(problems, fresh=True), _problem_key(problems))
+            return
+        for i, out in enumerate(run_prediction(*values)):
+            yield tuple(out) + ((callout_update([]), "") if i == 0 else (gr.skip(), gr.skip()))
+
     submit_btn.click(
-        fn=run_prediction,
+        fn=submit_handler,
         inputs=[C[name] for name in ALL_FIELD_NAMES] + [C["photo"]],
-        outputs=[output, form_page, reveal_page, submit_btn],
+        outputs=[output, form_page, reveal_page, submit_btn, callouts[LAST_STEP], attempted[LAST_STEP]],
         show_progress="hidden",
     )
 
@@ -1647,14 +1677,14 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     # every answer goes back to blank. the steps are only hidden with css now, so
     # they can be written to freely (they used to be dropped from the page when hidden)
-    RESET_VALUE = {"checks": list, "radio": lambda: None, "text": str, "msg": str, "slider": lambda: 3}
+    RESET_VALUE = {"checks": list, "radio": lambda: None, "text": str, "msg": str, "slider": lambda: 0}
     RESET_IDS = [n for s in STEPS for n in STEP_NAMES[s] if n in BY_ID and BY_ID[n]["kind"] in RESET_VALUE]
     RESET_IDS += [c for s in STEPS for c in chip_ids(s)]
     reset_states = [attempted[s] for s in STEPS if s in attempted]
 
     def again_reset_fields():
         blank = [(False if n not in BY_ID else RESET_VALUE[BY_ID[n]["kind"]]()) for n in RESET_IDS]
-        return blank + [None, False] + [""] * len(reset_states)   # photo, slider "touched", callout states
+        return blank + [None] + [""] * len(reset_states)   # photo, callout states
 
     again_btn.click(
         fn=again_reset_pages, outputs=[form_page, reveal_page], show_progress="hidden",
@@ -1662,7 +1692,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         fn=again_reset_panels, outputs=[step_indicator, progress_panel], show_progress="hidden",
     ).then(
         fn=again_reset_fields,
-        outputs=[C[n] for n in RESET_IDS] + [C["photo"], C["text_length_touched"]] + reset_states,
+        outputs=[C[n] for n in RESET_IDS] + [C["photo"]] + reset_states,
         show_progress="hidden",
     )
 

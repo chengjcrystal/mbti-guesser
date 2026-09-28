@@ -160,22 +160,19 @@ def build_pieces(answers):
             if v and q.get("piece_map") and v in q["piece_map"]:
                 text = q["piece_map"][v]
         elif q["kind"] == "slider":
-            if answers.get("text_length_touched") and v and int(v) in q["piece_map"]:
+            if v and int(v) in q["piece_map"]:   # 0 means the slider was never moved
                 text = q["piece_map"][int(v)]
-        elif q["kind"] == "msg":
-            # the chip and a typed reply are two ways to answer the same prompt
-            ticked = [c for c in q["chips"] if answers.get(c["id"])]
+        elif q["kind"] == "pick":
+            # a row of pills: only the ones that carry a sentence say anything about you
+            ticked = [c for c in q["chips"] if answers.get(c["id"]) and c.get("piece")]
             if ticked:
                 text = ticked[0]["piece"]
                 raw = "(" + ticked[0]["label"] + ")"
-            elif v and len(str(v).strip()) >= 2:
+        elif q["kind"] == "msg":
+            if v and len(str(v).strip()) >= 2:
                 v = str(v).strip()
                 raw = v
-                # typing "leave it on read" instead of tapping the chip still counts
-                if q["chips"] and re.search(r"\b(leave|left|leaves|ignore|ignores)\b.*\b(read|it)\b|\bon read\b|\bseen\b", v, re.I):
-                    text = q["chips"][0]["piece"]
-                else:
-                    text = q["piece"].format(v=v)
+                text = q["piece"].format(v=v)
         elif q["kind"] == "text":
             floor = 2 if q.get("min") == "reply" else 8
             if v and (len(str(v).strip()) >= floor if floor == 2 else _has_content(v, floor)):

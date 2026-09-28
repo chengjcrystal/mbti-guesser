@@ -510,14 +510,11 @@ footer, .built-with { display: none !important; }
 /* the composer: the text bar on top, the quick replies as pills in a row under it */
 .composer { gap: 2px !important; }
 .chip-row { gap: 8px !important; flex-wrap: wrap !important; justify-content: flex-start !important; padding: 0 12px; }
-.chip-row > * { flex: 0 0 auto !important; min-width: 0 !important; width: auto !important; padding: 0 !important; }
+.chip-row > * { flex: 0 0 auto !important; min-width: 0 !important; width: auto !important; padding: 0 !important; margin: 0 !important; }
 /* gradio pads every html block on top of its own block padding, which stacks up to ~32px between two
    stacked scene/label blocks. trim it so the scenario reads as one thread */
 .mbti-card .block.hide-container .html-container { padding-top: 2px !important; padding-bottom: 2px !important; }
 .mbti-card .cond-col { gap: 0 !important; }
-/* a dm is its own little conversation, so it gets its own dashed box, and coming back to the group is marked with a rule */
-.mbti-card .cond-col.dm-panel { border: 3px dashed var(--mauve) !important; border-radius: 12px; padding: 8px 0 6px !important; margin: 8px 0 !important; }
-.mbti-card .cond-col.back-panel { border-top: 3px dashed var(--mauve) !important; padding-top: 10px !important; margin-top: 8px !important; }
 .composer-box { position: relative; }
 .composer-box textarea { border-radius: 22px !important; padding: 11px 56px 11px 16px !important; }
 /* a send arrow that sits inside the bar, like a real message field */
@@ -726,3 +723,9 @@ footer, .built-with { display: none !important; }
   .mbti-hero.stepped-aside { display: none; }
 }
 
+.chip-row.needs-answer { background: #F3DDD9 !important; box-shadow: inset 5px 0 0 var(--rose); border-radius: 6px; }
+.mbti-card .cond-col.cecilia-panel { border-top: 3px dashed var(--mauve) !important; padding-top: 10px !important; margin-top: 8px !important; }
+
+/* the quiet-chat question appears once the group chat part is settled */
+.reveal-col { display: none !important; }
+.console.chat-done .reveal-col.rv-chat_done { display: flex !important; animation: need-in 0.25s ease-out; }
