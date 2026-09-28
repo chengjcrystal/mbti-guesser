@@ -22,6 +22,11 @@ for _q in QUESTIONS:
     if _q.get("show_if"):
         for _c in ([_q["show_if"]] if isinstance(_q["show_if"], str) else _q["show_if"]):
             CSS += f".console.chip-{_c} .cond-col.cc-{_c} {{ display: flex !important; }}\n"
+# the quiz steps are all in the page; the flag on .console (set from the step indicator, see the
+# head script) says which one shows. no flag yet means step 1.
+CSS += "\n.step-col { display: none !important; }\n.console:not([class*=\"on-step-\"]) .step-col.step-1 { display: flex !important; }\n"
+for _s in STEPS:
+    CSS += f".console.on-step-{_s} .step-col.step-{_s} {{ display: flex !important; }}\n"
 CSS += """
 #f-spam_friends_count { display: none !important; }
 .console.has-spam #f-spam_friends_count { display: block !important; }
@@ -361,6 +366,33 @@ document.addEventListener('keydown', function (e) {
     setTimeout(sync, 0);
   }, true);
   new MutationObserver(highlight).observe(document.body, { childList: true, subtree: true });
+  // which quiz step shows comes from the "STEP n OF 6" indicator the server updates
+  var lastStep = null;
+  function syncStep() {
+    var ind = document.querySelector('.step-indicator span');
+    var m = ind && /STEP\\s+(\\d+)/i.exec(ind.textContent);
+    var root = document.querySelector('.console');
+    if (!root || !m) return;
+    if (!root.classList.contains('on-step-' + m[1])) {
+      root.className = root.className.replace(/\\bon-step-\\d+\\b/g, '').trim();
+      root.classList.add('on-step-' + m[1]);
+      if (lastStep !== null) {
+        var top = root.getBoundingClientRect().top + window.scrollY - 16;
+        if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      lastStep = m[1];
+    }
+  }
+  var stepTick = null;
+  new MutationObserver(function () {
+    if (stepTick) return;
+    stepTick = requestAnimationFrame(function () { stepTick = null; syncStep(); });
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  syncStep();
+  // retaking starts over, so the rulebook shouldn't still be hanging open
+  document.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('#retake-btn') && window.mbtiRules) mbtiRules(false);
+  }, true);
   // retake resets values without a click on the field itself
   setInterval(sync, 300);
 })();
@@ -1333,18 +1365,20 @@ def make_next_handler(step):
         data = dict(zip(names, values))
         problems = _step_problems(step, data)
         if problems:
-            yield (gr.skip(),) * 5 + (callout_update(problems, fresh=True), _problem_key(problems))
+            yield (gr.skip(),) * 3 + (callout_update(problems, fresh=True), _problem_key(problems))
             return
         # generator so the loading state reaches the page before the (slow)
         # classifier call starts; the real result replaces it in the second yield.
-        yield (loading_panel_html(), gr.skip(), gr.skip(), gr.skip(),
-               gr.update(value="Loading…", interactive=False), callout_update([]), "")
+        yield (loading_panel_html(), gr.skip(), gr.update(value="Loading…", interactive=False), callout_update([]), "")
         panel = run_partial(data)
-        yield (panel, gr.update(visible=False), gr.update(visible=True),
-               step_indicator_html(step + 1, TOTAL_STEPS),
+        yield (panel, step_indicator_html(step + 1, TOTAL_STEPS),
                gr.update(value="Next →", interactive=True), gr.skip(), gr.skip())
 
     return handler
+
+
+def _input_names(step):
+    return [n for n in STEP_REQUIRED[step] if BY_ID[n]["kind"] != "pick"]
 
 
 def _chips_upto(step):
@@ -1353,7 +1387,7 @@ def _chips_upto(step):
 
 
 def make_refresh_handler(step):
-    names = STEP_REQUIRED[step] + _chips_upto(step)
+    names = _input_names(step) + _chips_upto(step)
 
     def refresh(attempted, *values):
         # only live-update once they've actually hit Next and been told what's missing
@@ -1507,7 +1541,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
                 callouts, step_cols, back_btns, next_btns = {}, {}, {}, {}
 
                 for s in STEPS:
-                    with gr.Column(visible=(s == 1)) as col:
+                    with gr.Column(elem_classes=["step-col", f"step-{s}"]) as col:
                         step_cols[s] = col
                         with gr.Group(elem_classes=["mbti-card"]):
                             _section(STEP_TITLES[s], legend=bool(STEP_REQUIRED[s]))
@@ -1549,27 +1583,30 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     with gr.Column(elem_classes=["main-content", "reveal-page-inner"], visible=False) as reveal_page:
         output = gr.HTML("")
         with gr.Row(elem_classes=["again-row"]):
-            again_btn = gr.Button("↺ retake the quiz", size="sm")
+            again_btn = gr.Button("↺ retake the quiz", size="sm", elem_id="retake-btn")
 
     # ── wiring ──
     for s in STEPS[:-1]:
-        req_comps = [C[name] for name in STEP_REQUIRED[s]]
         next_btns[s].click(
             fn=make_next_handler(s),
             inputs=[C[name] for name in CUM_NAMES[s]],
-            outputs=[progress_panel, step_cols[s], step_cols[s + 1], step_indicator, next_btns[s],
-                     callouts[s], attempted[s]],
+            outputs=[progress_panel, step_indicator, next_btns[s], callouts[s], attempted[s]],
             show_progress="hidden",
         )
+
+    # once a Next has been blocked, the callout follows along as the answers get fixed
+    for s in STEPS:
+        if not STEP_REQUIRED[s]:
+            continue
         refresh = make_refresh_handler(s)
-        read_comps = [C[rid] for rid in chip_ids(s)]
-        for comp in req_comps + read_comps:
-            comp.change(
-                fn=refresh,
-                inputs=[attempted[s], *req_comps, *[C[rid] for rid in _chips_upto(s)]],
-                outputs=[callouts[s], attempted[s]],
-                show_progress="hidden",
-            )
+        refresh_io = dict(
+            fn=refresh,
+            inputs=[attempted[s], *[C[n] for n in _input_names(s)], *[C[rid] for rid in _chips_upto(s)]],
+            outputs=[callouts[s], attempted[s]],
+            show_progress="hidden",
+        )
+        for name in _input_names(s) + chip_ids(s):
+            C[name].change(**refresh_io)
 
     for s in STEPS:
         for q in step_questions(s):
@@ -1590,8 +1627,8 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     for s in STEPS[1:]:
         back_btns[s].click(
-            fn=lambda s=s: (gr.update(visible=True), gr.update(visible=False), step_indicator_html(s - 1, TOTAL_STEPS)),
-            outputs=[step_cols[s - 1], step_cols[s], step_indicator],
+            fn=lambda s=s: step_indicator_html(s - 1, TOTAL_STEPS),
+            outputs=[step_indicator],
             show_progress="hidden",
         )
 
@@ -1605,35 +1642,28 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     def again_reset_pages():
         return gr.update(visible=True), gr.update(visible=False)  # form_page, reveal_page
 
-    def again_reset_steps():
-        return gr.update(visible=False), gr.update(visible=True)  # last step, first step
-
     def again_reset_panels():
         return step_indicator_html(1, TOTAL_STEPS), empty_progress_html()
 
-    def again_reset_step1_fields():
-        # the other steps' own field values are left as-is: writing into a field
-        # that lives inside an already-hidden sibling column, in the same batch as
-        # other sibling-column visibility changes, triggers a Gradio render
-        # glitch that leaves an empty ghost card in the layout. Answering
-        # those steps again on the next pass through the wizard overwrites
-        # them naturally, so nothing stale ever reaches a real prediction.
-        return [RESET_VALUE[BY_ID[n]["kind"]] for n in RESET_IDS]
+    # every answer goes back to blank. the steps are only hidden with css now, so
+    # they can be written to freely (they used to be dropped from the page when hidden)
+    RESET_VALUE = {"checks": list, "radio": lambda: None, "text": str, "msg": str, "slider": lambda: 3}
+    RESET_IDS = [n for s in STEPS for n in STEP_NAMES[s] if n in BY_ID and BY_ID[n]["kind"] in RESET_VALUE]
+    RESET_IDS += [c for s in STEPS for c in chip_ids(s)]
+    reset_states = [attempted[s] for s in STEPS if s in attempted]
 
-    # Gradio's Column-visibility diffing only stays clean up to 2 sibling
-    # columns changing per event. after a run only the last step is showing,
-    # so putting it away and bringing the first back is exactly two.
-    RESET_VALUE = {"checks": [], "radio": None, "text": ""}
-    RESET_IDS = [n for n in STEP_NAMES[1] if BY_ID[n]["kind"] in RESET_VALUE]
+    def again_reset_fields():
+        blank = [(False if n not in BY_ID else RESET_VALUE[BY_ID[n]["kind"]]()) for n in RESET_IDS]
+        return blank + [None, False] + [""] * len(reset_states)   # photo, slider "touched", callout states
+
     again_btn.click(
         fn=again_reset_pages, outputs=[form_page, reveal_page], show_progress="hidden",
     ).then(
-        fn=again_reset_steps, outputs=[step_cols[LAST_STEP], step_cols[1]], show_progress="hidden",
-    ).then(
         fn=again_reset_panels, outputs=[step_indicator, progress_panel], show_progress="hidden",
     ).then(
-        fn=again_reset_step1_fields,
-        outputs=[C[name] for name in RESET_IDS], show_progress="hidden",
+        fn=again_reset_fields,
+        outputs=[C[n] for n in RESET_IDS] + [C["photo"], C["text_length_touched"]] + reset_states,
+        show_progress="hidden",
     )
 
 if __name__ == "__main__":
