@@ -620,3 +620,10 @@ footer, .built-with { display: none !important; }
 
 .flush-html.tuck:has(.rules-panel.open) { margin-bottom: 10px !important; }
 
+/* live radar title row: the type code so far sits on the right, like the one on the result card */
+.live-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.live-head .card-eyebrow { margin-bottom: 0 !important; }
+.live-code { font-family: 'Press Start 2P', monospace; font-size: 15px; letter-spacing: 0.02em; color: var(--plum); white-space: nowrap; }
+.live-code i { font-style: normal; color: var(--ink-soft); margin: 0 1px; }
+.live-code .lc-open { color: #B8AFA0; }
+

@@ -549,6 +549,18 @@ def confidence_bars_html(stats):
     return f'<div class="conf-bars">{rows}</div>'
 
 
+def live_head_html(axis_results=None):
+    """the panel's title row, with the type code so far on the right: a letter once
+    a stat is clear enough to call, a "?" until then (same order as the result card)."""
+    letters = []
+    for axis, *_ in SPOKES:
+        r = (axis_results or {}).get(axis)
+        letters.append("?" if not r or r.get("is_ambiguous") else r["winner"])
+    spans = "".join(f'<span class="{"lc-open" if l == "?" else "lc-set"}">{l}</span>' for l in letters[:4])
+    tail = f'<span class="{"lc-open" if letters[4] == "?" else "lc-set"}">{letters[4]}</span>'
+    return f'''<div class="live-head"><div class="card-eyebrow">Live Radar</div><div class="live-code">{spans}<i>-</i>{tail}</div></div>'''
+
+
 def loading_panel_html():
     """shown the instant a Next/submit click fires, before the (slow) real
     classifier call returns -- so the wait reads as "working" instead of a
@@ -567,7 +579,7 @@ def empty_progress_html():
     pentagon = _pentagon_svg(stats, size=340, show_labels=True, fill_container=True)
     return f"""
     <div class="live-panel-inner">
-      <div class="card-eyebrow">Live Radar</div>
+      {live_head_html()}
       <div class="live-status">answer step 1 to start your read</div>
       <div class="progress-pentagon-wrap">{pentagon}</div>
       {confidence_bars_html(stats)}
@@ -648,7 +660,7 @@ def live_pentagon_html(axis_results, text=""):
     pentagon = _pentagon_svg(stats, size=340, show_labels=True, fill_container=True)
     return f"""
     <div class="live-panel-inner">
-      <div class="card-eyebrow">Live Radar</div>
+      {live_head_html(axis_results)}
       <div class="live-status">reading your answers so far</div>
       <div class="progress-pentagon-wrap">{pentagon}</div>
       {confidence_bars_html(stats)}
