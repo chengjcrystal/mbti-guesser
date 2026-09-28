@@ -493,9 +493,10 @@ def build_reveal_html(mbti_type, axis_results):
 
 def run_prediction(
     spotify_artists, humor_types, punctuality, group_archetypes,
-    what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
     text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
-    text_length_touched, photo,
+    text_length_touched,
+    what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
+    photo,
 ):
     # generator: the photo analysis + classifier call below can take a
     # while, so the button flips to a disabled loading label the instant
@@ -687,12 +688,12 @@ def _field_hint_info(text):
     return gr.update(info=None)
 
 
-def _step2_valid(what_they_talk_about, weekend_activities, awkward_text):
+def _freetext_valid(what_they_talk_about, weekend_activities, awkward_text):
     ok = _is_substantial(what_they_talk_about) and _is_substantial(weekend_activities) and bool(awkward_text)
     return gr.update(interactive=ok)
 
 
-def _step3_valid(texting_style, social_media_checkboxes):
+def _digital_habits_valid(texting_style, social_media_checkboxes):
     ok = bool(texting_style) and bool(social_media_checkboxes)
     return gr.update(interactive=ok)
 
@@ -707,22 +708,32 @@ def next1_handler(spotify_artists, humor_types, punctuality, group_archetypes):
 
 
 def next2_handler(spotify_artists, humor_types, punctuality, group_archetypes,
-                   what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text):
+                   text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
+                   text_length_touched):
+    # digital habits now lives on step 2 -- still all quick clicks, so it
+    # keeps that momentum going for one more page before the free-text
+    # questions on step 3 ask for actual typing.
     yield loading_panel_html(), gr.update(), gr.update(), gr.update(), gr.update(value="Loading…", interactive=False)
-    panel = run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
-                         what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text)
+    panel = run_partial(spotify_artists=spotify_artists, humor_types=humor_types, punctuality=punctuality,
+                         group_archetypes=group_archetypes, text_length_slider=text_length_slider,
+                         texting_style=texting_style, followers=followers,
+                         social_media_checkboxes=social_media_checkboxes, spam_friends_count=spam_friends_count,
+                         text_length_touched=text_length_touched)
     yield panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(3, TOTAL_STEPS), gr.update(value="Next →", interactive=True)
 
 
 def next3_handler(spotify_artists, humor_types, punctuality, group_archetypes,
-                   what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
                    text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
-                   text_length_touched):
+                   text_length_touched,
+                   what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text):
     yield loading_panel_html(), gr.update(), gr.update(), gr.update(), gr.update(value="Loading…", interactive=False)
-    panel = run_partial(spotify_artists, humor_types, punctuality, group_archetypes,
-                         what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text,
-                         text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
-                         text_length_touched)
+    panel = run_partial(spotify_artists=spotify_artists, humor_types=humor_types, punctuality=punctuality,
+                         group_archetypes=group_archetypes, text_length_slider=text_length_slider,
+                         texting_style=texting_style, followers=followers,
+                         social_media_checkboxes=social_media_checkboxes, spam_friends_count=spam_friends_count,
+                         text_length_touched=text_length_touched, what_they_talk_about=what_they_talk_about,
+                         weekend_activities=weekend_activities, stress_triggers=stress_triggers,
+                         party_vibe=party_vibe, fav_media=fav_media, awkward_text=awkward_text)
     yield panel, gr.update(visible=False), gr.update(visible=True), step_indicator_html(4, TOTAL_STEPS), gr.update(value="Next →", interactive=True)
 
 
@@ -776,47 +787,6 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
 
                 with gr.Column(visible=False) as step2:
                     with gr.Group(elem_classes=["mbti-card"]):
-                        gr.HTML('<span class="section-label">what they\'re like</span>')
-                        what_they_talk_about = gr.Textbox(
-                            label="what do they talk about most? (required)",
-                            placeholder="the nba finals, their love life, conspiracy theories…",
-                            lines=2,
-                        )
-                        weekend_activities = gr.Textbox(
-                            label="how do they spend their weekends? (required)",
-                            placeholder="hiking alone, cafe hopping, sleeping until noon…",
-                            lines=2,
-                        )
-                        stress_triggers = gr.Textbox(
-                            label="what stresses them out? (optional)",
-                            placeholder="last-minute changes, overstimulating noises, falling behind…",
-                            lines=2,
-                        )
-                        party_vibe = gr.Textbox(
-                            label="vibe at parties / what kind of drunk are they? (optional)",
-                            placeholder="talks to one person all night, or works the whole room…",
-                            lines=2,
-                        )
-                        fav_media = gr.Textbox(
-                            label="favorite shows, movies, or books (optional)",
-                            placeholder="la la land, attack on titan, hunger games…",
-                            lines=2,
-                        )
-                        awkward_text = gr.Radio(
-                            label="they sent a slightly awkward text an hour ago. they... (required)",
-                            choices=["already forgot about it", "still replaying it in their head"],
-                        )
-                    with gr.Row():
-                        back2_btn = gr.Button("← Back", variant="secondary")
-                        next2_btn = gr.Button("Next →", variant="primary", interactive=False)
-                    step2_gate_fields = [what_they_talk_about, weekend_activities, awkward_text]
-                    for _comp in (what_they_talk_about, weekend_activities, awkward_text):
-                        _comp.change(fn=_step2_valid, inputs=step2_gate_fields, outputs=next2_btn)
-                    what_they_talk_about.change(fn=_field_hint_info, inputs=what_they_talk_about, outputs=what_they_talk_about)
-                    weekend_activities.change(fn=_field_hint_info, inputs=weekend_activities, outputs=weekend_activities)
-
-                with gr.Column(visible=False) as step3:
-                    with gr.Group(elem_classes=["mbti-card"]):
                         gr.HTML('<span class="section-label">digital habits</span>')
                         text_length_slider = gr.Slider(
                             minimum=1, maximum=5, step=1, value=3,
@@ -868,14 +838,55 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
                             outputs=[followers, spam_friends_count],
                         )
                     with gr.Row():
-                        back3_btn = gr.Button("← Back", variant="secondary")
-                        next3_btn = gr.Button("Next →", variant="primary", interactive=False)
+                        back2_btn = gr.Button("← Back", variant="secondary")
+                        next2_btn = gr.Button("Next →", variant="primary", interactive=False)
                     for _comp in (texting_style, social_media_checkboxes):
                         _comp.change(
-                            fn=_step3_valid,
+                            fn=_digital_habits_valid,
                             inputs=[texting_style, social_media_checkboxes],
-                            outputs=next3_btn,
+                            outputs=next2_btn,
                         )
+
+                with gr.Column(visible=False) as step3:
+                    with gr.Group(elem_classes=["mbti-card"]):
+                        gr.HTML('<span class="section-label">what they\'re like</span>')
+                        what_they_talk_about = gr.Textbox(
+                            label="what do they talk about most? (required)",
+                            placeholder="the nba finals, their love life, conspiracy theories…",
+                            lines=2,
+                        )
+                        weekend_activities = gr.Textbox(
+                            label="how do they spend their weekends? (required)",
+                            placeholder="hiking alone, cafe hopping, sleeping until noon…",
+                            lines=2,
+                        )
+                        stress_triggers = gr.Textbox(
+                            label="what stresses them out? (optional)",
+                            placeholder="last-minute changes, overstimulating noises, falling behind…",
+                            lines=2,
+                        )
+                        party_vibe = gr.Textbox(
+                            label="vibe at parties / what kind of drunk are they? (optional)",
+                            placeholder="talks to one person all night, or works the whole room…",
+                            lines=2,
+                        )
+                        fav_media = gr.Textbox(
+                            label="favorite shows, movies, or books (optional)",
+                            placeholder="la la land, attack on titan, hunger games…",
+                            lines=2,
+                        )
+                        awkward_text = gr.Radio(
+                            label="they sent a slightly awkward text an hour ago. they... (required)",
+                            choices=["already forgot about it", "still replaying it in their head"],
+                        )
+                    with gr.Row():
+                        back3_btn = gr.Button("← Back", variant="secondary")
+                        next3_btn = gr.Button("Next →", variant="primary", interactive=False)
+                    step3_gate_fields = [what_they_talk_about, weekend_activities, awkward_text]
+                    for _comp in (what_they_talk_about, weekend_activities, awkward_text):
+                        _comp.change(fn=_freetext_valid, inputs=step3_gate_fields, outputs=next3_btn)
+                    what_they_talk_about.change(fn=_field_hint_info, inputs=what_they_talk_about, outputs=what_they_talk_about)
+                    weekend_activities.change(fn=_field_hint_info, inputs=weekend_activities, outputs=weekend_activities)
 
                 with gr.Column(visible=False) as step4:
                     with gr.Group(elem_classes=["mbti-card"]):
@@ -903,8 +914,8 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
     gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli || axes marked "?" had insufficient signal</div>')
 
     step1_fields = [spotify_artists, humor_types, punctuality, group_archetypes]
-    step2_fields = step1_fields + [what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text]
-    step3_fields = step2_fields + [text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count, text_length_touched]
+    step2_fields = step1_fields + [text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count, text_length_touched]
+    step3_fields = step2_fields + [what_they_talk_about, weekend_activities, stress_triggers, party_vibe, fav_media, awkward_text]
 
     next1_btn.click(fn=next1_handler, inputs=step1_fields, outputs=[progress_panel, step1, step2, step_indicator, next1_btn], show_progress="hidden")
     next2_btn.click(fn=next2_handler, inputs=step2_fields, outputs=[progress_panel, step2, step3, step_indicator, next2_btn], show_progress="hidden")
