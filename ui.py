@@ -29,7 +29,14 @@ CSS += """
 """
 SPRITES_JS = (pathlib.Path(__file__).parent / "sprites.js").read_text()
 
-HEAD_JS = "<script>\n" + SPRITES_JS + "\n</script>\n" + """
+# fonts load from the head, since an @import inside gradio's injected stylesheet is ignored by the browser
+FONT_LINKS = (
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'
+    '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=Rubik:wght@400;500;600&display=swap">'
+)
+
+HEAD_JS = FONT_LINKS + "<script>\n" + SPRITES_JS + "\n</script>\n" + """
 <script>
 // ── the result card ──────────────────────────────────────────────────────────
 // slice the pack open, tap the card to flip it, swap to the wide layout, or
