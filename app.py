@@ -333,7 +333,7 @@ def numeric_signals(followers, posting_frequency, social_media_checkboxes, spam_
         if spam_friends_count is not None and str(spam_friends_count).strip():
             try:
                 count = int(spam_friends_count)
-                if count < 10:
+                if count < 15:
                     nudges["E_I"] += 0.4    # very small circle, very introverted
                 elif count < 50:
                     nudges["E_I"] += 0.2    # still pretty selective
