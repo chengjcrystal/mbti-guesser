@@ -57,8 +57,13 @@ body {
   margin: 0 auto !important;
   align-items: start !important;
 }
+/* not enough room for two columns under ~1000px: the chips and bars get squeezed, so stack them */
+@media (max-width: 1000px) {
+  .console { grid-template-columns: 1fr !important; gap: 20px !important; max-width: 720px !important; }
+  .live-col { position: static !important; }
+  .progress-pentagon-wrap svg { max-width: 360px; }
+}
 @media (max-width: 760px) {
-  .console { grid-template-columns: 1fr !important; }
   .main-content { padding: 0 12px !important; }
 }
 .live-col { position: sticky; top: 20px; }
@@ -626,4 +631,13 @@ footer, .built-with { display: none !important; }
 .live-code { font-family: 'Press Start 2P', monospace; font-size: 15px; letter-spacing: 0.02em; color: var(--plum); white-space: nowrap; }
 .live-code i { font-style: normal; color: var(--ink-soft); margin: 0 1px; }
 .live-code .lc-open { color: #B8AFA0; }
+
+/* back / next stay side by side on a phone, and the quick replies fill the width so they're easy to tap */
+.nav-row { flex-wrap: nowrap !important; gap: 10px !important; }
+.nav-row > * { min-width: 0 !important; }
+@media (max-width: 560px) {
+  .chip-row > * { flex: 1 1 100% !important; }
+  .chip-row .read-chip label { justify-content: center; }
+  .live-code { font-size: 13px; }
+}
 

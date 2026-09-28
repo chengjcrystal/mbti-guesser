@@ -1369,11 +1369,11 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
                         if s == 1:
                             next_btns[s] = gr.Button("Next →", variant="primary", size="lg")
                         elif s == LAST_STEP:
-                            with gr.Row():
+                            with gr.Row(elem_classes=["nav-row"]):
                                 back_btns[s] = gr.Button("← Back", variant="secondary")
                                 submit_btn = gr.Button("open your type pack ↗", variant="primary", size="lg")
                         else:
-                            with gr.Row():
+                            with gr.Row(elem_classes=["nav-row"]):
                                 back_btns[s] = gr.Button("← Back", variant="secondary")
                                 next_btns[s] = gr.Button("Next →", variant="primary")
 
