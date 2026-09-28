@@ -491,6 +491,65 @@ def build_reveal_html(mbti_type, axis_results):
 """
 
 
+# each rule pairs a plain-language headline (the whole story, for a friend
+# just skimming) with a detail line underneath (the real mechanism, for
+# anyone who keeps reading) -- same text serves both readers, just at two
+# depths.
+HOW_IT_WORKS_RULES = [
+    ("bolt", "no dice, no randomness",
+     "Every card comes from a real language model actually reading what you typed.",
+     "A zero-shot NLI classifier (<code>facebook/bart-large-mnli</code>) compares your answers against a short description of each trait and scores how well they match. Nothing here is hand-rolled logic pretending to be AI."),
+    ("star", "five stats, five separate reads",
+     "Energy, Vision, Empathy, Freedom, and Assurance each get their own pass, not one big guess.",
+     "That's why the live radar can be confident on one stat and still blank on another mid-quiz: each axis is judged on its own evidence, separately."),
+    ("swirl", "some clicks are worth more than others",
+     "A multiple-choice question is written to speak to one specific stat; free text can back up any of them.",
+     "An axis only shows a real number once something that could plausibly speak to it has actually been answered. Otherwise it honestly shows “?” instead of dressing up a guess as a stat."),
+    ("heart", "a photo is a nudge, not a verdict",
+     "Drop in a photo and DeepFace / OpenCV read expression, face count, and eye contact as small adjustments.",
+     "Weighted at just 25% of the read, with text picking up the rest when there's no photo at all."),
+    ("shield", "checked, not validated",
+     "16 hand-written test snippets confirm the classifier reads clearly-stated traits correctly.",
+     "Mean confidence over 97% on unambiguous text (see <code>eval_axes.py</code>). There's no labeled dataset of real people to claim real-world accuracy against: this is an honest heuristic sketch, not a clinical instrument."),
+]
+
+
+def how_it_works_html():
+    rows = ""
+    for icon, headline, plain, detail in HOW_IT_WORKS_RULES:
+        rows += f"""
+    <div class="rule-row">
+      <svg class="rule-icon" viewBox="0 0 18 18">{ICONS[icon]}</svg>
+      <div class="rule-copy">
+        <div class="rule-headline">{headline}</div>
+        <div class="rule-plain">{plain}</div>
+        <div class="rule-detail">{detail}</div>
+      </div>
+    </div>"""
+
+    return f"""
+<div class="rulebook-wrap">
+  <div class="pack-emblem-ring" style="margin:0 auto 14px;">
+    <svg width="40" height="40" viewBox="0 0 40 40">
+      <polygon points="20,4 24,15 36,15 26,22 30,34 20,26 10,34 14,22 4,15 16,15"
+                fill="#C9A876" stroke="#4A3B5C" stroke-width="2" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="rulebook-title">behind the cards</div>
+  <div class="rulebook-sub">what actually happens between your answers and the type pack</div>
+
+  <div class="rulebook-card">
+    {rows}
+  </div>
+
+  <div class="rulebook-footer">
+    full source, the fusion math, and the honest-limitations writeup live in the
+    <a href="https://github.com/chengjcrystal/mbti-guesser" target="_blank" rel="noopener">GitHub repo</a>.
+  </div>
+</div>
+"""
+
+
 def run_prediction(
     spotify_artists, humor_types, punctuality, group_archetypes,
     text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count,
@@ -911,7 +970,23 @@ with gr.Blocks(title="mbti guesser", css=CSS, theme=theme, head=HEAD_JS) as demo
         with gr.Row(elem_classes=["again-row"]):
             again_btn = gr.Button("↺ retake the quiz", size="sm")
 
-    gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli || axes marked "?" had insufficient signal</div>')
+    with gr.Column(elem_classes=["main-content"], visible=False) as how_it_works_page:
+        gr.HTML(how_it_works_html())
+        with gr.Row(elem_classes=["again-row"]):
+            back_from_rules_btn = gr.Button("← back to the quiz", size="sm")
+
+    with gr.Row(elem_classes=["footer-row"]):
+        gr.HTML('<div class="mbti-footer">predictions use facebook/bart-large-mnli || axes marked "?" had insufficient signal</div>')
+        how_it_works_btn = gr.Button("» how this works", size="sm", elem_classes=["how-it-works-link"])
+
+    how_it_works_btn.click(
+        fn=lambda: (gr.update(visible=False), gr.update(visible=False), gr.update(visible=True)),
+        outputs=[form_page, reveal_page, how_it_works_page],
+    )
+    back_from_rules_btn.click(
+        fn=lambda: (gr.update(visible=True), gr.update(visible=False), gr.update(visible=False)),
+        outputs=[form_page, reveal_page, how_it_works_page],
+    )
 
     step1_fields = [spotify_artists, humor_types, punctuality, group_archetypes]
     step2_fields = step1_fields + [text_length_slider, texting_style, followers, social_media_checkboxes, spam_friends_count, text_length_touched]
