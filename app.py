@@ -1,42 +1,74 @@
+import re
+
+import torch
 from transformers import pipeline
 
-# axis definitions
+from questions import QUESTIONS, NO_SOCIAL, NOT_SURE, is_shown
+
+# axis definitions. each pole is a short trait statement the NLI model scores
+# a piece of text against. "labels" is first person (used on the quiz answers,
+# which are written as "I ..."), "labels_3p" is the same meaning in third
+# person (used by eval_axes.py on its "They ..." snippets).
+#
+# these are short and matched on purpose. longer "tends to make decisions by
+# ..." wording gave one pole an edge on almost any text, and a topic like
+# "coding and job searching" would come out 90% extraverted from noise.
 AXES = {
     "E_I": {
         "labels": [
-            "tends to seek out social interaction and feels energized being around other people",
-            "tends to prefer solitude and feels drained by too much social interaction"
+            "I get energized by being around people and I'm outgoing",
+            "I need time alone to recharge and I get drained by socializing",
         ],
-        "keys": ["E", "I"]
+        "labels_3p": [
+            "They get energized by being around people and they're outgoing",
+            "They need time alone to recharge and get drained by socializing",
+        ],
+        "keys": ["E", "I"],
     },
     "N_S": {
         "labels": [
-            "tends to think about possibilities, meaning, and the big picture rather than concrete details",
-            "tends to focus on what is concrete, present, and directly observable rather than abstract ideas"
+            "I think about ideas, meanings, and possibilities more than concrete details",
+            "I focus on concrete facts, details, and what's actually in front of me",
         ],
-        "keys": ["N", "S"]
+        "labels_3p": [
+            "They think about ideas, meanings, and possibilities more than concrete details",
+            "They focus on concrete facts, details, and what's actually in front of them",
+        ],
+        "keys": ["N", "S"],
     },
     "T_F": {
         "labels": [
-            "tends to make decisions by analyzing facts and thinking through things logically",
-            "tends to make decisions based on how they feel and how it affects the people involved"
+            "I value logic and honesty over people's feelings",
+            "I put people's feelings and harmony ahead of being right",
         ],
-        "keys": ["T", "F"]
+        "labels_3p": [
+            "They value logic and honesty over people's feelings",
+            "They put people's feelings and harmony ahead of being right",
+        ],
+        "keys": ["T", "F"],
     },
     "J_P": {
         "labels": [
-            "tends to like having a plan and prefers things to be settled and decided",
-            "tends to prefer going with the flow and keeping their options open"
+            "I like to plan ahead and stay organized",
+            "I like to stay spontaneous and improvise",
         ],
-        "keys": ["J", "P"]
+        "labels_3p": [
+            "They like to plan ahead and stay organized",
+            "They like to stay spontaneous and improvise",
+        ],
+        "keys": ["J", "P"],
     },
     "A_T": {
         "labels": [
-            "tends to feel confident and secure, rarely doubts their decisions or dwells on stress",
-            "tends to feel self-conscious and sensitive to stress, often doubts their decisions and seeks to improve"
+            "I don't dwell on it and I move on quickly",
+            "I get bothered, keep checking, and can't let things go",
         ],
-        "keys": ["A", "T"]
-    }
+        "labels_3p": [
+            "They don't dwell on it and move on quickly",
+            "They get bothered, keep checking, and can't let things go",
+        ],
+        "keys": ["A", "T"],
+    },
 }
 
 # weights for the three signal sources
@@ -45,28 +77,12 @@ PHOTO_WEIGHT = 0.25
 NUMERIC_WEIGHT = 0.10
 
 # gap below this = axis is ambiguous, show "?" instead of a letter
-AMBIGUITY_THRESHOLD = 8.0
+AMBIGUITY_THRESHOLD = 15.0
 
-# ── axis relevance gating ───────────────────────────────────────────────────
-# a fixed-choice field (radio/checkboxes) is written with one specific axis
-# in mind, so answering it is real evidence for that axis. free-text fields
-# are open-ended -- someone could write about anything -- so they can't be
-# pinned to one axis ahead of time, but substantial free text is still real
-# evidence *something* is being read, for whichever axis it turns out to
-# touch. without either kind of evidence, a "confident" score off that axis
-# is the classifier polarizing on text that was never about it -- so it
-# gets forced to "?" regardless of what the raw gap says.
-AXIS_DEDICATED_FIELDS = {
-    "E_I": ["group_archetypes"],
-    "N_S": [],
-    "T_F": [],
-    "J_P": ["punctuality"],
-    "A_T": ["awkward_text"],
-}
-FREE_TEXT_FIELDS = [
-    "spotify_artists", "what_they_talk_about", "weekend_activities",
-    "stress_triggers", "party_vibe", "fav_media",
-]
+# an axis only reads its own questions, and needs this much answered evidence
+# (a full answer counts 1, a light one like humor counts less)
+# before it will show a letter. below that it is "?", not a guess.
+MIN_EVIDENCE = 1.5
 
 
 def _has_content(value, min_chars=8):
@@ -82,19 +98,6 @@ def _has_content(value, min_chars=8):
     return True
 
 
-def axis_eligibility(fields):
-    """
-    fields: dict of the raw input names (matching predict_mbti's own
-    parameter names) -> their raw values for this prediction.
-    """
-    any_free_text = any(_has_content(fields.get(f)) for f in FREE_TEXT_FIELDS)
-    eligible = {}
-    for axis, dedicated in AXIS_DEDICATED_FIELDS.items():
-        has_dedicated = any(_has_content(fields.get(f)) for f in dedicated)
-        eligible[axis] = has_dedicated or any_free_text
-    return eligible
-
-
 _classifier = None
 
 def get_classifier():
@@ -107,102 +110,184 @@ def get_classifier():
     return _classifier
 
 
-def assemble_text(
-    spotify_artists,
-    humor_types,
-    punctuality,
-    group_archetypes,
-    what_they_talk_about,
-    weekend_activities,
-    text_length_slider,
-    texting_style,
-    stress_triggers,
-    party_vibe,
-    fav_media,
-    awkward_text=None,
-    text_length_touched=False,
-):
+def _entailment_pairs(items, batch_size=32):
     """
-    combine all the free-text and picker fields into one labeled blob.
-    labeling each section helps the model understand context instead of
-    treating everything as one undifferentiated wall of text.
+    items: list of (text, [label_a, label_b]).
+    returns a (p_a, p_b) per item: a forced choice between the two labels,
+    a softmax over each label's entailment score for that text.
     """
-    parts = []
+    clf = get_classifier()
+    tok, model = clf.tokenizer, clf.model
+    ent = model.config.label2id.get("entailment", 2)
 
-    if spotify_artists and spotify_artists.strip():
-        parts.append(f"Their Spotify top artists: {spotify_artists.strip()}")
+    premises, hypotheses = [], []
+    for text, labels in items:
+        for label in labels:
+            premises.append(text)
+            hypotheses.append(f"{label}.")
 
-    # humor types multi-select -> sentence
-    if humor_types:
-        humor_str = ", ".join(humor_types)
-        parts.append(f"Their humor style tends to be: {humor_str}.")
-
-    # punctuality radio -> sentence
-    punctuality_map = {
-        "always early": "They are always early and plan ahead.",
-        "usually early": "They tend to be early, but it's not a hard rule.",
-        "on time": "They tend to show up right on time.",
-        "usually late": "They tend to run late, but it's not chronic.",
-        "always late": "They are usually late and go with the flow."
-    }
-    if punctuality and punctuality in punctuality_map:
-        parts.append(punctuality_map[punctuality])
-
-    # group archetypes multi-select -> sentence
-    if group_archetypes:
-        archetype_str = ", ".join(group_archetypes)
-        parts.append(f"In their friend group they are: {archetype_str}.")
-
-    if what_they_talk_about and what_they_talk_about.strip():
-        parts.append(f"What they talk about most: {what_they_talk_about.strip()}")
-
-    if weekend_activities and weekend_activities.strip():
-        parts.append(f"How they spend their weekends: {weekend_activities.strip()}")
-
-    # text length slider -> descriptive sentence
-    text_length_descriptions = {
-        1: "They text in one-word replies and barely say anything.",
-        2: "Their texts are short and to the point.",
-        3: "They write average-length texts, not too short or too long.",
-        4: "They tend to write long texts with a lot of detail.",
-        5: "They send full essays: their texts are extremely long and detailed."
-    }
-    # the slider always has *some* value (range inputs can't be blank), so
-    # without tracking whether the user actually moved it, its untouched
-    # default would get read into the text every time as if it were a real
-    # answer.
-    if text_length_touched and text_length_slider and int(text_length_slider) in text_length_descriptions:
-        parts.append(text_length_descriptions[int(text_length_slider)])
-
-    # texting style checkboxes -> sentence
-    if texting_style:
-        style_str = ", ".join(texting_style)
-        parts.append(f"Their texting style: {style_str}.")
-
-    if stress_triggers and stress_triggers.strip():
-        parts.append(f"What stresses them out: {stress_triggers.strip()}")
-
-    if party_vibe and party_vibe.strip():
-        parts.append(f"At parties or when they drink: {party_vibe.strip()}")
-
-    if fav_media and fav_media.strip():
-        parts.append(f"Their favorite shows and media: {fav_media.strip()}")
-
-    # awkward-text radio -> sentence (assurance/identity signal)
-    awkward_text_map = {
-        "already forgot about it": "If they send a slightly awkward text, they forget about it fast and move on.",
-        "still replaying it in their head": "If they send a slightly awkward text, they replay it in their head for a while after."
-    }
-    if awkward_text and awkward_text in awkward_text_map:
-        parts.append(awkward_text_map[awkward_text])
-
-    return " ".join(parts)
+    logits = []
+    for i in range(0, len(premises), batch_size):
+        enc = tok(premises[i:i + batch_size], hypotheses[i:i + batch_size],
+                  return_tensors="pt", truncation=True, padding=True).to(model.device)
+        with torch.no_grad():
+            logits.append(model(**enc).logits[:, ent].float().cpu())
+    flat = torch.cat(logits) if logits else torch.empty(0)
+    pairs = flat.view(-1, 2).softmax(-1)
+    return [(float(a), float(b)) for a, b in pairs]
 
 
-def numeric_signals(followers, social_media_checkboxes, spam_friends_count=None):
+def build_pieces(answers):
     """
-    returns a dict of axis -> score nudges based on follower counts
-    and social media behavior checkboxes. scores are in [-1, 1] range
+    turn the raw answers into first-person pieces of text, each routed to the
+    axes its question was written for.
+    """
+    pieces = []
+    for q in QUESTIONS:
+        if q["kind"] in ("scene", "image") or q.get("numeric") or not q.get("axes"):
+            continue
+        if not is_shown(q, answers):
+            continue   # its chip isn't ticked, so it was never asked
+        qid = q["id"]
+        v = answers.get(qid)
+        text = None
+        raw = None   # the person's own words, kept for the live "what the model read" panel
+
+        if q["kind"] == "checks":
+            if v:
+                text = q["piece"].format(v=", ".join(v))
+        elif q["kind"] == "radio":
+            if v and q.get("piece_map") and v in q["piece_map"]:
+                text = q["piece_map"][v]
+        elif q["kind"] == "slider":
+            if answers.get("text_length_touched") and v and int(v) in q["piece_map"]:
+                text = q["piece_map"][int(v)]
+        elif q["kind"] == "msg":
+            # the chip and a typed reply are two ways to answer the same prompt
+            ticked = [c for c in q["chips"] if answers.get(c["id"])]
+            if ticked:
+                text = ticked[0]["piece"]
+                raw = "(" + ticked[0]["label"] + ")"
+            elif v and len(str(v).strip()) >= 2:
+                v = str(v).strip()
+                raw = v
+                # typing "leave it on read" instead of tapping the chip still counts
+                if q["chips"] and re.search(r"\b(leave|left|leaves|ignore|ignores)\b.*\b(read|it)\b|\bon read\b|\bseen\b", v, re.I):
+                    text = q["chips"][0]["piece"]
+                else:
+                    text = q["piece"].format(v=v)
+        elif q["kind"] == "text":
+            floor = 2 if q.get("min") == "reply" else 8
+            if v and (len(str(v).strip()) >= floor if floor == 2 else _has_content(v, floor)):
+                v = str(v).strip()
+                raw = v
+                text = q["piece"].format(v=v)
+
+        if text:
+            # one answer can count for more on one stat than another
+            weights = q.get("axis_weights") or {axis: q.get("weight", 1.0) for axis in q["axes"]}
+            pieces.append({"id": qid, "text": text, "raw": raw, "axes": q["axes"], "weights": weights})
+    return pieces
+
+
+def score_axes(pieces):
+    """
+    per axis: forced-choice each routed piece against that axis's two poles,
+    then a weighted average. an axis with too little evidence is flagged so
+    it can show "?" instead of a confident-looking number from noise.
+    """
+    items, owners = [], []
+    for p in pieces:
+        for axis in p["axes"]:
+            items.append((p["text"], AXES[axis]["labels"]))
+            owners.append((axis, p["weights"][axis], p))
+    probs = _entailment_pairs(items) if items else []
+
+    per_axis = {axis: {"num": 0.0, "den": 0.0} for axis in AXES}
+    reads = {axis: [] for axis in AXES}
+    for (axis, weight, piece), (p_a, _p_b) in zip(owners, probs):
+        per_axis[axis]["num"] += weight * p_a
+        per_axis[axis]["den"] += weight
+        if piece.get("raw") and weight >= 0.6:
+            keys = AXES[axis]["keys"]
+            reads[axis].append({"raw": piece["raw"], "key": keys[0] if p_a >= 0.5 else keys[1], "pct": round(max(p_a, 1 - p_a) * 100)})
+
+    results = {}
+    for axis, data in AXES.items():
+        keys = data["keys"]
+        den = per_axis[axis]["den"]
+        p_a = per_axis[axis]["num"] / den if den else 0.5
+        # thin evidence pulls toward 50/50, so one answer can't read as a strong result
+        p_a = 0.5 + (p_a - 0.5) * min(1.0, den / MIN_EVIDENCE)
+        scores = {keys[0]: p_a * 100, keys[1]: (1 - p_a) * 100}
+        winner = keys[0] if p_a >= 0.5 else keys[1]
+        gap = abs(scores[keys[0]] - scores[keys[1]])
+        results[axis] = {
+            "winner": winner,
+            "confidence": max(scores.values()),
+            "gap": gap,
+            "evidence": den,
+            "has_evidence": den >= MIN_EVIDENCE,
+            "is_ambiguous": gap < AMBIGUITY_THRESHOLD or den < MIN_EVIDENCE,
+            "scores": scores,
+            "reads": reads[axis],
+        }
+    return results
+
+
+def classify_text(text):
+    """
+    one blob of third-person text against all five axes. used by
+    eval_axes.py to sanity check the labels on hand-written snippets.
+    """
+    if not text or not text.strip():
+        return None
+    axes = list(AXES)
+    probs = _entailment_pairs([(text, AXES[a]["labels_3p"]) for a in axes])
+    results = {}
+    for axis, (p_a, p_b) in zip(axes, probs):
+        keys = AXES[axis]["keys"]
+        scores = {keys[0]: p_a * 100, keys[1]: p_b * 100}
+        winner = max(scores, key=scores.get)
+        gap = abs(scores[keys[0]] - scores[keys[1]])
+        results[axis] = {
+            "winner": winner,
+            "confidence": scores[winner],
+            "gap": gap,
+            "is_ambiguous": gap < AMBIGUITY_THRESHOLD,
+            "scores": scores,
+        }
+    return results
+
+
+# posting cadence on the main feed, as concrete frequencies instead of "posts
+# a lot" / "lurker", since what counts as a lot is different for everyone.
+# negative = E lean, positive = I lean.
+POSTING_NUDGE = {
+    "a few times a week or more": -0.4,
+    "about once a week": -0.2,
+    "a couple times a month": 0.0,
+    "about once a month": 0.15,
+    "a few times a year": 0.3,
+    "once a year or less": 0.4,
+}
+
+
+# how often they post to stories. lighter than a feed post, so a smaller nudge
+STORY_NUDGE = {
+    "most days": -0.3,
+    "a few times a week": -0.2,
+    "about once a week": -0.05,
+    "a couple times a month": 0.1,
+    "a few times a year": 0.2,
+    "basically never": 0.3,
+}
+
+
+def numeric_signals(followers, posting_frequency, social_media_checkboxes, spam_friends_count=None, story_frequency=None):
+    """
+    returns a dict of axis -> score nudges based on follower count, how often
+    they post, and a couple of account habits. scores are in [-1, 1] range
     where -1 is strong first label (E/N/T/J) and +1 is strong second (I/S/F/P).
     """
     nudges = {"E_I": 0.0}
@@ -211,19 +296,19 @@ def numeric_signals(followers, social_media_checkboxes, spam_friends_count=None)
     # "not sure" is an honest admission of no signal, not a guess -- don't
     # let a stray follower-count number (left over from before, or just the
     # field's own default) sneak in a nudge it isn't meant to carry.
-    if "not sure / don't know" in social_media_checkboxes:
+    if posting_frequency == NOT_SURE:
         return nudges
 
     # no account at all is itself a real, fairly strong I signal, and it
     # makes the follower-count field meaningless, so it short-circuits the
     # usual threshold math below rather than feeding it a bogus 0.
-    if "no social media" in social_media_checkboxes:
+    if posting_frequency == NO_SOCIAL:
         nudges["E_I"] += 0.6
         return nudges
 
     # follower count thresholds for E/I
     # positive = I lean, negative = E lean
-    if followers is not None:
+    if followers is not None and str(followers).strip():
         try:
             f = int(followers)
             if f < 100:
@@ -239,33 +324,29 @@ def numeric_signals(followers, social_media_checkboxes, spam_friends_count=None)
         except (ValueError, TypeError):
             pass
 
-    # social media checkboxes
-    if social_media_checkboxes:
-        if "mostly a lurker" in social_media_checkboxes:
-            nudges["E_I"] += 0.25
-        if "posts a lot" in social_media_checkboxes:
-            nudges["E_I"] -= 0.25
+    nudges["E_I"] += POSTING_NUDGE.get(posting_frequency, 0.0)
+    nudges["E_I"] += STORY_NUDGE.get(story_frequency, 0.0)
 
-        # spam/close friends account: nudge depends on list size
-        # small list = selective/private = I lean, big list = basically public = E lean
-        if "has a spam/close friends account" in social_media_checkboxes:
-            if spam_friends_count is not None:
-                try:
-                    count = int(spam_friends_count)
-                    if count < 10:
-                        nudges["E_I"] += 0.4    # very small circle, very introverted
-                    elif count < 50:
-                        nudges["E_I"] += 0.2    # still pretty selective
-                    elif count <= 80:
-                        pass                     # neutral zone, no lean either way
-                    elif count <= 110:
-                        nudges["E_I"] -= 0.2    # getting pretty social
-                    else:
-                        nudges["E_I"] -= 0.4    # 110+ = basically a second public account
-                except (ValueError, TypeError):
-                    nudges["E_I"] += 0.3        # has account but count unknown = mild I default
-            else:
-                nudges["E_I"] += 0.3            # no count provided, still an I nudge
+    # spam/close friends account: nudge depends on list size
+    # small list = selective/private = I lean, big list = basically public = E lean
+    if "has a spam/close friends account" in social_media_checkboxes:
+        if spam_friends_count is not None and str(spam_friends_count).strip():
+            try:
+                count = int(spam_friends_count)
+                if count < 10:
+                    nudges["E_I"] += 0.4    # very small circle, very introverted
+                elif count < 50:
+                    nudges["E_I"] += 0.2    # still pretty selective
+                elif count <= 80:
+                    pass                     # neutral zone, no lean either way
+                elif count <= 110:
+                    nudges["E_I"] -= 0.2    # getting pretty social
+                else:
+                    nudges["E_I"] -= 0.4    # 110+ = basically a second public account
+            except (ValueError, TypeError):
+                nudges["E_I"] += 0.3        # has account but count unknown = mild I default
+        else:
+            nudges["E_I"] += 0.3            # no count provided, still an I nudge
 
     # clamp to [-1, 1]
     for k in nudges:
@@ -274,68 +355,26 @@ def numeric_signals(followers, social_media_checkboxes, spam_friends_count=None)
     return nudges
 
 
-def classify_text(text):
-    """
-    run zero-shot classification on each axis separately.
-    returns dict of axis -> (winning_key, confidence_pct, is_ambiguous)
-    """
-    if not text or not text.strip():
-        return None
-
-    clf = get_classifier()
-    results = {}
-
-    for axis_name, axis_data in AXES.items():
-        labels = axis_data["labels"]
-        keys = axis_data["keys"]
-
-        # hypothesis template matters a lot here
-        output = clf(
-            text,
-            candidate_labels=labels,
-            hypothesis_template="the text suggests the author {}.",
-            multi_label=False
-        )
-
-        # map back to our keys
-        label_to_key = dict(zip(labels, keys))
-        scored = {label_to_key[l]: s * 100 for l, s in zip(output["labels"], output["scores"])}
-
-        winner = max(scored, key=scored.get)
-        loser = min(scored, key=scored.get)
-        gap = scored[winner] - scored[loser]
-        is_ambiguous = gap < AMBIGUITY_THRESHOLD
-
-        results[axis_name] = {
-            "winner": winner,
-            "confidence": scored[winner],
-            "gap": gap,
-            "is_ambiguous": is_ambiguous,
-            "scores": scored
-        }
-
-    return results
-
-
-def blend_signals(text_results, photo_results, numeric_nudges, axis_eligible=None):
+def blend_signals(text_results, photo_results, numeric_nudges):
     """
     combine text, photo, and numeric signals using weighted blending.
 
-    text_results: output from classify_text()
+    text_results: output from score_axes()
     photo_results: dict from photo_analysis.py, or None
     numeric_nudges: dict from numeric_signals()
-    axis_eligible: dict from axis_eligibility(), or None to skip gating
 
     returns final axis decisions as dict
     """
     final = {}
-    axis_eligible = axis_eligible or {}
 
     for axis_name, axis_data in AXES.items():
         keys = axis_data["keys"]  # e.g. ["E", "I"]
 
-        # start with text scores (in 0-100 range)
-        if text_results and axis_name in text_results:
+        # text scores (0-100). even thin evidence gives a lean to report, it is
+        # just flagged as a close call below when it is under MIN_EVIDENCE
+        text_ok = bool(text_results) and text_results[axis_name]["has_evidence"]
+        text_any = bool(text_results) and text_results[axis_name]["evidence"] > 0
+        if text_any:
             text_scores = text_results[axis_name]["scores"]
             # convert to [-1, 1] where -1 = first key, +1 = second key
             text_val = (text_scores[keys[1]] - text_scores[keys[0]]) / 100.0
@@ -381,9 +420,8 @@ def blend_signals(text_results, photo_results, numeric_nudges, axis_eligible=Non
         gap = abs(first_key_pct - second_key_pct)
 
         # a photo actually scored on this axis is its own real evidence,
-        # independent of whatever text has been answered so far.
-        has_photo_signal = photo_results is not None and axis_name in photo_results
-        has_real_signal = axis_eligible.get(axis_name, True) or has_photo_signal
+        # independent of whatever has been answered so far.
+        has_real_signal = text_ok or has_photo
         is_ambiguous = (gap < AMBIGUITY_THRESHOLD) or not has_real_signal
 
         final[axis_name] = {
@@ -391,87 +429,41 @@ def blend_signals(text_results, photo_results, numeric_nudges, axis_eligible=Non
             "confidence": winner_pct,
             "gap": gap,
             "is_ambiguous": is_ambiguous,
-            "scores": {keys[0]: first_key_pct, keys[1]: second_key_pct}
+            "scores": {keys[0]: first_key_pct, keys[1]: second_key_pct},
+            "reads": text_results[axis_name]["reads"] if text_results else [],
         }
 
     return final
 
 
-def predict_mbti(
-    spotify_artists="",
-    humor_types=None,
-    punctuality=None,
-    group_archetypes=None,
-    what_they_talk_about="",
-    weekend_activities="",
-    text_length_slider=3,
-    texting_style=None,
-    stress_triggers="",
-    party_vibe="",
-    fav_media="",
-    followers=None,
-    social_media_checkboxes=None,
-    spam_friends_count=None,
-    awkward_text=None,
-    photo_results=None,
-    text_length_touched=False,
-):
+def predict_mbti(answers, photo_results=None):
     """
-    main entry point. takes all inputs, runs classification, returns
-    the predicted type and per-axis breakdown.
+    main entry point. takes the answers dict (question id -> value), runs the
+    scoring, returns the predicted type and per-axis breakdown.
     """
-    # build the text blob
-    text = assemble_text(
-        spotify_artists=spotify_artists,
-        humor_types=humor_types or [],
-        punctuality=punctuality,
-        group_archetypes=group_archetypes or [],
-        what_they_talk_about=what_they_talk_about,
-        weekend_activities=weekend_activities,
-        text_length_slider=text_length_slider,
-        texting_style=texting_style or [],
-        stress_triggers=stress_triggers,
-        party_vibe=party_vibe,
-        fav_media=fav_media,
-        awkward_text=awkward_text,
-        text_length_touched=text_length_touched,
-    )
-
-    if not text.strip():
+    pieces = build_pieces(answers)
+    if not pieces:
         return None, None, ""
 
-    # classify text
-    text_results = classify_text(text)
+    text_results = score_axes(pieces)
 
-    # numeric signals
-    numeric_nudges = numeric_signals(followers, social_media_checkboxes or [], spam_friends_count)
+    numeric_nudges = numeric_signals(
+        answers.get("followers"),
+        answers.get("posting_frequency"),
+        answers.get("social_media_checkboxes") or [],
+        answers.get("spam_friends_count"),
+        answers.get("story_frequency"),
+    )
 
-    # which axes actually have something answered that speaks to them
-    eligible = axis_eligibility({
-        "spotify_artists": spotify_artists,
-        "group_archetypes": group_archetypes,
-        "what_they_talk_about": what_they_talk_about,
-        "weekend_activities": weekend_activities,
-        "stress_triggers": stress_triggers,
-        "party_vibe": party_vibe,
-        "fav_media": fav_media,
-        "punctuality": punctuality,
-        "awkward_text": awkward_text,
-    })
+    final_results = blend_signals(text_results, photo_results, numeric_nudges)
 
-    # blend everything together
-    final_results = blend_signals(text_results, photo_results, numeric_nudges, eligible)
-
-    # build the type string: 4 core letters, then a dash, then the identity suffix (A/T)
+    # build the type string: 4 core letters, then a dash, then the identity suffix
+    # (A/T). the final answer always names a letter per axis, since only 16 types
+    # exist. an unsure axis still leans one way, and is_ambiguous flags it as a
+    # close call for the result card (the live radar can still show "?").
     axis_order = ["E_I", "N_S", "T_F", "J_P", "A_T"]
-    type_letters = []
-    for axis in axis_order:
-        r = final_results[axis]
-        if r["is_ambiguous"]:
-            type_letters.append("?")
-        else:
-            type_letters.append(r["winner"])
+    type_letters = [final_results[axis]["winner"] for axis in axis_order]
 
     mbti_type = "".join(type_letters[:4]) + "-" + type_letters[4]
 
-    return mbti_type, final_results, text
+    return mbti_type, final_results, " ".join(p["text"] for p in pieces)

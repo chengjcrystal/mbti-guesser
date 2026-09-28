@@ -1,5 +1,5 @@
 ---
-title: MBTI Guesser
+title: MBTI Radar
 emoji: 🧠
 colorFrom: green
 colorTo: blue
@@ -11,9 +11,9 @@ thumbnail: >-
   https://raw.githubusercontent.com/chengjcrystal/mbti-guesser/a8a61e101babca77a31c4e90be799c4652af88c1/thumbnail.png
 ---
 
-# MBTI Guesser
+# MBTI Radar
 
-**Describe someone (texts, humor, weekend habits, a photo if you've got one) and get a zero-shot MBTI read across all four axes.**
+**Answer short scenarios about yourself (and add a photo if you want) and get a zero-shot MBTI read across all four axes.**
 
 No training data, no fine-tuning. Text goes through zero-shot NLI classification, an optional photo runs through DeepFace and OpenCV, and everything gets fused into one type with a per-axis confidence gap.
 
@@ -21,10 +21,10 @@ No training data, no fine-tuning. Text goes through zero-shot NLI classification
 
 ## How It Works
 
-1. **Text.** Free-text fields (talk topics, weekend activities, texting style, and more) get assembled into one labeled blob and run through `facebook/bart-large-mnli` as zero-shot classification, separately for each of the four axes.
+1. **Text.** Two pages of quick picks, a page of easy free-text questions (weekends, what stresses you out, party vibe, what you talk about), and one short scenario: a group chat of five about studying together tomorrow, where you reply (or leave it on read, or check with your closest friend first, by dm or by waiting). Her answer only shows up on the next page, after you've committed, and then you answer the group. From there you walk through the study session, say what a random mid-session conversation is about, and say what's going through your head when the chat goes quiet. Two pages of quick picks also ask how often you post to your feed and to your story. Each question is written for particular axes, and each answer is turned into a first-person sentence and scored against only those axes' two poles by `facebook/bart-large-mnli` (zero-shot NLI, a forced choice between the two trait statements). The whole quiz lives in `questions.py`.
 2. **Photo (optional).** DeepFace reads dominant emotion as a soft T/F signal. OpenCV Haar cascades pull face count (solo vs. group), rough eye contact, background color variance, and smile presence as E/I and T/F nudges. Each detector is wrapped in its own try/except, so one failing doesn't take the others down.
-3. **Numeric.** Follower count and a few social-media behavior checkboxes (lurker, spam/close-friends account size) nudge E/I.
-4. **Fusion.** The three sources are weighted-blended (text 65%, photo 25%, numeric 10%), and if there's no photo, its weight gets redistributed into text instead of just vanishing. An axis shows `?` instead of a letter when the winning margin is under 8 points.
+3. **Numeric.** Follower count, how often they post to their feed, and spam/close-friends account size nudge E/I.
+4. **Fusion.** The three sources are weighted-blended (text 65%, photo 25%, numeric 10%), and if there's no photo, its weight gets redistributed into text instead of just vanishing. The live radar shows `?` for an axis until two real answers have spoken to it. The final card always names one of the 16 types; an axis with a margin under 15 points, or thin evidence, is tagged a close call.
 
 ## Honest Limitations
 
@@ -45,9 +45,10 @@ First run downloads `facebook/bart-large-mnli` (~1.6 GB) from Hugging Face.
 
 | File | What it does |
 |---|---|
-| `app.py` | Text assembly, zero-shot NLI classification, numeric signals, fusion |
+| `questions.py` | The whole quiz as data: questions, steps, which axes each answer speaks to |
+| `app.py` | Answer-to-sentence conversion, zero-shot NLI scoring per axis, numeric signals, fusion |
 | `photo_analysis.py` | DeepFace + OpenCV photo signals |
-| `creature.py` | Procedural creature SVG, one visual part per trait letter |
+| `sprites.js` | The 16 pixel-art type characters, drawn in the browser |
 | `ui.py` | Gradio layout and theme |
 | `styles.css` | Custom styling on top of the Gradio theme |
 | `eval_axes.py` | Sanity-check script for the text classifier, writes `eval_results.json` |

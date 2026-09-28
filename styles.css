@@ -198,9 +198,10 @@ footer, .built-with { display: none !important; }
   z-index: 1;
   width: 100%;
   max-width: 640px;
-  margin: 14px auto 12px;
+  margin: 8px auto 4px;
   text-align: center;
-  padding: 14px 24px;
+  /* the title's shadow hangs 3px below the letters, so the top pad is 3px more to look even */
+  padding: 19px 24px 16px;
   background: var(--field);
   border: 4px solid var(--plum);
   border-radius: 10px;
@@ -226,7 +227,7 @@ footer, .built-with { display: none !important; }
   line-height: 1.3;
   color: var(--plum);
   text-shadow: 3px 3px 0 var(--blush);
-  margin-bottom: 0;
+  margin: 0 !important;
 }
 
 /* ── card sections (gr.Group wrappers) ── */
@@ -246,13 +247,13 @@ footer, .built-with { display: none !important; }
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--ink-soft);
-  margin: 6px 0 16px;
+  margin: 2px 0 2px;
   display: block;
   text-transform: uppercase;
 }
 
 /* ── photo upload ── */
-.photo-upload-wrap { font-size: 12px !important; }
+.photo-upload-wrap { font-size: 12px !important; margin-top: 8px; }
 .photo-upload-wrap [data-testid="image"] { min-height: 100px !important; }
 .photo-upload-wrap [data-testid="image"] .wrap { min-height: 100px !important; }
 .photo-upload-wrap span, .photo-upload-wrap button, .photo-upload-wrap label { font-size: 12px !important; }
@@ -266,47 +267,57 @@ footer, .built-with { display: none !important; }
 .photo-upload-wrap svg { width: 16px !important; height: 16px !important; }
 .photo-note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin-top: 8px; }
 
-/* ── footer ── */
-.footer-row {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  gap: 6px !important;
-  margin: 20px auto 48px !important;
+/* ── how it works: a "?" item block floating beside the title, opens the rulebook as a game dialog ── */
+.rules-block {
+  position: absolute; left: calc(100% + 34px); top: 50%; margin-top: -34px; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: none !important; border: none !important; box-shadow: none !important;
+  padding: 0 !important; cursor: pointer; width: auto !important;
 }
-.mbti-footer {
-  position: relative;
-  z-index: 1;
-  text-align: center; font-size: 11px; color: var(--ink-soft); line-height: 1.7;
-  max-width: 640px; margin: 0; padding: 10px 16px;
-  background: var(--field); border: 2px solid var(--plum); border-radius: 6px;
+@media (max-width: 900px) {
+  .rules-block { left: auto; right: 10px; top: 10px; margin-top: 0; }
+  .rules-block svg { width: 34px; height: 34px; }
+  .rules-block-label { display: none; }
 }
-.how-it-works-link {
-  font-family: 'Silkscreen', monospace !important;
-  font-size: 11px !important;
-  color: var(--ink-soft) !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 2px 6px !important;
-  width: auto !important;
-  flex: none !important;
+.rules-block svg { display: block; filter: drop-shadow(3px 3px 0 rgba(74,59,92,0.35)); animation: block-bob 2.4s steps(2, end) infinite; }
+.rules-block:hover svg { animation: none; transform: translateY(-6px); }
+.rules-block.hit svg { animation: block-hit 0.25s steps(3, end); }
+.rules-block-label {
+  font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; white-space: nowrap; color: var(--plum); text-shadow: 1px 1px 0 var(--field);
 }
-.how-it-works-link:hover { color: var(--plum) !important; text-decoration: underline; }
+@keyframes block-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes block-hit { 0% { transform: translateY(0); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0); } }
 
-/* ── how it works page ── */
-.rulebook-wrap { max-width: 720px; margin: 0 auto; padding: 24px 0 20px; text-align: center; }
+/* the rulebook unfolds under the title, in the same cream/plum card as the quiz, no overlay */
+.rules-panel {
+  display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease;
+  max-width: 900px; margin: 0 auto; padding: 0 16px; position: relative; z-index: 1;
+}
+.rules-panel.open { grid-template-rows: 1fr; }
+.rules-panel-clip { overflow: hidden; min-height: 0; }
+.rules-panel .rulebook-card { margin: 4px 0 18px; }
+.rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
+@media (max-width: 760px) { .rule-grid { grid-template-columns: 1fr; } .rules-panel { padding: 0; } .rules-panel .rulebook-card { padding: 16px; } }
+.rules-block.active svg { filter: saturate(0.45) drop-shadow(3px 3px 0 rgba(74,59,92,0.35)); animation: none; }
+.rulebook-head { display: flex; align-items: center; gap: 12px; padding-right: 36px; }
 .rulebook-title {
-  font-family: 'Press Start 2P', monospace; font-size: clamp(16px, 2.4vw, 22px);
-  color: var(--plum); text-shadow: 2px 2px 0 var(--blush); margin-bottom: 8px;
+  font-family: 'Press Start 2P', monospace; font-size: clamp(13px, 2vw, 17px);
+  color: var(--plum); text-shadow: 2px 2px 0 var(--blush); margin-bottom: 6px;
 }
-.rulebook-sub { font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink-soft); margin-bottom: 20px; }
+.rulebook-sub { font-family: 'Rubik', sans-serif; font-size: 12.5px; font-weight: 500; color: var(--ink-soft); }
 .rulebook-card {
-  text-align: left; border: 4px solid var(--plum); border-radius: 8px; background: var(--cream);
-  box-shadow: 6px 6px 0 rgba(0,0,0,0.15); padding: 22px; display: flex; flex-direction: column; gap: 18px;
+  position: relative; width: 100%; text-align: left;
+  border: 4px solid var(--plum); border-radius: 8px; background: var(--cream);
+  box-shadow: 8px 8px 0 rgba(0,0,0,0.25); padding: 22px; display: flex; flex-direction: column; gap: 18px;
 }
+.rules-close {
+  position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; padding: 0 !important;
+  font-family: 'Press Start 2P', monospace; font-size: 12px; line-height: 1; color: var(--plum);
+  background: var(--field) !important; border: 3px solid var(--plum) !important; border-radius: 4px; cursor: pointer;
+}
+.rules-close:hover { background: var(--blush) !important; }
 .rule-row { display: flex; gap: 14px; align-items: flex-start; }
-.rule-row:not(:first-child) { padding-top: 16px; border-top: 1px solid rgba(74,59,92,0.15); }
 .rule-icon { width: 22px; height: 22px; flex-shrink: 0; margin-top: 3px; color: var(--plum); }
 .rule-copy { flex: 1; min-width: 0; }
 .rule-headline {
@@ -319,8 +330,6 @@ footer, .built-with { display: none !important; }
   background: var(--field); border: 1px solid var(--plum); border-radius: 3px;
   padding: 1px 5px; font-size: 11.5px; color: var(--plum);
 }
-.rulebook-footer { margin-top: 20px; font-family: 'Rubik', sans-serif; font-size: 12px; color: var(--ink-soft); }
-.rulebook-footer a { color: var(--sage); font-weight: 600; }
 
 /* ── empty state ── */
 .result-empty { font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink-soft); line-height: 1.6; text-align: center; padding: 20px 0; }
@@ -407,3 +416,207 @@ footer, .built-with { display: none !important; }
   background: var(--cream); border: 3px solid var(--plum); border-radius: 4px; padding: 9px 18px; cursor: pointer; display: none;
 }
 .again-btn.show { display: inline-block; }
+
+/* ── required marker: a small solid star in the top-right corner of the question, like an asterisk ── */
+.req [data-testid="block-info"]::after {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 3px; vertical-align: 5px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpolygon points='20,3 24.5,15 37,15.5 27,23.5 30.5,36 20,28.5 9.5,36 13,23.5 3,15.5 15.5,15' fill='%238C6E8C'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.req-legend {
+  float: right; font-size: 10px; font-weight: 400; letter-spacing: 0.04em; color: var(--ink-soft);
+}
+.req-legend::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 5px; vertical-align: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpolygon points='20,3 24.5,15 37,15.5 27,23.5 30.5,36 20,28.5 9.5,36 13,23.5 3,15.5 15.5,15' fill='%238C6E8C'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.mbti-card .form { background: transparent !important; gap: 6px !important; padding-bottom: 6px; }
+.mbti-card .block { padding-top: 6px !important; padding-bottom: 6px !important; }
+
+/* ── missing-answer feedback: a "!" block callout plus the offending fields tinted ── */
+:root { --rose: #B5546A; }
+.need-wrap, .need-wrap .html-container { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+.need-callout {
+  display: flex; gap: 14px; align-items: flex-start; text-align: left;
+  background: var(--field); border: 3px solid var(--rose); border-radius: 8px;
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.15); padding: 14px 16px; animation: need-in 0.2s ease-out;
+}
+@keyframes need-in { from { transform: translateY(-4px); opacity: 0; } to { transform: none; opacity: 1; } }
+.need-icon { flex-shrink: 0; }
+.need-body { min-width: 0; flex: 1; }
+.need-title { font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; color: var(--rose); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+.need-body ul { list-style: none !important; margin: 0 !important; padding: 0 !important; display: flex; flex-direction: column; gap: 4px; }
+.need-body li { margin: 0 !important; padding: 0 !important; font-family: 'Rubik', sans-serif; font-size: 14px; color: var(--ink); line-height: 1.4; }
+.need-body li a { margin: 0 !important; padding: 0 !important; font-weight: 600; color: var(--plum); text-decoration: underline; text-decoration-color: var(--blush); text-underline-offset: 3px; cursor: pointer; }
+.need-body li span { margin: 0 !important; padding: 0 !important; color: var(--ink-soft); }
+.mbti-card .block.needs-answer {
+  background: #F3DDD9 !important; box-shadow: inset 5px 0 0 var(--rose) !important;
+}
+.mbti-card .block.needs-answer [data-testid="block-info"] { color: var(--rose) !important; }
+
+/* ── scenario prompts: a small scene-setter above the question, with the message as a chat bubble ── */
+.scenario-gap { margin-top: -6px; }
+.scenario-kicker {
+  font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--mauve); margin-bottom: 4px;
+}
+.scenario-setup { font-family: 'Rubik', sans-serif; font-size: 14.5px; font-weight: 500; color: var(--ink); line-height: 1.5; }
+.scenario-bubbles { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; align-items: flex-start; }
+.scenario-bubble {
+  display: inline-block; max-width: 88%;
+  background: #fff; border: 3px solid var(--plum); border-radius: 14px 14px 14px 2px;
+  box-shadow: 3px 3px 0 rgba(74,59,92,0.18); padding: 8px 14px;
+  font-family: 'Rubik', sans-serif; font-size: 14.5px; line-height: 1.45; color: var(--ink);
+}
+.scenario-bubble.reply { align-self: flex-end; border-radius: 14px 14px 2px 14px; background: #F7F3EA; }
+.bubble-name {
+  display: block; font-family: 'Silkscreen', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--mauve); margin-bottom: 2px;
+}
+
+/* ── top spacing: the wallpaper and rulebook blocks take no space of their own, and the
+   hero sits close to the page edge and the quiz below it ── */
+.flush-html, .flush-html .html-container { padding: 0 !important; }
+.flush-html.tuck { margin-bottom: -16px !important; }
+
+/* ── group thread + message composer ── */
+.scenario-bubbles.thread { gap: 6px; }
+.scenario-seen {
+  font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--mauve); padding-left: 4px;
+}
+/* the composer: the text bar on top, the quick replies as pills in a row under it */
+.composer { gap: 2px !important; }
+.chip-row { gap: 8px !important; flex-wrap: wrap !important; justify-content: flex-start !important; padding: 0 12px; }
+.chip-row > * { flex: 0 0 auto !important; min-width: 0 !important; width: auto !important; padding: 0 !important; }
+/* gradio pads every html block on top of its own block padding, which stacks up to ~32px between two
+   stacked scene/label blocks. trim it so the scenario reads as one thread */
+.mbti-card .block.hide-container .html-container { padding-top: 2px !important; padding-bottom: 2px !important; }
+.mbti-card .cond-col { gap: 0 !important; }
+/* a dm is its own little conversation, so it gets its own dashed box, and coming back to the group is marked with a rule */
+.mbti-card .cond-col.dm-panel { border: 3px dashed var(--mauve) !important; border-radius: 12px; padding: 8px 0 6px !important; margin: 8px 0 !important; }
+.mbti-card .cond-col.back-panel { border-top: 3px dashed var(--mauve) !important; padding-top: 10px !important; margin-top: 8px !important; }
+.composer-box { position: relative; }
+.composer-box textarea { border-radius: 22px !important; padding: 11px 56px 11px 16px !important; }
+/* a send arrow that sits inside the bar, like a real message field */
+.composer-box::after {
+  content: ""; position: absolute; right: 20px; bottom: 18px; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--plum) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 13V3M3.5 7.5L8 3l4.5 4.5' fill='none' stroke='%23EDE6D3' stroke-width='2' stroke-linecap='square'/%3E%3C/svg%3E") center / 16px no-repeat;
+  pointer-events: none;
+}
+.read-chip label {
+  border: 3px solid var(--plum) !important; border-radius: 999px !important; background: var(--field) !important;
+  padding: 7px 14px !important; cursor: pointer; white-space: nowrap;
+}
+.read-chip label span {
+  font-family: 'Silkscreen', monospace !important; font-size: 11px !important; font-weight: 700 !important;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--plum) !important;
+}
+.read-chip input[type="checkbox"] { display: none !important; }
+.read-chip label:has(input:checked) { background: var(--plum) !important; }
+.read-chip label:has(input:checked) span { color: var(--cream) !important; }
+
+/* ── result card: slice the pack, flip the card, wide view ── */
+.rv { max-width: 480px; margin: 0 auto; text-align: center; }
+.rv[data-layout="wide"] { max-width: 860px; }
+.rv .card-scene { display: none; }
+.rv.sliced .card-scene { display: block; animation: card-in 0.5s cubic-bezier(.34, 1.4, .64, 1); }
+.rv.sliced .pack-stage { display: none; }
+.rv .pack-stage { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 0; }
+
+.rpack { position: relative; width: 260px; height: 340px; }
+.rpack-top, .rpack-body {
+  position: absolute; left: 0; right: 0; background: var(--blush); border: 5px solid var(--plum);
+  transition: transform 0.5s cubic-bezier(.4, 0, .2, 1), opacity 0.45s;
+}
+.rpack-top {
+  top: 0; height: 56px; border-bottom: none; border-radius: 8px 8px 0 0; transform-origin: 0 100%;
+  background-image: repeating-linear-gradient(90deg, rgba(74,59,92,.28) 0 4px, transparent 4px 8px);
+}
+.rpack-body {
+  top: 56px; bottom: 0; border-radius: 0 0 8px 8px; box-shadow: 8px 8px 0 rgba(0,0,0,.2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow: hidden;
+}
+.rpack-body::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(var(--mauve) 1.5px, transparent 1.5px); background-size: 14px 14px; opacity: 0.18;
+}
+.rv.slicing .rpack-top { transform: translate(70px, -80px) rotate(18deg); opacity: 0; }
+.rv.slicing .rpack-body { transform: translateY(26px) scale(0.94); opacity: 0; }
+.slice-zone {
+  --cut: 0%; position: absolute; left: -12px; right: -12px; top: 38px; height: 36px; z-index: 3;
+  cursor: ew-resize; touch-action: none; outline-offset: 2px;
+}
+.slice-line { position: absolute; left: 12px; right: 12px; top: 50%; border-top: 3px dashed var(--plum); }
+.slice-cut { position: absolute; left: 12px; top: 50%; width: var(--cut); max-width: calc(100% - 24px); border-top: 4px solid var(--gold); margin-top: -1px; }
+.slice-blade {
+  position: absolute; top: 50%; left: calc(12px + var(--cut)); transform: translate(-50%, -50%);
+  width: 32px; height: 32px; border-radius: 50%; background: var(--field); border: 3px solid var(--plum);
+  display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--plum);
+  transition: left 0.25s;
+}
+.slice-zone:active .slice-blade { transition: none; }
+.rpack-hint { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--plum); }
+
+@keyframes card-in { from { transform: scale(0.85) translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.flip { perspective: 1400px; width: 100%; cursor: pointer; }
+.flip-in { position: relative; width: 100%; aspect-ratio: 460 / 720; transform-style: preserve-3d; transition: transform 0.6s steps(10); }
+.flip.flipped .flip-in { transform: rotateY(180deg); }
+.face {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: var(--cream); border: 5px solid var(--plum); border-radius: 8px; box-shadow: 10px 10px 0 rgba(0,0,0,.25);
+  padding: 12px; display: flex; flex-direction: column; gap: 10px; text-align: left;
+}
+.face.back { transform: rotateY(180deg); }
+.rcard-top { display: flex; justify-content: space-between; align-items: center; }
+.rstage {
+  border: 3px solid var(--plum); border-radius: 4px; aspect-ratio: 1; overflow: hidden;
+  background: linear-gradient(#BFE3E6 0 62%, #A5BE7E 62% 100%); display: flex; align-items: center; justify-content: center;
+}
+.rstage canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.rname { display: flex; flex-direction: column; gap: 3px; }
+.rcode { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--plum); }
+.rtitle { font-family: 'Silkscreen', monospace; font-size: 13px; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.04em; }
+.rradar { background: #fff; border: 3px solid var(--plum); border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; }
+.rradar svg { width: 100%; height: auto; display: block; }
+.rarity-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rclose { font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mauve); }
+.rhint { margin-top: auto; text-align: center; font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mauve); }
+
+.wide-card {
+  display: none; flex-direction: column; gap: 10px; text-align: left; background: var(--cream);
+  border: 5px solid var(--plum); border-radius: 8px; box-shadow: 10px 10px 0 rgba(0,0,0,.25); padding: 12px;
+}
+.rv[data-layout="wide"] .flip { display: none; }
+.rv[data-layout="wide"] .wide-card { display: flex; }
+.wide-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wide-stats { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+.wide-foot { text-align: right; font-family: 'Press Start 2P', monospace; font-size: 9px; color: rgba(74,59,92,.55); }
+@media (max-width: 640px) { .wide-row, .wide-stats { grid-template-columns: 1fr; } }
+
+.rv-tools { display: flex; gap: 8px; justify-content: center; flex-wrap: nowrap; margin-top: 22px; }
+.rv-tool {
+  font-family: 'Silkscreen', monospace; font-weight: 700; font-size: 12px; color: var(--plum); background: var(--cream);
+  border: 3px solid var(--plum); border-radius: 4px; padding: 8px 10px; cursor: pointer; white-space: nowrap; min-width: 0;
+}
+@media (max-width: 480px) { .rv-tools { gap: 6px; } .rv-tool { flex: 1 1 0; font-size: 9px; padding: 8px 4px; white-space: normal; line-height: 1.25; } }
+.rv-tool:hover { background: var(--field); }
+
+.stat-soft { font-family: 'Silkscreen', monospace; font-size: 8px; font-weight: 400; color: var(--mauve); letter-spacing: 0.04em; text-transform: uppercase; margin-left: 4px; }
+
+/* the answers the model just read, in your own words */
+.ai-read-item { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.ai-quote { font-family: 'Rubik', sans-serif; font-size: 12.5px; font-style: italic; color: var(--ink); line-height: 1.4; }
+.ai-lean { font-family: 'Silkscreen', monospace; font-size: 10px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--mauve); }
+.ai-lean b { color: var(--plum); }
+
+.rblurb { font-family: 'Rubik', sans-serif; font-size: 13px; font-style: italic; color: var(--ink-soft); margin-top: 2px; }
+
+/* the composer's question sits on its own line above the bar and chip, so a long one never wraps the star onto its own row */
+.composer-label { font-family: 'Rubik', sans-serif; font-size: 14px; font-weight: 600; color: var(--ink); }
+.req-star {
+  display: inline-block; width: 8px; height: 8px; margin-left: 3px; vertical-align: 5px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpolygon points='20,3 24.5,15 37,15.5 27,23.5 30.5,36 20,28.5 9.5,36 13,23.5 3,15.5 15.5,15' fill='%238C6E8C'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.flush-html.tuck:has(.rules-panel.open) { margin-bottom: 10px !important; }
+
