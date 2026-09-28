@@ -85,6 +85,16 @@ function mbtiLayout() {
   var b = document.getElementById('layoutBtn');
   if (b) b.textContent = wide ? 'card view' : 'wide view';
 }
+function mbtiTypes(open) {   // the gallery of all 16 types, in place of the pack / card
+  var w = mbtiRv();
+  if (!w) return;
+  if (open) w.setAttribute('data-view', 'all'); else w.removeAttribute('data-view');
+  w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (open) {
+    var mine = w.querySelector('.tcard.mine');
+    if (mine) setTimeout(function () { mine.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 350);
+  }
+}
 function mbtiPack() {   // back to a sealed pack
   var w = mbtiRv();
   if (!w) return;
@@ -689,6 +699,48 @@ def run_partial(answers):
     return live_pentagon_html(axis_results, text)
 
 
+FAMILY_PLURALS = {"NT": "analysts", "NF": "diplomats", "SJ": "sentinels", "SP": "explorers"}
+FAMILY_COLORS = {"NT": "#7B93B8", "NF": "#8FA06E", "SJ": "#6E9B96", "SP": "#C9A876"}
+
+
+def _family_key(code):
+    return ("N" + code[2]) if code[1] == "N" else ("S" + code[3])
+
+
+def all_types_html(mine=None):
+    """the gallery: all 16 types with their pixel characters, grouped by family."""
+    groups = ""
+    for fam in ("NT", "NF", "SJ", "SP"):
+        cards = ""
+        for code in sorted(c for c in MBTI_DESCRIPTIONS if _family_key(c) == fam):
+            title, desc = MBTI_DESCRIPTIONS[code]
+            you = ' mine' if code == mine else ""
+            tag = '<span class="tcard-you">you</span>' if code == mine else ""
+            cards += f"""
+        <div class="tcard{you}" style="--fam:{FAMILY_COLORS[fam]}">
+          <div class="tcard-top"><span class="tcard-no">NO. {TYPE_INDEX[code]:02d}</span>{tag}</div>
+          <div class="tstage"><canvas data-sprite="{code}" width="252" height="252"></canvas></div>
+          <div class="tcode">{code}</div>
+          <div class="ttitle">{title}</div>
+          <div class="tblurb">{CREATURE_BLURBS[code]}</div>
+          <div class="tdesc">{desc}</div>
+        </div>"""
+        groups += f"""
+      <div class="tgroup">
+        <div class="tgroup-head"><span class="family-swatch" style="background:{FAMILY_COLORS[fam]}"></span>{FAMILY_PLURALS[fam]}</div>
+        <div class="tgrid">{cards}</div>
+      </div>"""
+    return f"""
+  <div class="types-page">
+    <div class="types-bar">
+      <span class="types-title">all 16 types</span>
+      <button class="rv-tool" onclick="mbtiTypes(false)">&larr; back</button>
+    </div>
+    {groups}
+    <div class="rv-tools"><button class="rv-tool" onclick="mbtiTypes(false)">&larr; back to your result</button></div>
+  </div>"""
+
+
 def build_reveal_html(mbti_type, axis_results):
     core, suffix = mbti_type.split("-")
     core_display = core  # always four real letters: the answer is one of the 16 types
@@ -792,6 +844,7 @@ def build_reveal_html(mbti_type, axis_results):
       </div>
     </div>
     <div class="rpack-hint">drag across the dashed line to slice it open</div>
+    <button class="rv-tool" onclick="mbtiTypes(true)">see all 16 types</button>
   </div>
 
   <div class="card-scene">
@@ -835,8 +888,10 @@ def build_reveal_html(mbti_type, axis_results):
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
       <button class="rv-tool" onclick="mbtiExport()">export card</button>
       <button class="rv-tool" onclick="mbtiPack()">open another pack</button>
+      <button class="rv-tool" onclick="mbtiTypes(true)">all 16 types</button>
     </div>
   </div>
+  {all_types_html(core_display)}
 </div>
 """
 
