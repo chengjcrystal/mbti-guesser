@@ -82,6 +82,7 @@ function mbtiLayout() {
   if (!w) return;
   var wide = w.getAttribute('data-layout') !== 'wide';
   w.setAttribute('data-layout', wide ? 'wide' : 'card');
+  if (wide) mbtiWho();
   var b = document.getElementById('layoutBtn');
   if (b) b.textContent = wide ? 'card view' : 'wide view';
 }
@@ -116,6 +117,34 @@ function mbtiWrapText(c, text, x, y, maxW, lh) {
   return y + lh;
 }
 
+// the name box under the tools row. the name and today's date are printed on the
+// wide card and on the exported png, all in the browser, nothing gets sent anywhere.
+function mbtiToday() {
+  return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function mbtiWhoLine() {
+  var i = document.getElementById('exportName');
+  var name = i ? i.value.trim() : '';
+  return (name ? name + ' · ' : '') + mbtiToday();
+}
+function mbtiWho() {
+  var line = mbtiWhoLine().toUpperCase();
+  document.querySelectorAll('.wide-who').forEach(function (el) { el.textContent = line; });
+  try { localStorage.setItem('mbtiRadarName', (document.getElementById('exportName') || {}).value || ''); } catch (e) {}
+}
+function mbtiExportPanel() {
+  var p = document.getElementById('exportPanel');
+  if (!p) return;
+  var open = !p.classList.contains('open');
+  p.classList.toggle('open', open);
+  var i = document.getElementById('exportName');
+  if (open && i) {
+    try { if (!i.value) i.value = localStorage.getItem('mbtiRadarName') || ''; } catch (e) {}
+    mbtiWho();
+    setTimeout(function () { i.focus(); p.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
+  }
+}
+
 // draws the wide card onto a canvas by hand and downloads it. this is the
 // shareable version, so it has everything on it: character, radar, stats.
 function mbtiExport() {
@@ -124,7 +153,7 @@ function mbtiExport() {
   var d = JSON.parse(w.getAttribute('data-card'));
   var PLUM = '#4A3B5C', CREAM = '#EDE6D3', SOFT = '#6B5D7D';
   var draw = function () {
-    var W = 1600, H = 1240;
+    var W = 1600, H = 1310;
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     var c = cv.getContext('2d');
     c.imageSmoothingEnabled = false;
@@ -196,8 +225,12 @@ function mbtiExport() {
       c.fillText(String(s.pct), 1552, yy); c.textAlign = 'left';
     });
 
+    // footer: whose card it is and when, then the brand
+    c.fillStyle = 'rgba(74,59,92,.35)'; c.fillRect(48, H - 98, W - 96, 3);
+    c.fillStyle = PLUM; c.font = '700 26px Silkscreen, monospace'; c.textAlign = 'left';
+    c.fillText(mbtiWhoLine().toUpperCase(), 48, H - 48);
     c.fillStyle = 'rgba(74,59,92,.55)'; c.font = '16px "Press Start 2P", monospace'; c.textAlign = 'right';
-    c.fillText('MBTI RADAR', W - 48, H - 44);
+    c.fillText('MBTI RADAR', W - 48, H - 48); c.textAlign = 'left';
 
     cv.toBlob(function (blob) {
       var a = document.createElement('a');
@@ -881,14 +914,23 @@ def build_reveal_html(mbti_type, axis_results):
       <div class="wide-stats stat-rows">{stat_rows}</div>
       <div class="flavor-bar">{desc}</div>
       <div class="identity-bar"><b>{suffix}-identity:</b> {identity_desc}</div>
-      <div class="wide-foot">MBTI RADAR</div>
+      <div class="wide-foot"><span class="wide-who"></span><span>MBTI RADAR</span></div>
     </div>
 
     <div class="rv-tools">
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
-      <button class="rv-tool" onclick="mbtiExport()">export card</button>
+      <button class="rv-tool" onclick="mbtiExportPanel()">export card</button>
       <button class="rv-tool" onclick="mbtiPack()">open another pack</button>
       <button class="rv-tool" onclick="mbtiTypes(true)">all 16 types</button>
+    </div>
+
+    <div class="export-panel" id="exportPanel">
+      <label class="export-label" for="exportName">name on the card <span>(optional)</span></label>
+      <div class="export-row">
+        <input id="exportName" type="text" maxlength="40" autocomplete="name" placeholder="your full name" oninput="mbtiWho()">
+        <button class="rv-tool" onclick="mbtiExport()">download png</button>
+      </div>
+      <p class="export-note">your name and today's date get printed on the card. it stays in your browser, nothing is sent or saved.</p>
     </div>
   </div>
   {all_types_html(core_display)}
