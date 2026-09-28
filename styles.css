@@ -562,10 +562,11 @@ footer, .built-with { display: none !important; }
 
 @keyframes card-in { from { transform: scale(0.85) translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
 .flip { perspective: 1400px; width: 100%; cursor: pointer; }
-.flip-in { position: relative; width: 100%; aspect-ratio: 460 / 720; transform-style: preserve-3d; transition: transform 0.6s steps(10); }
+/* both faces share one grid cell, so the card is at least card-shaped and grows to fit whichever side is taller (the radar side is on a phone) */
+.flip-in { display: grid; width: 100%; aspect-ratio: 460 / 720; transform-style: preserve-3d; transition: transform 0.6s steps(10); }
 .flip.flipped .flip-in { transform: rotateY(180deg); }
 .face {
-  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  grid-area: 1 / 1; min-width: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   background: var(--cream); border: 5px solid var(--plum); border-radius: 8px; box-shadow: 10px 10px 0 rgba(0,0,0,.25);
   padding: 12px; display: flex; flex-direction: column; gap: 10px; text-align: left;
 }
