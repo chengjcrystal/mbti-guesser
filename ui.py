@@ -90,6 +90,7 @@ function mbtiLayout() {
 function mbtiTypes(open) {   // the gallery of all 16 types, in place of the pack / card
   var w = mbtiRv();
   if (!w) return;
+  if (open && !w.classList.contains('sliced')) return;   // your own type first
   if (open) w.setAttribute('data-view', 'all'); else w.removeAttribute('data-view');
   mbtiFit();
   w.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -913,7 +914,6 @@ def build_reveal_html(mbti_type, axis_results):
       </div>
     </div>
     <div class="rpack-hint">drag across the dashed line to slice it open</div>
-    <button class="rv-tool" onclick="mbtiTypes(true)">see all 16 types</button>
   </div>
 
   <div class="card-scene">
