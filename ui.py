@@ -8,6 +8,7 @@ prediction, and the characters are drawn by sprites.js.
 
 import html
 import json
+import os
 import pathlib
 import gradio as gr
 from app import predict_mbti
@@ -1069,6 +1070,12 @@ def run_prediction(*values):
             photo_results = analyze_photo(photo)
         except Exception as e:
             print(f"photo analysis error: {e}")
+        finally:
+            # the promise on the page: it's read once, then deleted
+            try:
+                os.remove(photo)
+            except OSError:
+                pass
 
     reset_btn = gr.update(value="open your type pack ↗", interactive=True)
 
@@ -1384,6 +1391,23 @@ def scene_html(q):
     </div>"""
 
 
+# the photo step, in plain words for someone who has never heard of a classifier
+PHOTO_INTRO_HTML = """
+<div class="photo-intro">
+  <div class="photo-title">your profile photo <span class="photo-optional">optional</span></div>
+  <p class="photo-sub">use your instagram profile photo, or your favorite photo of yourself. pick the one you'd want people to see, since a random photo gives a random read.</p>
+  <details class="why-photo">
+    <summary>what is this photo needed for?</summary>
+    <div class="why-body">
+      <p><b>what it looks at.</b> a small program checks four things in the picture: the expression on your face, whether you're on your own or with other people, whether you're looking at the camera, and what's behind you (a party, outdoors, your room). people usually pick photos that match how they see themselves, so these are small clues about you.</p>
+      <p><b>how much it counts.</b> very little. it only nudges two of the five stats, energy and empathy, and what you wrote counts for far more. skipping the photo works fine.</p>
+      <p><b>is it saved?</b> no. the photo is used once, while your result is being made, and then it's deleted. it isn't stored, shared, or linked to your name, and it isn't sent to any other company. the checks run on this app's own server.</p>
+    </div>
+  </details>
+</div>
+"""
+
+
 def _section(title, legend=True):
     tag = '<span class="req-legend">required</span>' if legend else ""
     return gr.HTML(f'<span class="section-label">{title}{tag}</span>')
@@ -1416,7 +1440,8 @@ def build_component(q):
         return gr.Slider(minimum=1, maximum=5, step=1, value=3, info=q.get("info"), **common)
     if kind == "image":
         return gr.Image(
-            label=q["label"], type="filepath", sources=["upload", "clipboard"],
+            show_label=False, type="filepath", sources=["upload"], height=190,
+            placeholder="drop your photo here, or click to choose one",
             elem_classes=["photo-upload-wrap"],
         )
     raise ValueError(f"unknown question kind: {kind}")
@@ -1438,6 +1463,8 @@ def build_question(q):
                     for chip in q["chips"]:
                         C[chip["id"]] = gr.Checkbox(label=chip["label"], elem_id=f"f-{chip['id']}", elem_classes=["read-chip"], container=False)
         return
+    if q["kind"] == "image":
+        gr.HTML(PHOTO_INTRO_HTML)
     C[q["id"]] = build_component(q)
     if q["kind"] == "slider":
         # a slider can't render "blank" the way a text box can -- it always
@@ -1445,8 +1472,6 @@ def build_question(q):
         # chosen has to be tracked separately instead of trusting the value alone.
         C["text_length_touched"] = gr.State(False)
         C[q["id"]].input(fn=lambda: True, outputs=C["text_length_touched"], show_progress="hidden")
-    if q["kind"] == "image":
-        gr.HTML('<p class="photo-note">expression, solo vs. group, eye contact, background context all analyzed locally. skip it if you don\'t have one.</p>')
 
 
 C = {}

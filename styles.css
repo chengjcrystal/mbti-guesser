@@ -256,19 +256,39 @@ footer, .built-with { display: none !important; }
 }
 
 /* ── photo upload ── */
-.photo-upload-wrap { font-size: 12px !important; margin-top: 8px; }
-.photo-upload-wrap [data-testid="image"] { min-height: 100px !important; }
-.photo-upload-wrap [data-testid="image"] .wrap { min-height: 100px !important; }
-.photo-upload-wrap span, .photo-upload-wrap button, .photo-upload-wrap label { font-size: 12px !important; }
-.photo-upload-wrap .upload-container,
-.photo-upload-wrap .upload-container * {
-  font-family: 'Rubik', sans-serif !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  color: var(--ink-soft) !important;
+.photo-intro { padding: 2px 12px 0; }
+.photo-title { font-family: 'Rubik', sans-serif; font-size: 15px; font-weight: 600; color: var(--ink); }
+.photo-optional { font-family: 'Silkscreen', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mauve); border: 2px solid var(--mauve); border-radius: 3px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+.photo-sub { margin: 4px 0 10px; font-family: 'Rubik', sans-serif; font-size: 14px; line-height: 1.5; color: var(--ink-soft); }
+.why-photo { background: var(--field); border: 3px solid var(--plum); border-radius: 6px; }
+.why-photo summary {
+  list-style: none; cursor: pointer; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--plum);
 }
-.photo-upload-wrap svg { width: 16px !important; height: 16px !important; }
-.photo-note { font-size: 12px; color: var(--ink-soft); line-height: 1.6; margin-top: 8px; }
+.why-photo summary::-webkit-details-marker { display: none; }
+.why-photo summary::after { content: "+"; font-size: 18px; line-height: 1; }
+.why-photo[open] summary::after { content: "\2212"; }
+.why-photo[open] summary { border-bottom: 2px dashed var(--mauve); }
+.why-body { padding: 4px 14px 12px; }
+.why-body p { margin: 10px 0 0; font-family: 'Rubik', sans-serif; font-size: 14px; line-height: 1.55; color: var(--ink); }
+.why-body b { color: var(--plum); }
+/* the drop area: one calm box instead of gradio's stacked icons, lines and toolbar */
+.photo-upload-wrap { margin-top: 10px; }
+/* exactly one dashed box: the outer block draws it, everything inside it is stripped of borders */
+.mbti-card .photo-upload-wrap { border: 3px dashed var(--mauve) !important; border-radius: 8px !important; background: var(--field) !important; box-shadow: none !important; overflow: hidden; margin: 10px 12px 4px !important; width: auto !important; }
+.photo-upload-wrap * { border: none !important; outline: none !important; box-shadow: none !important; background-color: transparent !important; }
+.photo-upload-wrap .wrap, .photo-upload-wrap [data-testid="image"] { min-height: 150px !important; }
+.photo-upload-wrap .upload-container, .photo-upload-wrap .upload-container * { font-family: 'Rubik', sans-serif !important; font-size: 14px !important; font-weight: 500 !important; color: var(--ink-soft) !important; }
+.photo-upload-wrap .source-selection { display: none !important; }
+.photo-upload-wrap svg { color: var(--mauve) !important; }
+
+/* the texts slider starts at 0 with no answer: no thumb, no number, no "0" end label, until it is moved */
+#f-text_length_slider.unset input[type=range]::-webkit-slider-thumb { opacity: 0; }
+#f-text_length_slider.unset input[type=range]::-moz-range-thumb { opacity: 0; }
+#f-text_length_slider.unset input[type=number] { color: transparent !important; }
+#f-text_length_slider.unset input[type=range] { background: #CFC6B2 !important; }
+#f-text_length_slider .min_value { font-size: 0 !important; }
+#f-text_length_slider .min_value::after { content: "1"; font-size: 12px; }
 
 /* ── how it works: a "?" item block floating beside the title, opens the rulebook as a game dialog ── */
 .rules-block {
