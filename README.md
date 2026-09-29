@@ -11,48 +11,63 @@ thumbnail: >-
   https://raw.githubusercontent.com/chengjcrystal/mbti-radar/main/thumbnail.png
 ---
 
-# MBTI Radar
+<p align="center">
+  <img src="https://raw.githubusercontent.com/chengjcrystal/mbti-radar/main/assets/banner.png" alt="MBTI Radar title card over pixel-art mountains, with six pixel-art animal characters standing on the grass" width="900">
+</p>
 
-**Answer short scenarios about yourself (and add a photo if you want) and get a zero-shot MBTI read across all four axes.**
+`★ press start   ▮▮▮▮ no training data`
 
-No training data, no fine-tuning. Text goes through zero-shot NLI classification, an optional photo runs through DeepFace and OpenCV, and everything gets fused into one type with a per-axis confidence gap.
+answer a few short scenarios about yourself, add a photo if you want, and get a zero-shot mbti read across all four axes, with a confidence gap on each. it runs on facebook/bart-large-mnli with no fine-tuning. [play it live](https://huggingface.co/spaces/chengjcrystal/mbti-radar).
 
-[Live Demo](https://huggingface.co/spaces/chengjcrystal/mbti-radar)
+## ⌜ the 16 ⌟
 
-## How It Works
+every result is one of 16 pixel-art characters, drawn in the browser.
 
-1. **Text.** Two pages of quick picks, a page of easy free-text questions (weekends, what stresses you out, party vibe, what you talk about), and one short scenario: a group chat of five about studying together tomorrow, where you pick what you do (reply, leave it on read, or see what your closest friend says first). If you wait for her, her answer shows up on the same page and you then say what you tell the group. From there you describe your ideal study session and say what you do when you're stuck on a question. Every question except the photo is required, apart from the follower count and the close friends list, which some people can't or won't answer. Two pages of quick picks also ask how often you post to your feed and to your story. Each question is written for particular axes, and each answer is turned into a first-person sentence and scored against only those axes' two poles by `facebook/bart-large-mnli` (zero-shot NLI, a forced choice between the two trait statements). The whole quiz lives in `questions.py`.
-2. **Photo (optional).** DeepFace reads dominant emotion as a soft T/F signal. OpenCV Haar cascades pull face count (solo vs. group), rough eye contact, background color variance, and smile presence as E/I and T/F nudges. Each detector is wrapped in its own try/except, so one failing doesn't take the others down.
-3. **Numeric.** Follower count, how often they post to their feed, and spam/close-friends account size nudge E/I.
-4. **Fusion.** The three sources are weighted-blended (text 65%, photo 25%, numeric 10%), and if there's no photo, its weight gets redistributed into text instead of just vanishing. The live radar shows `?` for an axis until two real answers have spoken to it. The final card always names one of the 16 types; an axis with a margin under 15 points, or thin evidence, is tagged a close call.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/chengjcrystal/mbti-radar/main/assets/types.png" alt="All 16 MBTI types as pixel-art animal characters in a grid, each labeled with its four-letter type and nickname" width="900">
+</p>
 
-## Honest Limitations
+## ⌜ how it reads you ⌟
 
-This is a heuristic sketch, not a validated model. There's no labeled ground truth for real profiles, so "accuracy on real people" isn't a number that exists here. The confidence scores describe the model's certainty, not correctness. The numeric and photo signals in particular are hand-tuned nudges, not learned from data, and should be read as flavor on top of the text signal, not independent evidence.
+| signal | what it does |
+| --- | --- |
+| **text** | scenarios and free-text answers, each turned into a first-person sentence and scored by zero-shot NLI against only the axes that question is written for |
+| **photo** | optional. deepface reads emotion (soft t/f nudge), opencv haar cascades add face count, eye contact, background variance and smile (e/i and t/f nudges). the photo is deleted from the server right after use |
+| **numeric** | follower count, how often you post, and close-friends list size nudge e/i |
 
-What is checked (`eval_axes.py`): 16 hand-written test snippets, four per axis, each written to unambiguously describe one pole (e.g. a clearly extroverted description vs. a clearly introverted one). The text pipeline recovers the intended label on all 16, with a mean confidence above 97%. That confirms the classifier reads clear-cut text correctly, it says nothing about how it handles the ambiguous, real-world profiles this app is actually used on. Results are in `eval_results.json`.
+the three get blended: text 65%, photo 25%, numeric 10%. with no photo, its weight goes to text instead of vanishing. the live radar shows `?` on an axis until two real answers have spoken to it, and an axis with a margin under 15 points is tagged a close call.
 
-## Run It
+## ⌜ the quiz ⌟
+
+six steps: quick picks, easy free-text (weekends, party vibe, what stresses you out), and one group-chat scenario where you pick a reply, leave it on read, or see what your closest friend says first. if you wait for her, her answer shows up on the same page and you say what you tell the group. then you describe an ideal study session and what you do when you're stuck.
+
+every question is required except the photo, follower count and close-friends size, since some people can't or won't answer those. the whole quiz lives in `questions.py`.
+
+## ⌜ honest limitations ⌟
+
+this is a heuristic sketch, not a validated model. there's no labeled ground truth for real profiles, so "accuracy on real people" isn't a number that exists here. the confidence scores describe the model's certainty, not correctness. the photo and numeric signals are hand-tuned nudges, not learned from data, so read them as flavor on top of the text signal.
+
+what is checked (`eval_axes.py`): 16 hand-written snippets, four per axis, each written to clearly describe one pole. the text pipeline gets all 16 right with a mean confidence above 97%. that says the classifier reads clear-cut text correctly, and nothing about ambiguous real-world answers. results are in `eval_results.json`.
+
+## ⌜ run it ⌟
 
 ```bash
 pip install -r requirements.txt
 python ui.py   # http://127.0.0.1:7860
 ```
 
-First run downloads `facebook/bart-large-mnli` (~1.6 GB) from Hugging Face.
+first run downloads `facebook/bart-large-mnli` (~1.6 GB) from hugging face.
 
-## What's In The Repo
+## ⌜ what's in the repo ⌟
 
-| File | What it does |
-|---|---|
-| `questions.py` | The whole quiz as data: questions, steps, which axes each answer speaks to |
-| `app.py` | Answer-to-sentence conversion, zero-shot NLI scoring per axis, numeric signals, fusion |
-| `photo_analysis.py` | DeepFace + OpenCV photo signals |
-| `sprites.js` | The 16 pixel-art type characters, drawn in the browser |
-| `ui.py` | Gradio layout and theme |
-| `styles.css` | Custom styling on top of the Gradio theme |
-| `eval_axes.py` | Sanity-check script for the text classifier, writes `eval_results.json` |
+| file | what it does |
+| --- | --- |
+| `questions.py` | the whole quiz as data: questions, steps, which axes each answer speaks to |
+| `app.py` | answer-to-sentence conversion, zero-shot scoring per axis, numeric signals, fusion |
+| `photo_analysis.py` | deepface + opencv photo signals |
+| `sprites.js` | the 16 pixel-art characters, drawn in the browser |
+| `ui.py` | gradio layout and theme |
+| `styles.css` | custom styling on top of the gradio theme |
+| `eval_axes.py` | sanity check for the text classifier, writes `eval_results.json` |
 
-## License
-
-MIT. See [LICENSE](LICENSE).
+`mit` · see [LICENSE](LICENSE)
