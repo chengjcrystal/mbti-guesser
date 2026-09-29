@@ -860,7 +860,6 @@ def build_reveal_html(mbti_type, axis_results):
     title, desc = MBTI_DESCRIPTIONS[core_display]
     identity_desc = IDENTITY_DESCRIPTIONS[suffix]
 
-    e_i = core_display[0] if len(core_display) > 0 else "E"
     n_s = core_display[1] if len(core_display) > 1 else "N"
     t_f = core_display[2] if len(core_display) > 2 else "F"
     j_p = core_display[3] if len(core_display) > 3 else "J"
