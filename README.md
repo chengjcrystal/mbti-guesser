@@ -8,7 +8,7 @@ sdk_version: 6.18.0
 app_file: ui.py
 pinned: false
 thumbnail: >-
-  https://raw.githubusercontent.com/chengjcrystal/mbti-guesser/main/thumbnail.png
+  https://raw.githubusercontent.com/chengjcrystal/mbti-radar/main/thumbnail.png
 ---
 
 # MBTI Radar
@@ -17,7 +17,7 @@ thumbnail: >-
 
 No training data, no fine-tuning. Text goes through zero-shot NLI classification, an optional photo runs through DeepFace and OpenCV, and everything gets fused into one type with a per-axis confidence gap.
 
-[Live Demo](https://huggingface.co/spaces/chengjcrystal/mbti-guesser)
+[Live Demo](https://huggingface.co/spaces/chengjcrystal/mbti-radar)
 
 ## How It Works
 
