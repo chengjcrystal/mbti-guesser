@@ -8,7 +8,7 @@ sdk_version: 6.18.0
 app_file: ui.py
 pinned: false
 thumbnail: >-
-  https://raw.githubusercontent.com/chengjcrystal/mbti-guesser/a8a61e101babca77a31c4e90be799c4652af88c1/thumbnail.png
+  https://raw.githubusercontent.com/chengjcrystal/mbti-guesser/main/thumbnail.png
 ---
 
 # MBTI Radar
