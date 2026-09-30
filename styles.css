@@ -897,3 +897,10 @@ footer, .built-with { display: none !important; }
 }
 /* the radar shape on the back fills with rainbow rings growing out from the middle */
 .rv[data-finish="rainbow"] .card-scene .radar-shape { fill: url(#mbtiRings); fill-opacity: .95; }
+
+/* ── tilt: the card leans toward the pointer (the tilt script sets these variables on .rv) ── */
+.card-scene { perspective: 1600px; }
+.flip, .wide-card { touch-action: pan-y; }
+.flip-in { rotate: var(--rx, 0) var(--ry, 1) 0 var(--ra, 0deg); transition: transform 0.6s steps(10), rotate 0.12s linear; }
+.wide-card { rotate: var(--rx, 0) var(--ry, 1) 0 var(--ra, 0deg); transition: rotate 0.12s linear; }
+@media (prefers-reduced-motion: reduce) { .flip-in, .wide-card { rotate: none; } }

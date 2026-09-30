@@ -139,6 +139,46 @@ function mbtiFit() {
   var t = null;
   window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(mbtiFit, 120); });
 })();
+// tilt: the card leans toward the pointer and the shine slides with it, so a foil card
+// can be turned to catch the light. this only sets a few css variables on .rv, the css does the rest
+(function () {
+  var MAX = 13;   // degrees of lean at the very edge of the card
+  var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var VARS = ['--rx', '--ry', '--ra', '--shine', '--sx'];
+  var pending = null, queued = false;
+  function clamp(v) { return Math.max(0, Math.min(1, v)); }
+  function rest() {
+    var rv = document.getElementById('rv');
+    if (rv) VARS.forEach(function (k) { rv.style.removeProperty(k); });
+  }
+  function paint() {
+    queued = false;
+    var rv = document.getElementById('rv');
+    if (!rv || !pending) return;
+    var dx = (pending.x - 0.5) * 2, dy = (pending.y - 0.5) * 2, m = Math.sqrt(dx * dx + dy * dy);
+    rv.style.setProperty('--rx', m ? (-dy / m).toFixed(3) : '0');
+    rv.style.setProperty('--ry', m ? (dx / m).toFixed(3) : '1');
+    rv.style.setProperty('--ra', (Math.min(m, 1) * MAX).toFixed(2) + 'deg');
+    rv.style.setProperty('--shine', (75 - 50 * pending.x).toFixed(1));   // 50 is where the shine sits at rest
+    rv.style.setProperty('--sx', ((pending.x - 0.5) * 64).toFixed(1));   // one band period is 64px
+  }
+  document.addEventListener('pointermove', function (e) {
+    if (calm) return;
+    var rv = document.getElementById('rv');
+    if (!rv || !rv.classList.contains('sliced')) return;
+    var card = e.target.closest ? e.target.closest('.flip, .wide-card') : null;
+    if (!card) { pending = null; rest(); return; }
+    var r = card.getBoundingClientRect();
+    pending = { x: clamp((e.clientX - r.left) / r.width), y: clamp((e.clientY - r.top) / r.height) };
+    if (!queued) { queued = true; requestAnimationFrame(paint); }
+  });
+  // a finger lifting, or the mouse leaving the window, lets the card settle back
+  ['pointerup', 'pointercancel'].forEach(function (t) {
+    document.addEventListener(t, function (e) { if (e.pointerType !== 'mouse') { pending = null; rest(); } });
+  });
+  document.documentElement.addEventListener('mouseleave', function () { pending = null; rest(); });
+})();
+
 function mbtiPack() {   // back to a sealed pack
   var w = mbtiRv();
   if (!w) return;
