@@ -245,6 +245,18 @@ function mbtiWrapText(c, text, x, y, maxW, lh) {
 function mbtiToday() {
   return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+// the title: back to the landing page. with a result showing that's the same as the back to start button (it clears
+// the game too), otherwise it only hides the quiz, so your answers are still there when you come back
+function mbtiHome() {
+  if (!document.body.classList.contains('started')) return;
+  var home = document.getElementById('home-btn');
+  var rv = document.getElementById('rv');
+  if (home && home.tagName !== 'BUTTON') home = home.querySelector('button');
+  if (rv && rv.offsetParent !== null && home) { home.click(); return; }
+  document.body.classList.remove('started');
+  window.scrollTo({ top: 0 });
+}
+
 function mbtiWhoLine() {
   var i = document.getElementById('exportName');
   var name = i ? i.value.trim() : '';
@@ -524,15 +536,15 @@ function mbtiShareInit() {
   if (c) c.style.display = canCopy ? '' : 'none';
 }
 
-// hide the live radar: kept in this browser, so it stays put between visits
-var mbtiHR = false;
+// the live radar starts hidden (css does that, so there's no flash). the choice is kept in this browser
+var mbtiHR = true;   // hidden unless you've turned it on before
 function mbtiRadarHidden() {
-  try { return localStorage.getItem('mbtiHideRadar') === '1'; } catch (e) { return mbtiHR; }
+  try { return localStorage.getItem('mbtiHideRadar') !== '0'; } catch (e) { return mbtiHR; }
 }
 function mbtiRadarApply() {
   var on = mbtiRadarHidden();
   var c = document.querySelector('.console');
-  if (c) c.classList.toggle('radar-hidden', on);
+  if (c) c.classList.toggle('radar-shown', !on);
   document.querySelectorAll('.radar-toggle').forEach(function (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
 }
 function mbtiRadar() {
@@ -1345,13 +1357,13 @@ def landing_html():
     return f'''
   <div class="landing">
     <h2 class="landing-title">meet your type mascot</h2>
-    <p class="landing-sub">you get the one that's you. the question is which finish you pull.</p>
+    <p class="landing-sub">zero-shot nli scoring across five trait axes. no training data.</p>
     <div class="landing-fan">{cards}</div>
-    <p class="landing-odds-title">your odds in every pack</p>
+    <p class="landing-odds-title">pull rates per pack</p>
     <div class="landing-odds">{odds}</div>
-    <p class="landing-first">you get {F.TOTAL_PACKS} packs to chase the rare ones.</p>
-    <button class="start-btn" type="button" onclick="mbtiStart()">{STAR_SVG}<span>earn your first pack</span></button>
-    <p class="landing-note">answer a short quiz, open your pack, meet your mascot.</p>
+    <p class="landing-first">each test includes {F.TOTAL_PACKS} packs. 1 card per pack.</p>
+    <button class="start-btn" type="button" onclick="mbtiStart()">{STAR_SVG}<span>take the mbti radar test</span></button>
+    <p class="landing-note">each axis is scored on its own. text, photo and numeric signals are blended 65 / 25 / 10.</p>
   </div>'''
 
 
@@ -1855,7 +1867,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     """, elem_classes=["flush-html", "tuck"])
     gr.HTML(f"""
     <div class="mbti-hero">
-      <h1 class="hero-title">MBTI Radar</h1>
+      <h1 class="hero-title" role="link" tabindex="0" title="back to the start" onclick="mbtiHome()" onkeydown="if (event.key === 'Enter') mbtiHome()">MBTI Radar</h1>
       {rules_block_html()}
     </div>
     """, elem_classes=["flush-html"])

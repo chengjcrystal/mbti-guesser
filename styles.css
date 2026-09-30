@@ -751,11 +751,12 @@ footer, .built-with { display: none !important; }
 .radar-toggle svg { width: 15px; height: 15px; flex: 0 0 auto; }
 .radar-toggle .rt-slash { display: none; }
 .radar-toggle .rt-show { display: none; }
-.console.radar-hidden .radar-toggle .rt-hide { display: none; }
-.console.radar-hidden .radar-toggle .rt-show { display: inline; }
-.console.radar-hidden .radar-toggle .rt-slash { display: block; }
-.console.radar-hidden .live-col { display: none !important; }
-.console.radar-hidden { grid-template-columns: minmax(0, 720px) !important; justify-content: center; }
+.console.radar-shown .radar-toggle .rt-hide { display: inline; }
+.console:not(.radar-shown) .radar-toggle .rt-hide { display: none; }
+.console:not(.radar-shown) .radar-toggle .rt-show { display: inline; }
+.console:not(.radar-shown) .radar-toggle .rt-slash { display: block; }
+.console:not(.radar-shown) .live-col { display: none !important; }
+.console:not(.radar-shown) { grid-template-columns: minmax(0, 720px) !important; justify-content: center; }
 @media (max-width: 420px) { .radar-toggle { font-size: 10px; padding: 4px 8px; } }
 
 /* both windows in the wide layout stretch to the same height, the radar fills its rim */
