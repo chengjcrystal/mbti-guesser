@@ -378,15 +378,6 @@ footer, .built-with { display: none !important; }
   background-size: 14px 14px; opacity: 0.18;
 }
 .pack.opening { transform: scale(1.08) rotate(4deg); opacity: 0; }
-.pack-emblem-ring {
-  width: 84px; height: 84px; border-radius: 50%; background: var(--cream);
-  border: 3px solid var(--plum); display: flex; align-items: center; justify-content: center; z-index: 1;
-}
-.pack-banner {
-  background: var(--cream); border-top: 3px solid var(--plum); border-bottom: 3px solid var(--plum);
-  padding: 6px 16px; z-index: 1;
-}
-.pack-banner span { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--plum); }
 .pack-tap { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--plum); z-index: 1; }
 
 .tcg-card {
@@ -549,21 +540,11 @@ footer, .built-with { display: none !important; }
 
 .rpack { position: relative; width: 260px; height: 340px; }
 .rpack-top, .rpack-body {
-  position: absolute; left: 0; right: 0; background: var(--blush); border: 5px solid var(--plum);
+  position: absolute; left: 0; right: 0;
   transition: transform 0.5s cubic-bezier(.4, 0, .2, 1), opacity 0.45s;
 }
-.rpack-top {
-  top: 0; height: 56px; border-bottom: none; border-radius: 8px 8px 0 0; transform-origin: 0 100%;
-  background-image: repeating-linear-gradient(90deg, rgba(74,59,92,.28) 0 4px, transparent 4px 8px);
-}
-.rpack-body {
-  top: 56px; bottom: 0; border-radius: 0 0 8px 8px; box-shadow: 8px 8px 0 rgba(0,0,0,.2);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; overflow: hidden;
-}
-.rpack-body::before {
-  content: ''; position: absolute; inset: 0;
-  background-image: radial-gradient(var(--mauve) 1.5px, transparent 1.5px); background-size: 14px 14px; opacity: 0.18;
-}
+.rpack-top { top: 0; height: 56px; transform-origin: 0 100%; }
+.rpack-body { top: 56px; bottom: 0; }
 .rv.slicing .rpack-top { transform: translate(70px, -80px) rotate(18deg); opacity: 0; }
 .rv.slicing .rpack-body { transform: translateY(26px) scale(0.94); opacity: 0; }
 .slice-zone {
@@ -904,3 +885,7 @@ footer, .built-with { display: none !important; }
 .flip-in { rotate: var(--rx, 0) var(--ry, 1) 0 var(--ra, 0deg); transition: transform 0.6s steps(10), rotate 0.12s linear; }
 .wide-card { rotate: var(--rx, 0) var(--ry, 1) 0 var(--ra, 0deg); transition: rotate 0.12s linear; }
 @media (prefers-reduced-motion: reduce) { .flip-in, .wide-card { rotate: none; } }
+
+/* ── the pack: two svg pieces (see pack_art.py) sharing one shadow, so the top and bottom match ── */
+.rpack { filter: drop-shadow(6px 6px 0 rgba(43, 33, 64, .28)); }
+.pack-svg { position: absolute; left: -3px; top: -3px; display: block; }

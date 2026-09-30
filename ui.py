@@ -12,6 +12,7 @@ import os
 import pathlib
 import gradio as gr
 import finishes as F
+import pack_art
 from app import predict_mbti
 from questions import BY_ID, NO_SOCIAL, NOT_SURE, QUESTIONS, STEP_TITLES, STEPS, answer_ids, chip_ids, is_shown, required_ids, step_questions
 
@@ -1169,16 +1170,8 @@ def build_reveal_html(mbti_type, axis_results, finish="common"):
 
   <div class="pack-stage" id="packStage">
     <div class="rpack" id="pack1">
-      <div class="rpack-top"></div>
-      <div class="rpack-body">
-        <div class="pack-emblem-ring">
-          <svg width="40" height="40" viewBox="0 0 40 40">
-            <polygon points="20,4 24,15 36,15 26,22 30,34 20,26 10,34 14,22 4,15 16,15"
-                      fill="#C9A876" stroke="#4A3B5C" stroke-width="2" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="pack-banner"><span>TYPE PACK</span></div>
-      </div>
+      <div class="rpack-top">{pack_art.top_piece()}</div>
+      <div class="rpack-body">{pack_art.body_piece()}</div>
       <div class="slice-zone" id="sliceZone" role="button" tabindex="0" aria-label="Slice the pack open"
            onpointerdown="mbtiSliceStart(event)" onpointermove="mbtiSliceMove(event)"
            onpointerup="mbtiSliceEnd(event)" onpointercancel="mbtiSliceEnd(event)"
