@@ -289,6 +289,23 @@ function mbtiExport() {
     document.fonts.load('500 25px Rubik'),
   ]).then(draw, draw);
 }
+
+// hide the live radar: kept in this browser, so it stays put between visits
+var mbtiHR = false;
+function mbtiRadarHidden() {
+  try { return localStorage.getItem('mbtiHideRadar') === '1'; } catch (e) { return mbtiHR; }
+}
+function mbtiRadarApply() {
+  var on = mbtiRadarHidden();
+  var c = document.querySelector('.console');
+  if (c) c.classList.toggle('radar-hidden', on);
+  document.querySelectorAll('.radar-toggle').forEach(function (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+}
+function mbtiRadar() {
+  mbtiHR = !mbtiRadarHidden();
+  try { localStorage.setItem('mbtiHideRadar', mbtiHR ? '1' : '0'); } catch (e) {}
+  mbtiRadarApply();
+}
 </script>
 <script>
 
@@ -334,6 +351,7 @@ document.addEventListener('keydown', function (e) {
   }
   function sync() {
     highlight();
+    if (window.mbtiRadarApply) mbtiRadarApply();
     if (window.mbtiHeroSync) mbtiHeroSync();
     var r = document.querySelector('#f-posting_frequency input[type=radio]:checked');
     var label = r ? (r.closest('label') ? r.closest('label').innerText.trim() : r.value) : '';
@@ -717,11 +735,18 @@ def empty_progress_html():
     """
 
 
+EYE_SVG = ('<svg class="rt-eye" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">'
+           '<path d="M1.5 9S4.5 3.5 9 3.5 16.5 9 16.5 9 13.5 14.5 9 14.5 1.5 9 1.5 9z"/><circle cx="9" cy="9" r="2.3"/><path class="rt-slash" d="M3 15L15 3"/></svg>')
+
+
 def step_indicator_html(current, total):
     pct = round(current / total * 100)
     return f"""
     <div class="step-indicator">
-      <span>STEP {current} OF {total}</span>
+      <div class="step-top">
+        <span>STEP {current} OF {total}</span>
+        <button type="button" class="radar-toggle" onclick="mbtiRadar()" aria-pressed="false" title="hide the live radar so it can't sway your answers">{EYE_SVG}<b class="rt-hide">hide radar</b><b class="rt-show">show radar</b></button>
+      </div>
       <div class="step-bar-track"><div class="step-bar-fill" style="width:{pct}%"></div></div>
     </div>
     """

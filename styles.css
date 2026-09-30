@@ -729,3 +729,23 @@ footer, .built-with { display: none !important; }
 /* the quiet-chat question appears once the group chat part is settled */
 .reveal-col { display: none !important; }
 .console.chat-done .reveal-col.rv-chat_done { display: flex !important; animation: need-in 0.25s ease-out; }
+
+/* hide the live radar, for anyone who doesn't want it nudging their answers */
+.step-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.radar-toggle {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; cursor: pointer;
+  font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--plum); background: var(--cream); border: 2px solid var(--plum); border-radius: 4px; margin: 0 !important;
+}
+.radar-toggle:hover { background: var(--field); }
+.radar-toggle b { font-weight: 700; }
+.radar-toggle svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.radar-toggle .rt-slash { display: none; }
+.radar-toggle .rt-show { display: none; }
+.console.radar-hidden .radar-toggle .rt-hide { display: none; }
+.console.radar-hidden .radar-toggle .rt-show { display: inline; }
+.console.radar-hidden .radar-toggle .rt-slash { display: block; }
+.console.radar-hidden .live-col { display: none !important; }
+.console.radar-hidden { grid-template-columns: minmax(0, 720px) !important; justify-content: center; }
+@media (max-width: 420px) { .radar-toggle { font-size: 10px; padding: 4px 8px; } }
+.step-top span, .radar-toggle { white-space: nowrap; }
