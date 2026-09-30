@@ -122,34 +122,58 @@ function mbtiTypes(open) {   // the gallery of all 16 types, in place of the pac
     if (mine) setTimeout(function () { mine.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 350);
   }
 }
-// sizes the card so the card, the buttons under it and the retake button all fit on
-// one screen. it only ever shrinks (a tall window keeps the full size), and not below 55%.
 function mbtiHeroSync() {
   // the title banner steps aside (on a short screen, see the css) while the card is showing
   var w = mbtiRv(), h = document.querySelector('.mbti-hero');
-  if (h) h.classList.toggle('stepped-aside', !!w && w.classList.contains('sliced') && w.getAttribute('data-layout') !== 'wide' && w.getAttribute('data-view') !== 'all');
+  if (h) h.classList.toggle('stepped-aside', !!w && w.classList.contains('sliced') && w.getAttribute('data-view') !== 'all');
 }
+// sizes the card so the card, the buttons under it and the retake button fit one screen. one target height is
+// worked out from the window alone and both views (card and wide) are scaled to it, so they are always the same
+// height and switching never moves anything below. it shrinks (not below 50%) on a short window and grows
+// (up to 1.3x) on a big one. --cardw tells the css how wide the card ended up (the side collection is placed by it)
 function mbtiFit() {
   mbtiHeroSync();
   var w = mbtiRv();
-  var f = document.getElementById('flip1');
+  var f = document.getElementById('flip1'), wd = document.getElementById('wide1');
   if (!w || !f) return;
   f.style.transform = ''; f.style.marginBottom = '';
+  if (wd) { wd.style.transform = ''; wd.style.marginBottom = ''; }
+  w.style.removeProperty('--cardw');
   if (window.innerWidth < 700) return;   // on a phone the page just scrolls, a shrunken card would be too small to read
-  if (!w.classList.contains('sliced') || w.getAttribute('data-layout') === 'wide' || w.getAttribute('data-view') === 'all') return;
+  if (!w.classList.contains('sliced') || w.getAttribute('data-view') === 'all' || w.hasAttribute('data-board')) return;
+  var wide = w.getAttribute('data-layout') === 'wide';
+  var el = wide ? wd : f;
+  if (!el) return;
+  // only layout sizes are used here (offset*), so an animation or a tilt on the card can't skew the numbers
+  var absTop = function (x) { var y = 0; while (x) { y += x.offsetTop; x = x.offsetParent; } return y; };
+  var nat = function (x, shown) {   // the size a card would have unscaled, even while it is hidden
+    if (x.offsetParent !== null) return [x.offsetWidth, x.offsetHeight];
+    // the normal card is never wider than 480, even when the wide view has made the page wider
+    var d = x.style.display, wd0 = x.style.width;
+    x.style.display = shown; if (x === f) x.style.width = Math.min(480, w.parentElement.clientWidth) + 'px';
+    var q = [x.offsetWidth, x.offsetHeight]; x.style.display = d; x.style.width = wd0;
+    return q;
+  };
+  var cn = nat(f, 'block'), wn = wd ? nat(wd, 'flex') : cn;
   var again = document.querySelector('.again-row');
   var panel = document.getElementById('exportPanel');
-  var fr = f.getBoundingClientRect();
-  var top = fr.top + window.scrollY;
-  var end = (again ? again.getBoundingClientRect().bottom : fr.bottom) + window.scrollY;
-  var below = end - (fr.bottom + window.scrollY) - (panel && panel.classList.contains('open') ? panel.offsetHeight + 14 : 0);
-  var s = Math.max(0.55, Math.min(1, (window.innerHeight - top - below - 20) / fr.height));
-  if (s < 1) {
-    // scale from the top centre and pull the space it no longer takes back up
-    f.style.transformOrigin = 'top center';
-    f.style.transform = 'scale(' + s + ')';
-    f.style.marginBottom = (-(fr.height * (1 - s))) + 'px';
+  var slots = document.querySelector('.slots-panel');   // on a wide screen it sits beside the card, otherwise under it (and can be scrolled to)
+  var under = slots && getComputedStyle(slots).position === 'static' && slots.offsetHeight > 0;
+  var top = absTop(el), bottom = top + el.offsetHeight;
+  var end = again ? absTop(again) + again.offsetHeight : bottom;
+  var below = end - bottom - (panel && panel.classList.contains('open') ? panel.offsetHeight + 14 : 0) - (under ? slots.offsetHeight + 14 : 0);
+  // the gap under the card matches the one above it, and leaves room for the glow rings
+  var GAP = 28, extra = GAP - 10;   // 10 is the bar's own top margin
+  var target = Math.max(cn[1] * 0.5, Math.min(cn[1] * 1.3, window.innerHeight - top - below - extra - 20));
+
+  var me = wide ? wn : cn, s = Math.min(target / me[1], (window.innerWidth - 40) / me[0]);
+  w.style.setProperty('--cardw', Math.round(me[0] * s) + 'px');
+  if (Math.abs(s - 1) > 0.005) {
+    // scale from the top centre and pull the space it no longer takes back up (or push it down when it grew)
+    el.style.transformOrigin = 'top center';
+    el.style.transform = 'scale(' + s + ')';
   }
+  el.style.marginBottom = (extra - me[1] * (1 - s)) + 'px';
 }
 (function () {
   var t = null;
