@@ -730,6 +730,9 @@ footer, .built-with { display: none !important; }
 .reveal-col { display: none !important; }
 .console.chat-done .reveal-col.rv-chat_done { display: flex !important; animation: need-in 0.25s ease-out; }
 
+/* the "how it works" block hangs below the title, so the gallery's back button gets some room */
+.rv[data-view="all"] .types-bar { margin-top: 44px; }
+
 /* hide the live radar, for anyone who doesn't want it nudging their answers */
 .step-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .radar-toggle {
