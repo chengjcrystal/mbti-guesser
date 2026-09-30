@@ -624,7 +624,7 @@ document.addEventListener('keydown', function (e) {
   syncStep();
   // retaking starts over, so the rulebook shouldn't still be hanging open
   document.addEventListener('click', function (e) {
-    if (e.target.closest && e.target.closest('#retake-btn') && window.mbtiRules) mbtiRules(false);
+    if (e.target.closest && e.target.closest('#retake-btn, #home-btn') && window.mbtiRules) mbtiRules(false);
   }, true);
   // retake resets values without a click on the field itself
   setInterval(sync, 300);
@@ -1917,6 +1917,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         output = gr.HTML("")
         with gr.Row(elem_classes=["again-row"]):
             again_btn = gr.Button("↺ retake the quiz", size="sm", elem_id="retake-btn")
+            home_btn = gr.Button("⌂ back to start", size="sm", elem_id="home-btn")
 
     # ── wiring ──
     for s in STEPS[:-1]:
@@ -2001,15 +2002,21 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         blank = [(False if n not in BY_ID else RESET_VALUE[BY_ID[n]["kind"]]()) for n in RESET_IDS]
         return blank + [None] + [""] * len(reset_states)   # photo, callout states
 
-    again_btn.click(
-        fn=again_reset_pages, outputs=[form_page, reveal_page], show_progress="hidden",
-    ).then(
-        fn=again_reset_panels, outputs=[step_indicator, progress_panel], show_progress="hidden",
-    ).then(
-        fn=again_reset_fields,
-        outputs=[C[n] for n in RESET_IDS] + [C["photo"]] + reset_states,
-        show_progress="hidden",
-    )
+    # retake wipes every answer and goes back to the quiz. back to start does the same wipe, then shows the landing page
+    def wire_reset(btn, js=None):
+        extra = {"js": js} if js else {}
+        btn.click(
+            fn=again_reset_pages, outputs=[form_page, reveal_page], show_progress="hidden", **extra,
+        ).then(
+            fn=again_reset_panels, outputs=[step_indicator, progress_panel], show_progress="hidden",
+        ).then(
+            fn=again_reset_fields,
+            outputs=[C[n] for n in RESET_IDS] + [C["photo"]] + reset_states,
+            show_progress="hidden",
+        )
+
+    wire_reset(again_btn)
+    wire_reset(home_btn, js="() => { document.body.classList.remove('started'); window.scrollTo({ top: 0 }); }")
 
 if DEV:
     # a made up read for whichever type was picked, so the result page has real looking numbers on it
