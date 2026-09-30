@@ -810,6 +810,16 @@ footer, .built-with { display: none !important; }
 /* the "how it works" block hangs below the title, so the gallery's back button gets some room */
 .rv[data-view="all"] .types-bar { margin-top: 44px; }
 
+/* share panel */
+.export-panel #exportName {
+  display: block; width: 100%; box-sizing: border-box; padding: 10px 12px; font-family: 'Rubik', sans-serif; font-size: 16px;
+  color: var(--ink); background: #fff; border: 3px solid var(--plum); border-radius: 4px; outline: none;
+}
+.export-panel #exportName:focus { border-color: var(--mauve); }
+.export-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
+.rv-tool.has-ico { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.rv-tool.has-ico svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
 /* hide the live radar, for anyone who doesn't want it nudging their answers */
 .step-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .radar-toggle {

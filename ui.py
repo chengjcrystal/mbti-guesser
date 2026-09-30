@@ -179,6 +179,7 @@ function mbtiExportPanel() {
   if (!p) return;
   var open = !p.classList.contains('open');
   p.classList.toggle('open', open);
+  if (open) mbtiShareInit();
   var i = document.getElementById('exportName');
   if (open && i) {
     try { if (!i.value) i.value = localStorage.getItem('mbtiRadarName') || ''; } catch (e) {}
@@ -189,7 +190,7 @@ function mbtiExportPanel() {
 
 // draws the wide card onto a canvas by hand and downloads it. this is the
 // shareable version, so it has everything on it: character, radar, stats.
-function mbtiExport() {
+function mbtiRenderCard(done) {
   var w = mbtiRv();
   if (!w) return;
   var d = JSON.parse(w.getAttribute('data-card'));
@@ -310,13 +311,7 @@ function mbtiExport() {
     c.fillStyle = 'rgba(74,59,92,.55)'; c.font = '16px "Press Start 2P", monospace'; c.textAlign = 'right';
     c.fillText('MBTI RADAR', W - 48, H - 48); c.textAlign = 'left';
 
-    cv.toBlob(function (blob) {
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'mbti-radar-' + d.code + '-' + d.suffix + '.png';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
-    });
+    cv.toBlob(function (blob) { done(blob, d); });
   };
   // the canvas can only use the pixel fonts once they have actually loaded
   Promise.all([
@@ -324,6 +319,58 @@ function mbtiExport() {
     document.fonts.load('700 26px Silkscreen'),
     document.fonts.load('500 25px Rubik'),
   ]).then(draw, draw);
+}
+
+function mbtiFileName(d) { return 'mbti-radar-' + d.code + '-' + d.suffix + '.png'; }
+function mbtiNote(msg) {
+  var n = document.getElementById('exportNote');
+  if (!n) return;
+  if (!n._orig) n._orig = n.textContent;
+  n.textContent = msg;
+  clearTimeout(n._t);
+  n._t = setTimeout(function () { n.textContent = n._orig; }, 3200);
+}
+// save the png to the device
+function mbtiExport() {
+  mbtiRenderCard(function (blob, d) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = mbtiFileName(d);
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+    mbtiNote('saved to your downloads');
+  });
+}
+// the phone's own share sheet, with the card attached as an image
+function mbtiShare() {
+  mbtiRenderCard(function (blob, d) {
+    var file = new File([blob], mbtiFileName(d), { type: 'image/png' });
+    var data = { files: [file], title: 'MBTI Radar',
+      text: 'i got ' + d.code + '-' + d.suffix + ', ' + d.title + ', on MBTI Radar. try it: https://huggingface.co/spaces/chengjcrystal/mbti-radar' };
+    if (navigator.canShare && navigator.canShare(data)) {
+      navigator.share(data).catch(function () {});
+    } else {
+      mbtiExport();
+    }
+  });
+}
+// the card as an image on the clipboard, ready to paste into a chat
+function mbtiCopy() {
+  mbtiRenderCard(function (blob) {
+    try {
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(
+        function () { mbtiNote('copied, paste it anywhere'); },
+        function () { mbtiNote('could not copy, try save image instead'); });
+    } catch (e) { mbtiNote('could not copy, try save image instead'); }
+  });
+}
+// only offer the share sheet and copy where the browser can do them
+function mbtiShareInit() {
+  var canShare = !!(navigator.canShare && navigator.share);
+  var canCopy = !!(navigator.clipboard && window.ClipboardItem);
+  var s = document.getElementById('nativeShareBtn'), c = document.getElementById('copyBtn');
+  if (s) s.style.display = canShare ? '' : 'none';
+  if (c) c.style.display = canCopy ? '' : 'none';
 }
 
 // hide the live radar: kept in this browser, so it stays put between visits
@@ -917,6 +964,12 @@ def all_types_html(mine=None):
 
 ROTATE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">'
               '<path d="M3 9a6 6 0 0 1 10-4.5"/><path d="M13 1.5v3.5H9.5"/><path d="M15 9a6 6 0 0 1-10 4.5"/><path d="M5 16.5V13h3.5"/></svg>')
+SHARE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">'
+             '<path d="M9 11V2"/><path d="M5.5 5.5L9 2l3.5 3.5"/><path d="M3 9v7h12V9"/></svg>')
+SAVE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">'
+            '<path d="M9 2v9"/><path d="M5.5 7.5L9 11l3.5-3.5"/><path d="M3 12v4h12v-4"/></svg>')
+COPY_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">'
+            '<rect x="6" y="6" width="9" height="9"/><path d="M12 3H3v9"/></svg>')
 
 
 def build_reveal_html(mbti_type, axis_results):
@@ -1064,18 +1117,20 @@ def build_reveal_html(mbti_type, axis_results):
 
     <div class="rv-tools">
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
-      <button class="rv-tool" onclick="mbtiExportPanel()">export card</button>
+      <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel()">{SHARE_SVG}<span>share</span></button>
       <button class="rv-tool" onclick="mbtiPack()">open another pack</button>
       <button class="rv-tool" onclick="mbtiTypes(true)">all 16 types</button>
     </div>
 
     <div class="export-panel" id="exportPanel">
       <label class="export-label" for="exportName">name on the card <span>(optional)</span></label>
-      <div class="export-row">
-        <input id="exportName" type="text" maxlength="40" autocomplete="name" placeholder="your full name" oninput="mbtiWho()">
-        <button class="rv-tool" onclick="mbtiExport()">download png</button>
+      <input id="exportName" type="text" maxlength="40" autocomplete="name" placeholder="your full name" oninput="mbtiWho()">
+      <div class="export-actions">
+        <button class="rv-tool has-ico" id="nativeShareBtn" onclick="mbtiShare()">{SHARE_SVG}<span>share</span></button>
+        <button class="rv-tool has-ico" id="copyBtn" onclick="mbtiCopy()">{COPY_SVG}<span>copy image</span></button>
+        <button class="rv-tool has-ico" onclick="mbtiExport()">{SAVE_SVG}<span>save image</span></button>
       </div>
-      <p class="export-note">your name and today's date get printed on the card. it stays in your browser, nothing is sent or saved.</p>
+      <p class="export-note" id="exportNote">your name and today's date get printed on the card. it stays in your browser, nothing is sent or saved.</p>
     </div>
   </div>
   {all_types_html(core_display)}
