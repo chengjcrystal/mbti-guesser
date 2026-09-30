@@ -195,34 +195,65 @@ function mbtiExport() {
   var d = JSON.parse(w.getAttribute('data-card'));
   var PLUM = '#4A3B5C', CREAM = '#EDE6D3', SOFT = '#6B5D7D';
   var draw = function () {
-    var W = 1600, H = 1310;
-    var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    var W = 1600, H = 1310, M = 40, DY = 22, DK = '#2b2140';
+    var cv = document.createElement('canvas'); cv.width = W + 2 * M; cv.height = H + DY + 2 * M;
     var c = cv.getContext('2d');
     c.imageSmoothingEnabled = false;
-    c.fillStyle = CREAM; c.fillRect(0, 0, W, H);
-    c.strokeStyle = PLUM; c.lineWidth = 16; c.strokeRect(8, 8, W - 16, H - 16);
+    var rr = function (x, y, w, h, r) {
+      c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+      c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+    };
+    var foil = function (x, y, w, h) {
+      var g = c.createLinearGradient(x, y, x + w, y + h);
+      [[0, '#F3DC8E'], [0.35, '#C9A24F'], [0.55, '#F6E5A6'], [0.8, '#B98F3E'], [1, '#EBCF7B']].forEach(function (k) { g.addColorStop(k[0], k[1]); });
+      return g;
+    };
+    // the sheen over the art window, the same diagonal streak as on the card
+    var sheen = function (x, y, S) {
+      var cx0 = x + S / 2, cy0 = y + S / 2, dx = 0.906 * S * 0.664, dy = 0.423 * S * 0.664;
+      var g = c.createLinearGradient(cx0 - dx, cy0 - dy, cx0 + dx, cy0 + dy);
+      g.addColorStop(0.18, 'rgba(255,255,255,0)'); g.addColorStop(0.30, 'rgba(255,255,255,.38)');
+      g.addColorStop(0.38, 'rgba(255,170,210,.20)'); g.addColorStop(0.46, 'rgba(140,230,255,.22)'); g.addColorStop(0.58, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(x, y, S, S);
+    };
+    // a gold double rim around a window
+    var rim = function (x, y, S) {
+      rr(x - 14, y - 14, S + 28, S + 28, 8); c.fillStyle = foil(x - 14, y - 14, S + 28, S + 28); c.fill();
+      c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+    };
+    // the card: gold rim, a band in the family color, then the cream face
+    rr(0, 0, cv.width, cv.height, 46); c.fillStyle = foil(0, 0, cv.width, cv.height); c.fill();
+    rr(14, 14, cv.width - 28, cv.height - 28, 36); c.fillStyle = d.familyColor; c.fill();
+    c.strokeStyle = DK; c.lineWidth = 6; c.stroke();
+    rr(38, 38, cv.width - 76, cv.height - 76, 20);
+    var face = c.createLinearGradient(0, 38, 0, cv.height - 38); face.addColorStop(0, '#F6EFDC'); face.addColorStop(1, CREAM);
+    c.fillStyle = face; c.fill(); c.stroke();
+    c.translate(M, M);
 
-    // header: family on the left, dex number on the right
-    c.fillStyle = d.familyColor; c.fillRect(48, 50, 28, 28);
-    c.strokeStyle = PLUM; c.lineWidth = 5; c.strokeRect(48, 50, 28, 28);
-    c.textBaseline = 'middle'; c.fillStyle = SOFT; c.font = '700 26px Silkscreen, monospace';
-    c.fillText(d.family.toUpperCase(), 92, 65);
-    c.textAlign = 'right'; c.fillText('No. ' + String(d.dex).padStart(2, '0'), W - 48, 65); c.textAlign = 'left';
+    // header: family tag on the left, dex number on the right
+    c.textBaseline = 'middle'; c.font = '700 26px Silkscreen, monospace';
+    var tagW = c.measureText(d.family.toUpperCase()).width + 36;
+    rr(48, 43, tagW, 44, 6); c.fillStyle = d.familyColor; c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+    c.fillStyle = DK; c.fillText(d.family.toUpperCase(), 66, 66);
+    c.fillStyle = SOFT; c.textAlign = 'right'; c.fillText('NO. ' + String(d.dex).padStart(2, '0') + ' / 16', W - 48, 66); c.textAlign = 'left';
 
     // left pane: the character on a little scene
-    var px = 48, py = 104, S = 720;
+    var px = 48, py = 118, S = 720;
+    rim(px, py, S);
     var g = c.createLinearGradient(0, py, 0, py + S);
     g.addColorStop(0, '#BFE3E6'); g.addColorStop(0.62, '#BFE3E6'); g.addColorStop(0.62, '#A5BE7E'); g.addColorStop(1, '#A5BE7E');
     c.fillStyle = g; c.fillRect(px, py, S, S);
     var sp = document.createElement('canvas');
     window.mbtiSprites[d.code]().render(sp, 20);   // the grid is 36 wide, so 20x fills the pane
     c.drawImage(sp, px, py, S, S);
-    c.strokeStyle = PLUM; c.lineWidth = 8; c.strokeRect(px, py, S, S);
+    sheen(px, py, S);
+    c.strokeStyle = DK; c.lineWidth = 8; c.strokeRect(px, py, S, S);
 
     // right pane: the radar
-    var rx = 832, ry = 104;
+    var rx = 832, ry = 118;
+    rim(rx, ry, S);
     c.fillStyle = '#ffffff'; c.fillRect(rx, ry, S, S);
-    c.strokeRect(rx, ry, S, S);
+    c.strokeStyle = DK; c.lineWidth = 8; c.strokeRect(rx, ry, S, S);
     var cx = rx + S / 2, cy = ry + S / 2 + 10, R = 268, n = d.stats.length;
     var pt = function (i, r) { var a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
     c.lineWidth = 2; c.strokeStyle = '#D9CFC0';
@@ -243,13 +274,18 @@ function mbtiExport() {
     });
     c.textAlign = 'left';
 
-    // under the character: the name and the flavor line
+    // everything below the windows sits a little lower to clear the gold rims
+    c.translate(0, DY);
+
+    // under the character: the name, then the flavor line on a gold strip
     c.fillStyle = PLUM; c.font = '46px "Press Start 2P", monospace'; c.fillText(d.code + '-' + d.suffix, 48, 880);
     c.fillStyle = SOFT; c.font = '700 28px Silkscreen, monospace'; c.fillText(d.title.toUpperCase(), 48, 944);
-    c.fillStyle = SOFT; c.font = 'italic 24px Rubik, sans-serif';
-    c.fillText(d.blurb, 48, 990);
+    var sg = c.createLinearGradient(48, 0, 768, 0); sg.addColorStop(0, '#F3DC8E'); sg.addColorStop(0.5, '#F9EDBE'); sg.addColorStop(1, '#F3DC8E');
+    rr(48, 972, 720, 50, 6); c.fillStyle = sg; c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+    c.fillStyle = '#362B47'; c.font = 'italic 25px Rubik, sans-serif'; c.textAlign = 'center';
+    c.fillText(d.blurb, 408, 997); c.textAlign = 'left';
     c.fillStyle = '#362B47'; c.font = '500 25px Rubik, sans-serif';
-    var y = mbtiWrapText(c, d.desc, 48, 1044, 700, 36);
+    var y = mbtiWrapText(c, d.desc, 48, 1070, 700, 36);
     c.fillStyle = SOFT; c.font = 'italic 21px Rubik, sans-serif';
     mbtiWrapText(c, d.suffix + '-identity: ' + d.identity, 48, y + 8, 700, 30);
 
