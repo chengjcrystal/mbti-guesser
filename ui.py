@@ -166,7 +166,7 @@ function mbtiFit() {
   var again = document.querySelector('.again-row');
   var panel = document.getElementById('exportPanel');
   var slots = document.querySelector('.slots-panel');   // on a wide screen it sits beside the card, otherwise under it (and can be scrolled to)
-  var under = slots && getComputedStyle(slots).position === 'static' && slots.offsetHeight > 0;
+  var under = slots && getComputedStyle(slots).position !== 'absolute' && slots.offsetHeight > 0;   // beside the card it takes no height, otherwise it sits under it
   var top = absTop(el), bottom = top + el.offsetHeight;
   var end = again ? absTop(again) + again.offsetHeight : bottom;
   var below = end - bottom - (panel && panel.classList.contains('open') ? panel.offsetHeight + 14 : 0) - (under ? slots.offsetHeight + 14 : 0);
