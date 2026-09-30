@@ -15,6 +15,8 @@ import re
 import gradio as gr
 import finishes as F
 import pack_art
+import foil_art
+import game as G
 from app import predict_mbti
 from questions import BY_ID, NO_SOCIAL, NOT_SURE, QUESTIONS, STEP_TITLES, STEPS, answer_ids, chip_ids, is_shown, required_ids, step_questions
 
@@ -30,6 +32,7 @@ CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
 _BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool"
 CSS = re.sub(rf"(?<![\w-])\.({_BTN_CLASSES})(?![\w-])", r"button.\1.\1.\1.\1", CSS)
 # follow-up questions are shown by flags on the quiz wrapper (set by the head script), not by the server:
+CSS += f"\n:root {{ --sparkle: {foil_art.sparkle_tile_css(1)}; --sparkle-faint: {foil_art.sparkle_tile_css(0.4)}; }}\n"
 # a chip reveals its questions, and "no social media" hides the follower and story ones
 CSS += "\n.cond-col { display: none !important; }\n"
 for _q in QUESTIONS:
@@ -383,10 +386,12 @@ function mbtiRenderCard(done) {
       c.closePath();
     };
     tracePoly();
-    if (fin === 'rainbow') {   // the shape fills with hard edged rainbow rings growing out from the middle
+    if (fin === 'rainbow') {   // the shape fills with bold rainbow stripes leaning the same way as the foil
       c.save(); c.clip();
-      for (var k2 = RB.length - 1; k2 >= 0; k2--) {
-        c.fillStyle = RB[k2]; c.beginPath(); c.arc(cx, cy, R * 0.7 * (k2 + 1) / RB.length, 0, 7); c.fill();
+      var bw = 34, big = R * 3;
+      for (var a2 = -big, k2 = 0; a2 < big; a2 += bw, k2++) {
+        c.fillStyle = RB[k2 % 6];
+        c.beginPath(); c.moveTo(cx + a2 - big, cy + big); c.lineTo(cx + a2 + bw - big, cy + big); c.lineTo(cx + a2 + bw + big, cy - big); c.lineTo(cx + a2 + big, cy - big); c.closePath(); c.fill();
       }
       c.restore();
     } else {
@@ -410,8 +415,25 @@ function mbtiRenderCard(done) {
     c.fillStyle = PLUM; c.font = '46px "Press Start 2P", monospace'; c.fillText(d.code + '-' + d.suffix, 48, 880);
     c.fillStyle = SOFT; c.font = '700 28px Silkscreen, monospace'; c.fillText(d.title.toUpperCase(), 48, 944);
     var sg = c.createLinearGradient(48, 0, 768, 0); sg.addColorStop(0, '#F3DC8E'); sg.addColorStop(0.5, '#F9EDBE'); sg.addColorStop(1, '#F3DC8E');
-    rr(48, 972, 720, 50, 6); c.fillStyle = fin === 'common' ? '#FFFDF9' : sg; c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+    rr(48, 972, 720, 50, 6); c.fillStyle = fin === 'common' || fin === 'rainbow' ? '#FFFDF9' : sg; c.fill();
+    if (fin === 'rainbow') { c.save(); rr(48, 972, 720, 50, 6); c.clip(); rainbowBands(48, 972, 720); c.globalAlpha = 0.4; sparkles(48, 972, 720); c.restore(); }
+    rr(48, 972, 720, 50, 6); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
     c.fillStyle = '#362B47'; c.font = 'italic 25px Rubik, sans-serif'; c.textAlign = 'center';
+    // pixel sparkles (pluses and dots) tiled over a window, the same tile the page uses on the back of a rainbow card
+    var sparkles = function (x, y, S) {
+      c.save(); c.beginPath(); c.rect(x, y, S, S); c.clip();
+      var T = 182, u = T / 84;
+      var plus = function (ox, oy, arm, col) { c.fillStyle = col; c.fillRect(ox - arm * u, oy - u, arm * 2 * u, 2 * u); c.fillRect(ox - u, oy - arm * u, 2 * u, arm * 2 * u); };
+      for (var tx = 0; tx < S; tx += T) for (var ty = 0; ty < S; ty += T) {
+        var ox = x + tx, oy = y + ty;
+        plus(ox + 12 * u, oy + 14 * u, 4, '#FFFFFF');
+        plus(ox + 64 * u, oy + 52 * u, 3, RB[4]);
+        plus(ox + 22 * u, oy + 62 * u, 2, RB[5]);
+        c.fillStyle = RB[2]; c.fillRect(ox + 40 * u, oy + 36 * u, 3 * u, 3 * u);
+        plus(ox + 72 * u, oy + 26 * u, 2, '#FFFFFF');
+      }
+      c.restore();
+    };
     c.fillText(d.blurb, 408, 997); c.textAlign = 'left';
     c.fillStyle = '#362B47'; c.font = '500 25px Rubik, sans-serif';
     var y = mbtiWrapText(c, d.desc, 48, 1070, 700, 36);
@@ -460,6 +482,7 @@ function mbtiNote(msg) {
 }
 // save the png to the device
 function mbtiExport() {
+    if (fin === 'rainbow') { rainbowBands(rx, ry, S); sparkles(rx, ry, S); }
   mbtiRenderCard(function (blob, d) {
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1090,23 +1113,7 @@ def all_types_html(mine=None):
   </div>"""
 
 
-# the six rainbow colors. the rainbow radar shape fills itself with hard edged rings of them, growing out from
-# the middle of the chart (one gradient, defined once per result, sized to the chart the result card draws)
-RAINBOW_COLORS = ["#E86A6A", "#F0A35E", "#F3D66B", "#8FCB7A", "#6FA8DC", "#A98BD9"]
-
-
-def _rainbow_rings_defs(size=340):
-    cx, cy, r = size * 1.12 / 2, size * 1.06 / 2, size * 0.43 * 0.7   # where _pentagon_svg puts the middle, and 70% of the way out
-    n = len(RAINBOW_COLORS)
-    stops = "".join(
-        f'<stop offset="{i / n:.4f}" stop-color="{c}"/><stop offset="{(i + 1) / n:.4f}" stop-color="{c}"/>'
-        for i, c in enumerate(RAINBOW_COLORS))
-    return (f'<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'
-            f'<radialGradient id="mbtiRings" gradientUnits="userSpaceOnUse" cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}">{stops}</radialGradient>'
-            f'</defs></svg>')
-
-
-RAINBOW_DEFS = _rainbow_rings_defs()
+RAINBOW_DEFS = foil_art.stripes_defs()   # the diagonal stripe fill for the radar shape on a rainbow card
 ROTATE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">'
               '<path d="M3 9a6 6 0 0 1 10-4.5"/><path d="M13 1.5v3.5H9.5"/><path d="M15 9a6 6 0 0 1-10 4.5"/><path d="M5 16.5V13h3.5"/></svg>')
 SHARE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">'

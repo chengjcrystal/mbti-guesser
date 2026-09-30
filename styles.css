@@ -789,6 +789,11 @@ footer, .built-with { display: none !important; }
 
 /* share panel */
 .export-panel #exportName {
+/* rainbow: the same pale stripes and sparkles as the back of the card */
+.rv[data-finish="rainbow"] .card-scene .rblurb {
+  background: var(--sparkle-faint) 0 0 / 84px 84px, repeating-linear-gradient(135deg, rgba(238,143,143,.45) 0.0px 10.67px, rgba(243,185,132,.45) 10.67px 21.33px, rgba(245,225,146,.45) 21.33px 32.0px, rgba(172,217,155,.45) 32.0px 42.67px, rgba(147,190,230,.45) 42.67px 53.33px, rgba(193,170,226,.45) 53.33px 64.0px), #FFFDF9;
+  image-rendering: pixelated;
+}
   display: block; width: 100%; box-sizing: border-box; padding: 10px 12px; font-family: 'Rubik', sans-serif; font-size: 16px;
   color: var(--ink); background: #fff; border: 3px solid var(--plum); border-radius: 4px; outline: none;
 }
@@ -847,7 +852,7 @@ footer, .built-with { display: none !important; }
 .rv[data-finish="holo"] .card-scene .face, .rv[data-finish="holo"] .card-scene .wide-card,
 .rv[data-finish="rainbow"] .card-scene .face, .rv[data-finish="rainbow"] .card-scene .wide-card { padding: 7px; }
 .rv[data-finish="holo"] .card-scene .fband, .rv[data-finish="rainbow"] .card-scene .fband { padding: 11px; border-radius: 22px; }
-.rv[data-finish="holo"] .card-scene .rblurb, .rv[data-finish="rainbow"] .card-scene .rblurb {
+.rv[data-finish="holo"] .card-scene .rblurb {
   background: linear-gradient(90deg, #F3DC8E, #F9EDBE 50%, #F3DC8E);
 }
 
@@ -876,8 +881,24 @@ footer, .built-with { display: none !important; }
   translate: calc(var(--sx, 0) * 1px) calc(var(--sx, 0) * 1px);
   transition: translate 0.1s linear;
 }
-/* the radar shape on the back fills with rainbow rings growing out from the middle */
-.rv[data-finish="rainbow"] .card-scene .radar-shape { fill: url(#mbtiRings); fill-opacity: .95; }
+/* the back of a rainbow card is holo all over: pale stripes and pixel sparkles (pluses and dots) in the radar
+   window, a fainter sparkle sheet behind the stats, and the radar shape filled with bold stripes like the front.
+   the sparkles shift a little with the tilt, like foil catching the light */
+.rv[data-finish="rainbow"] .card-scene .radar-shape { fill: url(#mbtiStripes); fill-opacity: 1; stroke-width: 4; }
+.rv[data-finish="rainbow"] .card-scene .rradar {
+  isolation: isolate;
+  background: repeating-linear-gradient(135deg, rgba(238,143,143,.32) 0.0px 10.67px, rgba(243,185,132,.32) 10.67px 21.33px, rgba(245,225,146,.32) 21.33px 32.0px, rgba(172,217,155,.32) 32.0px 42.67px, rgba(147,190,230,.32) 42.67px 53.33px, rgba(193,170,226,.32) 53.33px 64.0px), #fff;
+}
+.rv[data-finish="rainbow"] .card-scene .rradar::before {
+  content: ''; position: absolute; inset: -84px; pointer-events: none; image-rendering: pixelated;
+  background: var(--sparkle) 0 0 / 84px 84px;
+  translate: calc(var(--sx, 0) * -1px) calc(var(--sx, 0) * 1px); transition: translate 0.1s linear;
+}
+.rv[data-finish="rainbow"] .card-scene .rradar svg { position: relative; }
+.rv[data-finish="rainbow"] .card-scene .face.back .fbody {
+  background: var(--sparkle-faint) 0 0 / 84px 84px, linear-gradient(180deg, #F6EFDC 0%, #EDE6D3 100%);
+  image-rendering: pixelated;
+}
 
 /* beta shortcut bar, only rendered when the app is started with MBTI_DEV=1 */
 .dev-bar { max-width: 720px; margin: 0 auto 10px !important; padding: 8px; border: 3px dashed var(--mauve); border-radius: 6px; background: var(--field); gap: 8px !important; align-items: end !important; }
