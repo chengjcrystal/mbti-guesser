@@ -7,7 +7,7 @@ change a label, an odds number or the pack count here and the whole app follows.
 import os
 import secrets
 
-# ── the four finishes ────────────────────────────────────────────────────────
+# ── the three finishes ────────────────────────────────────────────────────────
 # the id is what shows up in file names and css (data-finish="holo"), so leave
 # the ids alone. the label is what people read, rename it whenever you want.
 # listed from most common to rarest, that order is used for the collection row.
@@ -66,6 +66,32 @@ def pull_finish(pack_number):
     return roll_finish(pack_number)
 
 
+MAX_PACKS = TOTAL_PACKS + INVITE_BONUS_PACKS + GUESS_BONUS_PACKS + SHARER_BONUS_PACKS
+
+
+def clean_game_numbers(budget, pulls):
+    """budget and pulls come back from the browser, so nothing in them is trusted.
+    returns (budget, pulls) with the budget clamped to what's possible and only real finishes kept,
+    or None if there's nothing usable (no pulls at all)."""
+    if isinstance(budget, bool) or not isinstance(budget, int):
+        budget = TOTAL_PACKS
+    budget = max(TOTAL_PACKS, min(MAX_PACKS, budget))
+    if not isinstance(pulls, list):
+        return None
+    pulls = [p for p in pulls if is_finish(p)][:budget]
+    if not pulls:
+        return None
+    return budget, pulls
+
+
+def best_pull(pulls):
+    """the rarest finish in a list of pulls."""
+    for f in reversed(FINISH_IDS):
+        if f in pulls:
+            return f
+    return FIRST_PACK_FINISH
+
+
 def is_finish(value):
     """true only for a real finish id, for checking anything that came from a url or the browser."""
     return isinstance(value, str) and value in FINISHES
@@ -81,3 +107,7 @@ if __name__ == "__main__":
     for f in FINISH_IDS:
         print(f"  {f:<10} wanted {ODDS[f]:>3}%   got {100 * seen[f] / n:5.2f}%")
     print("pack 1 is always", FIRST_PACK_FINISH, "(1000 of 1000)")
+    assert clean_game_numbers("x", ["holo", "nope", "common"]) == (TOTAL_PACKS, ["holo", "common"])
+    assert clean_game_numbers(99, ["common"] * 30)[0] == MAX_PACKS and clean_game_numbers(5, []) is None
+    assert clean_game_numbers(5, "holo") is None
+    assert best_pull(["common", "holo"]) == "holo" and best_pull(["common"]) == "common"
