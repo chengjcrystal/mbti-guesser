@@ -100,7 +100,14 @@ function mbtiSlice() {
   var charge = calm ? 0 : (fin === 'rainbow' ? 1500 : fin === 'holo' ? 850 : 0);
   var open = function () {
     w.classList.remove('charging'); w.classList.add('slicing');
-    setTimeout(function () { w.classList.add('sliced'); mbtiFit(); }, 520);
+    setTimeout(function () {
+      w.classList.add('sliced'); mbtiFit();
+      // a friend's guess is revealed once, right after the first card
+      if (w.hasAttribute('data-guess') && w.getAttribute('data-pack') === '1' && !w._guessShown) {
+        w._guessShown = true;
+        setTimeout(function () { mbtiGuess(true); }, 1800);
+      }
+    }, 520);
   };
   if (charge) { w.classList.add('charging'); setTimeout(open, charge); } else open();
 }
@@ -133,7 +140,7 @@ function mbtiTypes(open) {   // the gallery of all 16 types, in place of the pac
 function mbtiHeroSync() {
   // the title banner steps aside (on a short screen, see the css) while the card is showing
   var w = mbtiRv(), h = document.querySelector('.mbti-hero');
-  if (h) h.classList.toggle('stepped-aside', !!w && w.classList.contains('sliced') && w.getAttribute('data-view') !== 'all');
+  if (h) h.classList.toggle('stepped-aside', !!w && w.classList.contains('sliced') && !w.hasAttribute('data-view'));
 }
 // sizes the card so the card, the buttons under it and the retake button fit one screen. one target height is
 // worked out from the window alone and both views (card and wide) are scaled to it, so they are always the same
@@ -148,7 +155,7 @@ function mbtiFit() {
   if (wd) { wd.style.transform = ''; wd.style.marginBottom = ''; }
   w.style.removeProperty('--cardw');
   if (window.innerWidth < 700) return;   // on a phone the page just scrolls, a shrunken card would be too small to read
-  if (!w.classList.contains('sliced') || w.getAttribute('data-view') === 'all' || w.hasAttribute('data-board')) return;
+  if (!w.classList.contains('sliced') || w.hasAttribute('data-view') || w.hasAttribute('data-board')) return;
   var wide = w.getAttribute('data-layout') === 'wide';
   var el = wide ? wd : f;
   if (!el) return;
@@ -308,6 +315,38 @@ function mbtiBoard(on) {
   }
   mbtiFit();
   w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// the friend's guess page, in place of the card. it opens by itself after the first card of a guess link
+function mbtiGuess(on) {
+  var w = mbtiRv();
+  if (!w || !w.hasAttribute('data-guess') || !w.classList.contains('sliced')) return;
+  if (on) w.setAttribute('data-view', 'guess'); else w.removeAttribute('data-view');
+  mbtiFit();
+  w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// copy an invite link or a guess link from the share panel. the first copy also asks the server for the bonus pack (mbtiClaim)
+function mbtiInvite(kind) {
+  var w = mbtiRv(), note = document.getElementById('inviteNote');
+  if (!w) return;
+  var d = {}; try { d = JSON.parse(w.getAttribute('data-card')); } catch (e) {}
+  var url = location.origin + location.pathname + '?ref=1';
+  if (kind === 'guess') {
+    var sel = document.getElementById('guessType');
+    if (!sel || !sel.value) { if (note) note.textContent = 'pick the type you think your friend is first.'; return; }
+    var nm = ((document.getElementById('exportName') || {}).value || '').trim().slice(0, 24);
+    url = location.origin + location.pathname + '?guess=' + sel.value + (nm ? '&from=' + encodeURIComponent(nm) : '');
+  }
+  var done = function (ok) {
+    if (note) note.textContent = ok ? 'link copied. send it to a friend.' : 'copy this link: ' + url;
+    if (!w.hasAttribute('data-shared')) setTimeout(mbtiClaim, 700);
+  };
+  try { navigator.clipboard.writeText(url).then(function () { done(true); }, function () { done(false); }); } catch (e) { done(false); }
+}
+// presses the hidden gradio button that hands out the sharing bonus pack (the server checks it isn't claimed twice)
+function mbtiClaim() {
+  var b = document.getElementById('claim-btn');
+  if (b && b.tagName !== 'BUTTON') b = b.querySelector('button');
+  if (b) b.click();
 }
 // once every pack is open the collection is tucked away, this opens and closes it
 function mbtiCollection() {
@@ -1312,6 +1351,76 @@ def burst_html():
     return f'<div class="pull-burst" aria-hidden="true">{spans}</div>'
 
 
+def invite_banner_html(params):
+    """the note on the landing page for someone who arrived through an invite or a guess link. nothing (empty)
+    for everyone else. the name in it was cleaned in game.clean_name, and it's escaped anyway."""
+    ref, guess = params.get("ref"), params.get("guess")
+    if not ref and not guess:
+        return ""
+    total = G.budget_for(ref, guess, 0)
+    bonus = total - F.TOTAL_PACKS
+    if guess:
+        who = html.escape(guess["from"]) if guess["from"] else "a friend"
+        text = f"{who} guessed your type. finish the test to see how close they got, plus {bonus} bonus pack{'' if bonus == 1 else 's'} ({total} in all)."
+    else:
+        text = f"you were invited. finish the test for {bonus} bonus pack{'' if bonus == 1 else 's'} ({total} in all)."
+    return f'<div class="invite-banner" role="status"><span class="ib-tag">invite</span><span>{text}</span></div>'
+
+
+def guess_page_html(game):
+    """the reveal for someone who came through a guess link: what the friend guessed against what you are,
+    letter by letter. it's a plain, still card so a screenshot of it says everything."""
+    g = game.get("guess") if game else None
+    if not g:
+        return ""
+    core = game["code"][:4]
+    who = html.escape(g["from"]) if g["from"] else "a friend"
+    score = G.guess_score(g["type"], core)
+    row = lambda word: "".join(
+        f'<span class="gl {"hit" if a == b else "miss"}">{a}</span>' for a, b in zip(word, core))
+    stage = lambda t, label: (f'<div class="gc-mascot"><div class="artwin sm"><div class="tstage"><canvas data-sprite="{t}" width="252" height="252"></canvas></div></div>'
+                              f'<div class="gc-cap">{label}</div></div>')
+    return f'''
+  <div class="guess-page">
+    <div class="guess-card">
+      <div class="gc-eyebrow">friend's guess</div>
+      <div class="gc-title">{who} guessed <b>{g["type"]}</b></div>
+      <div class="gc-sub">you're <b>{core}</b></div>
+      <div class="gc-mascots">{stage(g["type"], "their guess")}{stage(core, "you")}</div>
+      <div class="gc-rows">
+        <div class="gc-row"><span class="gc-lab">guess</span>{row(g["type"])}</div>
+        <div class="gc-row"><span class="gc-lab">you</span>{"".join(f'<span class="gl hit">{c}</span>' for c in core)}</div>
+      </div>
+      <div class="gc-score">{score}/4 letters right</div>
+      <div class="gc-foot">mbti radar</div>
+    </div>
+    <button type="button" class="pb-open" onclick="mbtiGuess(false)"><span>continue</span><span class="pb-arrow">&rarr;</span></button>
+  </div>'''
+
+
+def invite_box_html(game):
+    """inside the share panel: copy a link that invites a friend, or one that asks a friend to guess a type.
+    copying either one gives you a bonus pack, once (an honor system, there's nothing to check)."""
+    if not game:
+        return ""
+    options = "".join(f'<option value="{t}">{t}</option>' for t in sorted(MBTI_DESCRIPTIONS))
+    note = ("you already got your bonus pack for sharing." if game["shared"]
+            else "friends who join from your link get a bonus pack, and you get one too (once).")
+    return f'''
+      <div class="invite-box">
+        <div class="export-label">invite friends</div>
+        <div class="export-actions">
+          <button class="rv-tool" onclick="mbtiInvite('ref')">copy invite link</button>
+        </div>
+        <label class="export-label" for="guessType">or guess a friend's type <span>(your name above goes on it)</span></label>
+        <div class="export-actions">
+          <select id="guessType" aria-label="type to guess"><option value="">pick a type</option>{options}</select>
+          <button class="rv-tool" onclick="mbtiInvite('guess')">copy guess link</button>
+        </div>
+        <p class="export-note" id="inviteNote">{note}</p>
+      </div>'''
+
+
 def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opened=False):
     core, suffix = mbti_type.split("-")
     core_display = core  # always four real letters: the answer is one of the 16 types
@@ -1381,6 +1490,8 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
         mini = _pentagon_svg(stats, size=200, show_labels=False, fill_container=True)
         game_board = board_html(game["pulls"], mini).replace("__SPRITE__", f'<canvas data-sprite="{core_display}" width="252" height="252"></canvas>')
     board_attr = ' data-board="1" data-done="1"' if over and opened else ""
+    if game:
+        board_attr += f' data-pack="{n_pack}"' + (' data-guess="1"' if game["guess"] else "") + (' data-shared="1"' if game["shared"] else "")
 
     # the export button redraws the wide card from this, so it carries everything
     card_data = html.escape(json.dumps({
@@ -1474,7 +1585,8 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
     <div class="rv-tools">
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
       <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel()">{SHARE_SVG}<span>share</span></button>
-      <button class="rv-tool" onclick="mbtiTypes(true)">all 16 mascots</button>
+      <button class="rv-tool" onclick="mbtiTypes(true)"><span class="lab-long">all 16 mascots</span><span class="lab-short">all 16</span></button>
+      <button class="rv-tool" id="guessBtn" onclick="mbtiGuess(true)">their guess</button>
       <button class="rv-tool" id="colBtn" onclick="mbtiCollection()">collection</button>
     </div>
 
@@ -1486,10 +1598,11 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
         <button class="rv-tool has-ico" id="copyBtn" onclick="mbtiCopy()">{COPY_SVG}<span>copy image</span></button>
         <button class="rv-tool has-ico" onclick="mbtiExport()">{SAVE_SVG}<span>save image</span></button>
       </div>
-      <p class="export-note" id="exportNote">your name and today's date get printed on the card. it stays in your browser, nothing is sent or saved.</p>
+      <p class="export-note" id="exportNote">your name and today's date get printed on the card. it stays in your browser, nothing is sent or saved.</p>{invite_box_html(game)}
     </div>
   </div>
   {game_slots}
+  {guess_page_html(game)}
   {all_types_html(core_display)}
 </div>
 """
@@ -1623,6 +1736,7 @@ def how_it_works_html():
 
 
 def run_prediction(*values):
+    params = values[-1] if values and isinstance(values[-1], dict) else {}   # what the url asked for (see game.parse_query)
     data = dict(zip(ALL_FIELD_NAMES + ["photo"], values))
     photo = data.pop("photo")
     # generator: the photo analysis + classifier call below can take a
@@ -1663,7 +1777,7 @@ def run_prediction(*values):
         )
         return
     # pack 1 is opened for you (always a common), the other packs are opened one by one from the result page
-    new = G.new_game(mbti_type, axis_results, F.pull_finish(1))
+    new = G.new_game(mbti_type, axis_results, F.pull_finish(1), ref=params.get("ref"), guess=params.get("guess"))
     if new is None:
         yield build_reveal_html(mbti_type, axis_results), gr.update(visible=False), gr.update(visible=True), reset_btn, None
         return
@@ -2095,6 +2209,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
             dev_btn = gr.Button("dev: jump to result", scale=2)
 
     # the landing page shows first. the quiz is already in the page, hidden by css until the button is pressed
+    invite_banner = gr.HTML("", elem_classes=["flush-html", "landing-page"])
     gr.HTML(landing_html(), elem_classes=["flush-html", "landing-page"])
 
     with gr.Column(elem_classes=["main-content", "quiz-page"]) as form_page:
@@ -2156,11 +2271,15 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     # the packs you've opened live in the browser, so a refresh keeps them. the roll for each pack is on the server,
     # and whatever comes back from the browser is cleaned before it's used (see game.py)
     game_state = gr.BrowserState(None, storage_key="mbti_radar_game", secret="mbti-radar-packs")
+    # what the page's url asked for (an invite or a guess link), read once when the page loads
+    params_state = gr.State({"ref": 0, "guess": None})
+    url_query = gr.Textbox(visible=False)   # the page fills this in with its ?query when it loads
 
     with gr.Column(elem_classes=["main-content", "reveal-page-inner"], visible=False) as reveal_page:
         output = gr.HTML("")
         # the styled button in the card page presses this one (mbtiNextPack), css keeps it out of sight
         next_pack_btn = gr.Button("open next pack", elem_id="next-pack-btn", elem_classes=["hidden-trigger"])
+        claim_btn = gr.Button("claim bonus pack", elem_id="claim-btn", elem_classes=["hidden-trigger"])
         with gr.Row(elem_classes=["again-row"]):
             again_btn = gr.Button("↺ retake the quiz", size="sm", elem_id="retake-btn")
             home_btn = gr.Button("⌂ back to start", size="sm", elem_id="home-btn")
@@ -2226,7 +2345,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     submit_btn.click(
         fn=submit_handler,
-        inputs=[C[name] for name in ALL_FIELD_NAMES] + [C["photo"]],
+        inputs=[C[name] for name in ALL_FIELD_NAMES] + [C["photo"]] + [params_state],
         outputs=[output, form_page, reveal_page, submit_btn, game_state, callouts[LAST_STEP], attempted[LAST_STEP]],
         show_progress="hidden",
     )
@@ -2266,16 +2385,31 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         fn=open_pack_handler, inputs=[game_state], outputs=[output, game_state], show_progress="hidden", trigger_mode="once",
     ).then(fn=None, js="() => { mbtiPackDone(); }")
 
-    # coming back to the page: if there's a saved game, show it (already opened) instead of the landing page
-    def restore_game(saved):
+    # the page loads: read what the url asked for (a bonus from an invite or guess link), and if there's a saved game
+    # show it (already opened) instead of the landing page. the js hands the query string over, the server cleans it
+    def on_load(saved, query):
+        params = G.parse_query(query)
         g = G.clean_game(saved)
+        banner = invite_banner_html(params)
         if g is None:
-            return gr.skip(), gr.skip(), gr.skip(), None
-        return build_game_html(g, opened=True), gr.update(visible=False), gr.update(visible=True), g
+            return gr.skip(), gr.skip(), gr.skip(), None, params, banner
+        return build_game_html(g, opened=True), gr.update(visible=False), gr.update(visible=True), g, params, banner
 
     demo.load(
-        fn=restore_game, inputs=[game_state], outputs=[output, form_page, reveal_page, game_state], show_progress="hidden",
+        fn=on_load, inputs=[game_state, url_query], outputs=[output, form_page, reveal_page, game_state, params_state, invite_banner],
+        show_progress="hidden", js="(saved, query) => [saved, window.location.search]",
     ).then(fn=None, js="() => { if (document.getElementById('rv')) { mbtiStart(); mbtiFit(); } }")
+
+    # the bonus pack for sharing a link. the server hands it out once per game, then the page is drawn again with the extra pack
+    def claim_handler(saved):
+        g = G.claim_share(saved)
+        if g is None:
+            return gr.skip(), gr.skip()
+        return build_game_html(g, opened=True), g
+
+    claim_btn.click(
+        fn=claim_handler, inputs=[game_state], outputs=[output, game_state], show_progress="hidden", trigger_mode="once",
+    ).then(fn=None, js="() => { mbtiFit(); }")
 
     wire_reset(again_btn)
     wire_reset(home_btn, js="() => { document.body.classList.remove('started'); window.scrollTo({ top: 0 }); }")
@@ -2292,14 +2426,14 @@ if DEV:
                          "is_ambiguous": conf < 62}
         return f"{code}-{letters[4]}", read
 
-    def dev_jump(code, finish):
+    def dev_jump(code, finish, params):
         mbti_type, read = _fake_read(code)
-        new = G.new_game(mbti_type, read, finish)
+        new = G.new_game(mbti_type, read, finish, ref=params.get("ref"), guess=params.get("guess"))
         return build_game_html(new), gr.update(visible=False), gr.update(visible=True), new
 
     with demo:
-        dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish], outputs=[output, form_page, reveal_page, game_state], show_progress="hidden",
-                      js="(t, f) => { window.mbtiStart && mbtiStart(); return [t, f]; }")
+        dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish, params_state], outputs=[output, form_page, reveal_page, game_state], show_progress="hidden",
+                      js="(t, f, p) => { window.mbtiStart && mbtiStart(); return [t, f, p]; }")
 
 if __name__ == "__main__":
     demo.launch(share=False, favicon_path="favicon.svg")
