@@ -953,4 +953,5 @@ body.started .landing-page { display: none !important; }
 .start-btn:hover { transform: translateY(2px); box-shadow: 0 4px 0 rgba(43, 33, 64, .4); }
 .start-btn:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(43, 33, 64, .4); }
 .landing-note { font-family: 'Rubik', sans-serif; font-size: 14px; color: var(--ink-soft); margin: 14px 0 0 !important; }
-@media (max-width: 420px) { .start-btn { font-size: 12px; padding: 14px 18px; gap: 10px; } }
+@media (max-width: 420px) { .start-btn { font-size: 11px; padding: 14px 14px; gap: 8px; justify-content: center; text-align: center; max-width: 100%; } .start-btn svg { width: 20px; height: 20px; } }
+@media (max-width: 340px) { .start-btn { font-size: 9px; padding: 12px 10px; } .start-btn svg { display: none; } }

@@ -11,6 +11,7 @@ import json
 import os
 import pathlib
 import random
+import re
 import gradio as gr
 import finishes as F
 import pack_art
@@ -23,6 +24,11 @@ from questions import BY_ID, NO_SOCIAL, NOT_SURE, QUESTIONS, STEP_TITLES, STEPS,
 DEV = os.environ.get("MBTI_DEV", "").strip() == "1"
 
 CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
+
+# gradio 6.18 styles every button with .gradio-container-x button (three-ish classes deep), which
+# beats a plain .start-btn. repeating the class on a button selector wins on any gradio version
+_BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool"
+CSS = re.sub(rf"(?<![\w-])\.({_BTN_CLASSES})(?![\w-])", r"button.\1.\1.\1.\1", CSS)
 # follow-up questions are shown by flags on the quiz wrapper (set by the head script), not by the server:
 # a chip reveals its questions, and "no social media" hides the follower and story ones
 CSS += "\n.cond-col { display: none !important; }\n"
