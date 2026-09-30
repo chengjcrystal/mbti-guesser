@@ -6,8 +6,6 @@
   --sage: #8FA06E;
   --mauve: #8C6E8C;
   --blush: #D9A0A6;
-  --sky: #7B93B8;
-  --teal: #6E9B96;
   --ink: #362B47;
   --ink-soft: #6B5D7D;
 }
@@ -159,7 +157,6 @@ body {
   font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; color: var(--ink-soft);
   text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;
 }
-.ai-read-snippet { font-family: 'Rubik', sans-serif; font-size: 12px; font-style: italic; color: var(--ink) !important; line-height: 1.5; margin-bottom: 6px; }
 .ai-read-line { font-family: 'Rubik', sans-serif; font-size: 12px; color: var(--ink-soft) !important; line-height: 1.5; }
 .ai-read-line b { color: var(--plum) !important; }
 
@@ -209,20 +206,6 @@ footer, .built-with { display: none !important; }
   border: 4px solid var(--plum);
   border-radius: 10px;
   box-shadow: 6px 6px 0 rgba(0,0,0,0.2);
-}
-.hero-eyebrow {
-  display: inline-block;
-  font-family: 'Silkscreen', monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--plum);
-  background: var(--cream);
-  border: 2px solid var(--plum);
-  padding: 5px 14px;
-  border-radius: 4px;
-  margin-bottom: 8px;
 }
 .hero-title {
   font-family: 'Press Start 2P', monospace;
@@ -358,7 +341,6 @@ footer, .built-with { display: none !important; }
 .result-empty { font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink-soft); line-height: 1.6; text-align: center; padding: 20px 0; }
 
 /* ── pack + card reveal ── */
-.reveal-wrap { max-width: 340px; margin: 0 auto; text-align: center; }
 
 .pack-stage { display: flex; align-items: center; justify-content: center; padding: 20px 0; }
 
@@ -377,39 +359,11 @@ footer, .built-with { display: none !important; }
   background-image: radial-gradient(var(--mauve) 1.5px, transparent 1.5px);
   background-size: 14px 14px; opacity: 0.18;
 }
-.pack.opening { transform: scale(1.08) rotate(4deg); opacity: 0; }
-.pack-tap { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--plum); z-index: 1; }
-
-.tcg-card {
-  width: 320px; display: none; border: 5px solid var(--plum); border-radius: 8px;
-  background: var(--cream); box-shadow: 10px 10px 0 rgba(0,0,0,0.25); text-align: left; margin: 0 auto;
-}
-.tcg-card.show { display: block; animation: card-in 0.5s cubic-bezier(.34,1.56,.64,1); }
 @keyframes card-in { from { transform: scale(0.7) rotate(-6deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
-
-.tcg-inner { padding: 12px; }
-.tcg-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .family-badge { display: flex; align-items: center; gap: 6px; }
 .family-swatch { width: 14px; height: 14px; border: 2px solid var(--plum); }
 .family-label { font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; color: var(--ink-soft); }
 .card-index { font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; color: var(--ink-soft); }
-
-.name-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.name-row-text { display: flex; flex-direction: column; gap: 2px; }
-.card-code { font-family: 'Press Start 2P', monospace; font-size: 14px; color: var(--plum); }
-.card-title { font-family: 'Silkscreen', monospace; font-size: 12px; color: var(--ink-soft); text-transform: uppercase; }
-.card-avatar {
-  width: 46px; height: 46px; border-radius: 50%; background: #fff; border: 2.5px solid var(--plum);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
-}
-.card-avatar svg { width: 40px; height: 40px; }
-
-.art-panel {
-  background: #fff; border: 3px solid var(--plum); border-radius: 4px; padding: 14px;
-  display: flex; justify-content: center; align-items: center; margin-bottom: 10px;
-}
-.stage-banner { background: var(--cream); border-top: 3px solid var(--plum); border-bottom: 3px solid var(--plum); text-align: center; padding: 6px 0; margin-bottom: 12px; }
-.stage-banner span { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--plum); }
 
 .stat-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .stat-row { display: flex; align-items: center; gap: 8px; }
@@ -424,12 +378,6 @@ footer, .built-with { display: none !important; }
 .flavor-bar { background: var(--plum); color: var(--cream) !important; font-family: 'Rubik', sans-serif; font-size: 15.5px; font-weight: 500; padding: 11px 13px; border-radius: 4px; line-height: 1.45; margin-bottom: 6px; }
 .identity-bar { font-family: 'Rubik', sans-serif; font-size: 15.5px; color: var(--ink-soft); line-height: 1.5; }
 .identity-bar b { color: var(--ink); }
-
-.again-btn {
-  margin-top: 20px; font-family: 'Silkscreen', monospace; font-weight: 700; font-size: 13px; color: var(--plum);
-  background: var(--cream); border: 3px solid var(--plum); border-radius: 4px; padding: 9px 18px; cursor: pointer; display: none;
-}
-.again-btn.show { display: inline-block; }
 
 /* ── required marker: a small solid star in the top-right corner of the question, like an asterisk ── */
 .req [data-testid="block-info"]::after {
@@ -468,7 +416,6 @@ footer, .built-with { display: none !important; }
 .mbti-card .block.needs-answer [data-testid="block-info"] { color: var(--rose) !important; }
 
 /* ── scenario prompts: a small scene-setter above the question, with the message as a chat bubble ── */
-.scenario-gap { margin-top: -6px; }
 .scenario-kicker {
   font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.05em;
   text-transform: uppercase; color: var(--mauve); margin-bottom: 4px;
@@ -694,15 +641,7 @@ footer, .built-with { display: none !important; }
 .export-panel.open { display: block; }
 .export-label { display: block; font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--plum); margin-bottom: 8px; }
 .export-label span { color: var(--mauve); font-weight: 400; }
-.export-row { display: flex; gap: 10px; }
-.export-row input {
-  flex: 1 1 0; min-width: 0; padding: 10px 12px; font-family: 'Rubik', sans-serif; font-size: 16px; color: var(--ink);
-  background: #fff; border: 3px solid var(--plum); border-radius: 4px; outline: none;
-}
-.export-row input:focus { border-color: var(--mauve); }
-.export-row .rv-tool { flex: 0 0 auto; }
 .export-note { margin: 10px 0 0; font-family: 'Rubik', sans-serif; font-size: 13px; color: var(--ink-soft); line-height: 1.45; }
-@media (max-width: 480px) { .export-row { flex-direction: column; } }
 
 /* on a short screen the title banner steps aside once the card is out, so the card, its buttons and
    the retake button all fit without scrolling */
@@ -715,8 +654,6 @@ footer, .built-with { display: none !important; }
 
 /* the quiet-chat question appears once the group chat part is settled */
 .reveal-col { display: none !important; }
-.console.chat-done .reveal-col.rv-chat_done { display: flex !important; animation: need-in 0.25s ease-out; }
-
 
 /* ── the card frame: a gold rim, a band in the family color, then the cream face ── */
 .fband {
@@ -826,7 +763,6 @@ footer, .built-with { display: none !important; }
 .wide-row .artwin .rstage, .wide-row .artwin .rradar { flex: 1; }
 @media (max-width: 380px) { .stat-name { flex-basis: 120px; } }
 .step-top span, .radar-toggle { white-space: nowrap; }
-
 
 /* ── card finishes ──────────────────────────────────────────────────────────
    three of them, set on the .rv wrapper as data-finish="common|holo|rainbow".

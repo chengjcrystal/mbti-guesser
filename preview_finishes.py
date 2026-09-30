@@ -1,5 +1,5 @@
 """
-preview_finishes.py: dev helper. writes finish_preview.html so you can look at all four
+preview_finishes.py: dev helper. writes finish_preview.html so you can look at all three
 finishes side by side without taking the quiz or loading the model.
 run it with:  python3 preview_finishes.py   then open finish_preview.html
 """
