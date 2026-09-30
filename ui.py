@@ -8,15 +8,16 @@ prediction, and the characters are drawn by sprites.js.
 
 import html
 import json
+import math
 import os
 import pathlib
 import random
 import re
 import gradio as gr
 import finishes as F
-import pack_art
 import foil_art
 import game as G
+import pack_art
 from app import predict_mbti
 from questions import BY_ID, NO_SOCIAL, NOT_SURE, QUESTIONS, STEP_TITLES, STEPS, answer_ids, chip_ids, is_shown, required_ids, step_questions
 
@@ -29,10 +30,10 @@ CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
 
 # gradio 6.18 styles every button with .gradio-container-x button (three-ish classes deep), which
 # beats a plain .start-btn. repeating the class on a button selector wins on any gradio version
-_BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool"
+_BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool|pb-open"
 CSS = re.sub(rf"(?<![\w-])\.({_BTN_CLASSES})(?![\w-])", r"button.\1.\1.\1.\1", CSS)
-# follow-up questions are shown by flags on the quiz wrapper (set by the head script), not by the server:
 CSS += f"\n:root {{ --sparkle: {foil_art.sparkle_tile_css(1)}; --sparkle-faint: {foil_art.sparkle_tile_css(0.4)}; }}\n"
+# follow-up questions are shown by flags on the quiz wrapper (set by the head script), not by the server:
 # a chip reveals its questions, and "no social media" hides the follower and story ones
 CSS += "\n.cond-col { display: none !important; }\n"
 for _q in QUESTIONS:
@@ -92,9 +93,16 @@ function mbtiSliceEnd(e) {
 }
 function mbtiSlice() {
   var w = mbtiRv();
-  if (!w || w.classList.contains('slicing')) return;
-  w.classList.add('slicing');
-  setTimeout(function () { w.classList.add('sliced'); mbtiFit(); setTimeout(mbtiFit, 650); }, 520);
+  if (!w || w.classList.contains('slicing') || w.classList.contains('charging')) return;
+  // the rarer the card, the longer the pack shakes and glows before it opens. the glow gives it away, that's the fun part
+  var fin = w.getAttribute('data-finish');
+  var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var charge = calm ? 0 : (fin === 'rainbow' ? 1500 : fin === 'holo' ? 850 : 0);
+  var open = function () {
+    w.classList.remove('charging'); w.classList.add('slicing');
+    setTimeout(function () { w.classList.add('sliced'); mbtiFit(); }, 520);
+  };
+  if (charge) { w.classList.add('charging'); setTimeout(open, charge); } else open();
 }
 function mbtiFlip() {
   var f = document.getElementById('flip1');
@@ -237,21 +245,81 @@ function mbtiFit() {
   document.addEventListener('DOMContentLoaded', paint);
 })();
 
+// the title: back to the landing page. with a result showing that's the same as the back to start button (it clears
+// the game too), otherwise it only hides the quiz, so your answers are still there when you come back
+function mbtiHome() {
+  if (!document.body.classList.contains('started')) return;
+  var home = document.getElementById('home-btn');
+  var rv = document.getElementById('rv');
+  if (home && home.tagName !== 'BUTTON') home = home.querySelector('button');
+  if (rv && rv.offsetParent !== null && home) { home.click(); return; }
+  document.body.classList.remove('started');
+  window.scrollTo({ top: 0 });
+}
+
 // the landing page button: reveal the quiz. it's only a class on the body, css does the rest
 function mbtiStart() {
   document.body.classList.add('started');
   window.scrollTo({ top: 0 });
 }
 
-function mbtiPack() {   // back to a sealed pack
+// the open pack button in the page is only a face: the roll is done by the server, so this presses
+// the real (hidden) gradio button and locks the face until the new pack comes back
+function mbtiNextPack() {
+  var b = document.getElementById('next-pack-btn');
+  if (b && b.tagName !== 'BUTTON') b = b.querySelector('button');
+  if (!b) return;
+  document.querySelectorAll('.pb-open').forEach(function (x) { x.disabled = true; });
+  b.click();
+}
+function mbtiPackDone() {   // runs after the server answers: bring the new pack into view, or unlock the button if nothing came back
+  document.querySelectorAll('.pb-open').forEach(function (x) { x.disabled = false; });
+  var w = mbtiRv();
+  if (w) { mbtiFit(); w.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+// show one of the cards you already pulled (tapping a slot). it only swaps the finish, nothing is rolled
+function mbtiShowFinish(f) {
   var w = mbtiRv();
   if (!w) return;
-  w.classList.remove('slicing', 'sliced');
-  var f = document.getElementById('flip1');
-  if (f) f.classList.remove('flipped');
-  var z = document.getElementById('sliceZone');
-  if (z) z.style.setProperty('--cut', '0%');
+  w.setAttribute('data-finish', f);
+  try {
+    var d = JSON.parse(w.getAttribute('data-card'));
+    var slot = w.querySelector('.slot[data-finish="' + f + '"] .sl');
+    d.finish = f; d.finishLabel = slot ? slot.firstChild.textContent.trim() : f;
+    w.setAttribute('data-card', JSON.stringify(d));
+    w.querySelectorAll('.finish-tag').forEach(function (t) { t.textContent = d.finishLabel; });
+  } catch (e) {}
+  w.querySelectorAll('.slot').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-finish') === f); });
+  mbtiFit();
 }
+// after the last pack the page shows all your cards on a board. tapping one opens it, this goes back and forth
+function mbtiBoard(on) {
+  var w = mbtiRv();
+  if (!w) return;
+  if (on) {
+    // the share button shares whatever is showing, so on the board that's the best card you pulled
+    var order = ['rainbow', 'holo', 'common'];
+    for (var i = 0; i < order.length; i++) {
+      if (w.querySelector('.slot.got[data-finish="' + order[i] + '"]')) { mbtiShowFinish(order[i]); break; }
+    }
+    w.setAttribute('data-board', '1'); w.setAttribute('data-done', '1');
+  } else {
+    w.removeAttribute('data-board');
+  }
+  mbtiFit();
+  w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// once every pack is open the collection is tucked away, this opens and closes it
+function mbtiCollection() {
+  var w = mbtiRv();
+  if (!w) return;
+  var on = !w.hasAttribute('data-collection');
+  if (on) w.setAttribute('data-collection', '1'); else w.removeAttribute('data-collection');
+  mbtiFit();
+  var p = w.querySelector('.slots-panel');
+  if (on && p) setTimeout(function () { p.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
+}
+function mbtiBoardPick(f) { mbtiShowFinish(f); mbtiBoard(false); }
 
 function mbtiWrapText(c, text, x, y, maxW, lh) {
   var words = text.split(' '), line = '';
@@ -269,18 +337,6 @@ function mbtiWrapText(c, text, x, y, maxW, lh) {
 function mbtiToday() {
   return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
-// the title: back to the landing page. with a result showing that's the same as the back to start button (it clears
-// the game too), otherwise it only hides the quiz, so your answers are still there when you come back
-function mbtiHome() {
-  if (!document.body.classList.contains('started')) return;
-  var home = document.getElementById('home-btn');
-  var rv = document.getElementById('rv');
-  if (home && home.tagName !== 'BUTTON') home = home.querySelector('button');
-  if (rv && rv.offsetParent !== null && home) { home.click(); return; }
-  document.body.classList.remove('started');
-  window.scrollTo({ top: 0 });
-}
-
 function mbtiWhoLine() {
   var i = document.getElementById('exportName');
   var name = i ? i.value.trim() : '';
@@ -359,6 +415,21 @@ function mbtiRenderCard(done) {
       }
       c.restore();
     };
+    // pixel sparkles (pluses and dots) tiled over a window, the same tile the page uses on the back of a rainbow card
+    var sparkles = function (x, y, S) {
+      c.save(); c.beginPath(); c.rect(x, y, S, S); c.clip();
+      var T = 182, u = T / 84;
+      var plus = function (ox, oy, arm, col) { c.fillStyle = col; c.fillRect(ox - arm * u, oy - u, arm * 2 * u, 2 * u); c.fillRect(ox - u, oy - arm * u, 2 * u, arm * 2 * u); };
+      for (var tx = 0; tx < S; tx += T) for (var ty = 0; ty < S; ty += T) {
+        var ox = x + tx, oy = y + ty;
+        plus(ox + 12 * u, oy + 14 * u, 4, '#FFFFFF');
+        plus(ox + 64 * u, oy + 52 * u, 3, RB[4]);
+        plus(ox + 22 * u, oy + 62 * u, 2, RB[5]);
+        c.fillStyle = RB[2]; c.fillRect(ox + 40 * u, oy + 36 * u, 3 * u, 3 * u);
+        plus(ox + 72 * u, oy + 26 * u, 2, '#FFFFFF');
+      }
+      c.restore();
+    };
     // a double rim around a window
     var rim = function (x, y, S) {
       rr(x - 14, y - 14, S + 28, S + 28, 8); c.fillStyle = rimFill(x - 14, y - 14, S + 28, S + 28); c.fill();
@@ -407,6 +478,7 @@ function mbtiRenderCard(done) {
     var rx = 832, ry = 118;
     rim(rx, ry, S);
     c.fillStyle = '#ffffff'; c.fillRect(rx, ry, S, S);
+    if (fin === 'rainbow') { rainbowBands(rx, ry, S); sparkles(rx, ry, S); }
     c.strokeStyle = DK; c.lineWidth = 8; c.strokeRect(rx, ry, S, S);
     if (fin === 'holo') { c.save(); c.globalAlpha = 0.7; sheen(rx, ry, S); c.restore(); }
     var cx = rx + S / 2, cy = ry + S / 2 + 10, R = 268, n = d.stats.length;
@@ -455,21 +527,6 @@ function mbtiRenderCard(done) {
     if (fin === 'rainbow') { c.save(); rr(48, 972, 720, 50, 6); c.clip(); rainbowBands(48, 972, 720); c.globalAlpha = 0.4; sparkles(48, 972, 720); c.restore(); }
     rr(48, 972, 720, 50, 6); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
     c.fillStyle = '#362B47'; c.font = 'italic 25px Rubik, sans-serif'; c.textAlign = 'center';
-    // pixel sparkles (pluses and dots) tiled over a window, the same tile the page uses on the back of a rainbow card
-    var sparkles = function (x, y, S) {
-      c.save(); c.beginPath(); c.rect(x, y, S, S); c.clip();
-      var T = 182, u = T / 84;
-      var plus = function (ox, oy, arm, col) { c.fillStyle = col; c.fillRect(ox - arm * u, oy - u, arm * 2 * u, 2 * u); c.fillRect(ox - u, oy - arm * u, 2 * u, arm * 2 * u); };
-      for (var tx = 0; tx < S; tx += T) for (var ty = 0; ty < S; ty += T) {
-        var ox = x + tx, oy = y + ty;
-        plus(ox + 12 * u, oy + 14 * u, 4, '#FFFFFF');
-        plus(ox + 64 * u, oy + 52 * u, 3, RB[4]);
-        plus(ox + 22 * u, oy + 62 * u, 2, RB[5]);
-        c.fillStyle = RB[2]; c.fillRect(ox + 40 * u, oy + 36 * u, 3 * u, 3 * u);
-        plus(ox + 72 * u, oy + 26 * u, 2, '#FFFFFF');
-      }
-      c.restore();
-    };
     c.fillText(d.blurb, 408, 997); c.textAlign = 'left';
     c.fillStyle = '#362B47'; c.font = '500 25px Rubik, sans-serif';
     var y = mbtiWrapText(c, d.desc, 48, 1070, 700, 36);
@@ -518,7 +575,6 @@ function mbtiNote(msg) {
 }
 // save the png to the device
 function mbtiExport() {
-    if (fin === 'rainbow') { rainbowBands(rx, ry, S); sparkles(rx, ry, S); }
   mbtiRenderCard(function (blob, d) {
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1160,7 +1216,103 @@ COPY_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-w
             '<rect x="6" y="6" width="9" height="9"/><path d="M12 3H3v9"/></svg>')
 
 
-def build_reveal_html(mbti_type, axis_results, finish="common"):
+def _mini_pack(state):
+    """a tiny pack for the counter: sealed (left), the one in your hands (now) or torn open (done)."""
+    return (f'<svg class="pm-pack {state}" viewBox="0 0 22 28" shape-rendering="crispEdges" aria-hidden="true">'
+            '<rect x="1.5" y="1.5" width="19" height="25" fill="#D9A0A6" stroke="#4A3B5C" stroke-width="3"/>'
+            '<rect x="3" y="3" width="16" height="4" fill="#C98A92"/><rect x="3" y="7" width="16" height="1" fill="#4A3B5C"/>'
+            '<rect x="9" y="13" width="4" height="4" fill="#F3DC8E"/><rect x="10" y="12" width="2" height="6" fill="#F3DC8E"/>'
+            '<rect x="8" y="14" width="6" height="2" fill="#F3DC8E"/></svg>')
+
+
+def pack_meter_html(n, budget, opened):
+    """'pack 2 of 5' with a row of little packs. opened says whether pack n has been torn open yet."""
+    icons = ""
+    for i in range(1, budget + 1):
+        state = "done" if (i < n or (i == n and opened)) else ("now" if i == n else "left")
+        icons += _mini_pack(state)
+    label = f"all {budget} opened" if opened and n >= budget else f"pack {n} of {budget}"
+    return f'<div class="pack-meter" aria-label="{label}"><span class="pm-count">{label}</span><span class="pm-icons">{icons}</span></div>'
+
+
+def packs_bar_html(game):
+    """under the card: the counter and the button for the next pack.
+    once every pack is open the button opens the board with all your cards instead."""
+    pulls, budget = game["pulls"], game["budget"]
+    n, left = len(pulls), budget - len(pulls)
+    if left > 0:
+        action = f'<button type="button" class="pb-open" onclick="mbtiNextPack()"><span>open pack {n + 1}</span><span class="pb-arrow">&rarr;</span></button>'
+    else:
+        action = f'<button type="button" class="pb-open" onclick="mbtiBoard(true)"><span>see all {n} cards</span></button>'
+    return f'<div class="packs-bar"><div class="pb-left">{pack_meter_html(n, budget, True)}</div>{action}</div>'
+
+
+def board_html(pulls, radar):
+    """everything you pulled, laid out around a ring with your radar in the middle. each one is a small card
+    with its rarity on the bottom. tap a card to open it."""
+    n = len(pulls)
+    H = 1.08   # the ring is a bit taller than wide, cards are taller than wide
+    width = min(22, 2 * 36 * math.sin(math.pi / n) * 0.95)
+    # for the usual 5 cards: 1, 2 and 5 sit on a circle around the middle (units of the ring's width), and the two
+    # bottom cards hang the same edge to edge distance below the radar as the others are from it. with more cards
+    # (bonus packs) they just go around a circle
+    cy, r, gap, ch = 0.53, 0.12, 0.055, 0.28
+    circle = lambda deg: (0.5 + 0.36 * math.cos(math.radians(deg)), cy + 0.36 * math.sin(math.radians(deg)))
+    five = [circle(-90), circle(-18), (0.5 + 0.19, cy + r + gap + ch / 2), (0.5 - 0.19, cy + r + gap + ch / 2), circle(-162)]
+    cards = ""
+    for i, f in enumerate(pulls):
+        if n == 5:
+            x, y = five[i][0] * 100, five[i][1] / H * 100
+        else:
+            ang = -math.pi / 2 + i * 2 * math.pi / n
+            x, y = 50 + 36 * math.cos(ang), (cy + 0.36 * math.sin(ang)) / H * 100
+        label = F.FINISHES[f]["label"]
+        cards += (f'<div class="bcard" data-finish="{f}" role="button" tabindex="0" aria-label="open pack {i + 1}, {label}" '
+                  f'style="--x:{x:.1f};--y:{y:.1f};--w:{width:.1f}" onclick="mbtiBoardPick(\'{f}\')" '
+                  f'onkeydown="if (event.key === \'Enter\' || event.key === \' \') {{ event.preventDefault(); mbtiBoardPick(\'{f}\'); }}">'
+                  f'<div class="frame"><div class="sw">__SPRITE__<span class="bn">{i + 1}</span></div><div class="bl">{label}</div></div></div>')
+    return (f'<div class="board"><div class="board-title">pack results</div>'
+            f'<div class="board-ring">{cards}<div class="board-radar"><div class="artwin"><div class="rradar">{radar}</div></div></div></div>'
+            f'<div class="board-hint">tap a card to open it</div></div>')
+
+
+def slots_html(core, pulls, viewing):
+    """the collection for your type: one slot per finish. pulled ones show the card and can be tapped
+    to look at it again, the ones you haven't pulled are a dark silhouette with a question mark.
+    the newest pull was rolled already but its pack is still sealed, so css keeps that slot dark
+    (and leaves it out of the counts) until the pack is torn open (.fresh, .cnt-old, .cnt-new)."""
+    out = ""
+    for f in F.FINISH_IDS:
+        count, label = pulls.count(f), F.FINISHES[f]["label"]
+        before = count - (1 if f == pulls[-1] else 0)   # how many you had before the sealed pack
+        canvas = f'<canvas data-sprite="{core}" width="252" height="252"></canvas>'
+        if count:
+            times = (f' <b class="cnt-old">x{before}</b>' if before > 0 else "") + f' <b class="cnt-new">x{count}</b>'
+            on = " on" if f == viewing else ""
+            fresh = " fresh" if before == 0 else ""
+            # a slot for a pack that's still sealed must look and read exactly like an empty one
+            aria = f"{label}, not pulled yet" if fresh else f"show my {label} card"
+            out += (f'<div class="slot got{on}{fresh}" data-finish="{f}" role="button" tabindex="0" aria-label="{aria}" '
+                    f'onclick="mbtiShowFinish(\'{f}\')" onkeydown="if (event.key === \'Enter\' || event.key === \' \') {{ event.preventDefault(); mbtiShowFinish(\'{f}\'); }}">'
+                    f'<div class="frame"><div class="sw">{canvas}<span class="q">?</span></div></div><div class="sl">{label}{times}</div></div>')
+        else:
+            out += (f'<div class="slot empty" data-finish="{f}" aria-label="{label}, not pulled yet">'
+                    f'<div class="frame"><div class="sw">{canvas}<span class="q">?</span></div></div><div class="sl">{label}</div></div>')
+    return f'<div class="slots-panel"><div class="sp-title">your {core} collection</div><div class="sp-row">{out}</div></div>'
+
+
+def burst_html():
+    """pixel sparkles that fly out when a shiny card lands. css decides which finishes show them."""
+    spans = ""
+    for i in range(18):
+        ang = (i / 18) * 6.2832 + random.uniform(-0.15, 0.15)
+        dist = random.randint(110, 210)
+        spans += (f'<span style="--dx:{dist * math.cos(ang):.0f}px;--dy:{dist * math.sin(ang):.0f}px;'
+                  f'--d:{random.randint(0, 260)}ms"></span>')
+    return f'<div class="pull-burst" aria-hidden="true">{spans}</div>'
+
+
+def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opened=False):
     core, suffix = mbti_type.split("-")
     core_display = core  # always four real letters: the answer is one of the 16 types
     title, desc = MBTI_DESCRIPTIONS[core_display]
@@ -1216,7 +1368,19 @@ def build_reveal_html(mbti_type, axis_results, finish="common"):
     if not F.is_finish(finish):
         finish = "common"
     sprite = f'<canvas data-sprite="{core_display}" width="252" height="252"></canvas>'
-    finish_tag = f'<span class="finish-tag">{F.FINISHES[finish]["label"]}</span>' if finish != "common" else ""
+    # the tag is always there and css hides it on a common card, so switching between your pulls only has to swap the text
+    finish_tag = f'<span class="finish-tag">{F.FINISHES[finish]["label"]}</span>'
+    n_pack = len(game["pulls"]) if game else 1
+    n_budget = game["budget"] if game else F.TOTAL_PACKS
+    seal_meter = pack_meter_html(n_pack, n_budget, False) if game else ""
+    game_bar = packs_bar_html(game) if game else ""
+    game_slots = slots_html(core_display, game["pulls"], finish) if game else ""
+    over = bool(game) and game["budget"] - len(game["pulls"]) <= 0
+    game_board = ""
+    if over:
+        mini = _pentagon_svg(stats, size=200, show_labels=False, fill_container=True)
+        game_board = board_html(game["pulls"], mini).replace("__SPRITE__", f'<canvas data-sprite="{core_display}" width="252" height="252"></canvas>')
+    board_attr = ' data-board="1" data-done="1"' if over and opened else ""
 
     # the export button redraws the wide card from this, so it carries everything
     card_data = html.escape(json.dumps({
@@ -1245,8 +1409,9 @@ def build_reveal_html(mbti_type, axis_results, finish="common"):
     radar_window = f'<div class="artwin"><div class="rradar">{pentagon}</div></div>'
 
     return f"""
-{RAINBOW_DEFS}<div class="rv" id="rv" data-layout="card" data-finish="{finish}" style="--fam:{family_color}" data-card="{card_data}">
+{RAINBOW_DEFS}<div class="rv{' sliced' if opened else ''}" id="rv" data-layout="card"{board_attr} data-finish="{finish}" style="--fam:{family_color}" data-card="{card_data}">
 
+  <div class="pack-head">{seal_meter}</div>
   <div class="pack-stage" id="packStage">
     <div class="rpack" id="pack1">
       <div class="rpack-top">{pack_art.top_piece()}</div>
@@ -1260,10 +1425,11 @@ def build_reveal_html(mbti_type, axis_results, finish="common"):
         <div class="slice-blade">&#9986;</div>
       </div>
     </div>
-    <div class="rpack-hint">drag across the dashed line to slice it open</div>
   </div>
+  <div class="rpack-hint">drag across the dashed line to slice it open</div>
 
   <div class="card-scene">
+    {burst_html()}
     <div class="flip" id="flip1" onclick="mbtiFlip()" title="tap to flip">
       <div class="flip-in">
         <div class="face front"><div class="fband"><div class="fbody">
@@ -1302,11 +1468,14 @@ def build_reveal_html(mbti_type, axis_results, finish="common"):
       <div class="wide-foot"><span class="wide-who"></span><span>MBTI RADAR</span></div>
     </div></div></div>
 
+    {game_bar}
+    {game_board}
+
     <div class="rv-tools">
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
       <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel()">{SHARE_SVG}<span>share</span></button>
-      <button class="rv-tool" onclick="mbtiPack()">open another pack</button>
       <button class="rv-tool" onclick="mbtiTypes(true)">all 16 mascots</button>
+      <button class="rv-tool" id="colBtn" onclick="mbtiCollection()">collection</button>
     </div>
 
     <div class="export-panel" id="exportPanel">
@@ -1320,6 +1489,7 @@ def build_reveal_html(mbti_type, axis_results, finish="common"):
       <p class="export-note" id="exportNote">your name and today's date get printed on the card. it stays in your browser, nothing is sent or saved.</p>
     </div>
   </div>
+  {game_slots}
   {all_types_html(core_display)}
 </div>
 """
@@ -1458,7 +1628,7 @@ def run_prediction(*values):
     # generator: the photo analysis + classifier call below can take a
     # while, so the button flips to a disabled loading label the instant
     # it's clicked instead of just sitting there looking unresponsive.
-    yield gr.update(), gr.update(), gr.update(), gr.update(value="Reading your type…", interactive=False)
+    yield gr.update(), gr.update(), gr.update(), gr.update(value="Reading your type…", interactive=False), gr.skip()
 
     photo_results = None
     if photo is not None:
@@ -1482,17 +1652,38 @@ def run_prediction(*values):
         print(f"prediction error: {e}")
         yield (
             '<div class="result-empty">having trouble right now, give it a moment and try again.</div>',
-            gr.update(visible=True), gr.update(visible=False), reset_btn,
+            gr.update(visible=True), gr.update(visible=False), reset_btn, gr.skip(),
         )
         return
 
     if axis_results is None:
         yield (
             '<div class="result-empty">fill in at least a few fields to get a read.</div>',
-            gr.update(visible=True), gr.update(visible=False), reset_btn,
+            gr.update(visible=True), gr.update(visible=False), reset_btn, gr.skip(),
         )
         return
-    yield build_reveal_html(mbti_type, axis_results, F.pull_finish(1)), gr.update(visible=False), gr.update(visible=True), reset_btn
+    # pack 1 is opened for you (always a common), the other packs are opened one by one from the result page
+    new = G.new_game(mbti_type, axis_results, F.pull_finish(1))
+    if new is None:
+        yield build_reveal_html(mbti_type, axis_results), gr.update(visible=False), gr.update(visible=True), reset_btn, None
+        return
+    yield build_game_html(new), gr.update(visible=False), gr.update(visible=True), reset_btn, new
+
+
+def build_game_html(game, opened=False):
+    """the result page for a game: the card for the latest pull, plus the pack counter and collection."""
+    over = game["budget"] - len(game["pulls"]) <= 0
+    finish = F.best_pull(game["pulls"]) if over and opened else game["pulls"][-1]   # the board shares your best card
+    return build_reveal_html(game["code"], game["read"], finish, game=game, opened=opened)
+
+
+def open_pack_handler(saved):
+    """the server side of 'open next pack': roll, save the pull, draw the new sealed pack."""
+    res = G.open_next(saved)
+    if res is None:
+        return gr.skip(), gr.skip()
+    new, _finish = res
+    return build_game_html(new), new
 
 
 # ── theme ─────────────────────────────────────────────────────────────────────
@@ -1962,8 +2153,14 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
                 with gr.Group(elem_classes=["mbti-card"]):
                     progress_panel = gr.HTML(empty_progress_html())
 
+    # the packs you've opened live in the browser, so a refresh keeps them. the roll for each pack is on the server,
+    # and whatever comes back from the browser is cleaned before it's used (see game.py)
+    game_state = gr.BrowserState(None, storage_key="mbti_radar_game", secret="mbti-radar-packs")
+
     with gr.Column(elem_classes=["main-content", "reveal-page-inner"], visible=False) as reveal_page:
         output = gr.HTML("")
+        # the styled button in the card page presses this one (mbtiNextPack), css keeps it out of sight
+        next_pack_btn = gr.Button("open next pack", elem_id="next-pack-btn", elem_classes=["hidden-trigger"])
         with gr.Row(elem_classes=["again-row"]):
             again_btn = gr.Button("↺ retake the quiz", size="sm", elem_id="retake-btn")
             home_btn = gr.Button("⌂ back to start", size="sm", elem_id="home-btn")
@@ -2022,7 +2219,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         data = dict(zip(ALL_FIELD_NAMES + ["photo"], values))
         problems = _step_problems(LAST_STEP, data)
         if problems:
-            yield (gr.skip(),) * 4 + (callout_update(problems, fresh=True), _problem_key(problems))
+            yield (gr.skip(),) * 5 + (callout_update(problems, fresh=True), _problem_key(problems))
             return
         for i, out in enumerate(run_prediction(*values)):
             yield tuple(out) + ((callout_update([]), "") if i == 0 else (gr.skip(), gr.skip()))
@@ -2030,12 +2227,12 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     submit_btn.click(
         fn=submit_handler,
         inputs=[C[name] for name in ALL_FIELD_NAMES] + [C["photo"]],
-        outputs=[output, form_page, reveal_page, submit_btn, callouts[LAST_STEP], attempted[LAST_STEP]],
+        outputs=[output, form_page, reveal_page, submit_btn, game_state, callouts[LAST_STEP], attempted[LAST_STEP]],
         show_progress="hidden",
     )
 
     def again_reset_pages():
-        return gr.update(visible=True), gr.update(visible=False)  # form_page, reveal_page
+        return gr.update(visible=True), gr.update(visible=False), None  # form_page, reveal_page, game
 
     def again_reset_panels():
         return step_indicator_html(1, TOTAL_STEPS), empty_progress_html()
@@ -2055,7 +2252,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     def wire_reset(btn, js=None):
         extra = {"js": js} if js else {}
         btn.click(
-            fn=again_reset_pages, outputs=[form_page, reveal_page], show_progress="hidden", **extra,
+            fn=again_reset_pages, outputs=[form_page, reveal_page, game_state], show_progress="hidden", **extra,
         ).then(
             fn=again_reset_panels, outputs=[step_indicator, progress_panel], show_progress="hidden",
         ).then(
@@ -2063,6 +2260,22 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
             outputs=[C[n] for n in RESET_IDS] + [C["photo"]] + reset_states,
             show_progress="hidden",
         )
+
+    # open the next pack. trigger_mode once means a second press can't roll while the first is still going
+    next_pack_btn.click(
+        fn=open_pack_handler, inputs=[game_state], outputs=[output, game_state], show_progress="hidden", trigger_mode="once",
+    ).then(fn=None, js="() => { mbtiPackDone(); }")
+
+    # coming back to the page: if there's a saved game, show it (already opened) instead of the landing page
+    def restore_game(saved):
+        g = G.clean_game(saved)
+        if g is None:
+            return gr.skip(), gr.skip(), gr.skip(), None
+        return build_game_html(g, opened=True), gr.update(visible=False), gr.update(visible=True), g
+
+    demo.load(
+        fn=restore_game, inputs=[game_state], outputs=[output, form_page, reveal_page, game_state], show_progress="hidden",
+    ).then(fn=None, js="() => { if (document.getElementById('rv')) { mbtiStart(); mbtiFit(); } }")
 
     wire_reset(again_btn)
     wire_reset(home_btn, js="() => { document.body.classList.remove('started'); window.scrollTo({ top: 0 }); }")
@@ -2081,10 +2294,11 @@ if DEV:
 
     def dev_jump(code, finish):
         mbti_type, read = _fake_read(code)
-        return build_reveal_html(mbti_type, read, finish), gr.update(visible=False), gr.update(visible=True)
+        new = G.new_game(mbti_type, read, finish)
+        return build_game_html(new), gr.update(visible=False), gr.update(visible=True), new
 
     with demo:
-        dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish], outputs=[output, form_page, reveal_page], show_progress="hidden",
+        dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish], outputs=[output, form_page, reveal_page, game_state], show_progress="hidden",
                       js="(t, f) => { window.mbtiStart && mbtiStart(); return [t, f]; }")
 
 if __name__ == "__main__":

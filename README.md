@@ -45,7 +45,11 @@ every question is required except the photo, follower count and close-friends si
 
 ## ⌜ card finishes ⌟
 
-every result card comes in three finishes: common (just the family color border), holo (a gold border and one bold shine) and rainbow (a rainbow border with rainbow foil over the character, and a rainbow ring shape on the radar). hover or drag over a card to tilt it, and the shine slides so you can catch the light. the finish names, the pack count and the odds all live in `finishes.py`, and `python3 preview_finishes.py` writes a page that shows all three side by side.
+every result card comes in three finishes: common (just the family color border), holo (a gold border and one bold shine) and rainbow (a rainbow border with rainbow foil over the character, and on the back a holo sheet of pixel sparkles with a striped rainbow radar). hover or drag over a card to tilt it, and the shine slides so you can catch the light. the finish names, the pack count and the odds all live in `finishes.py`, and `python3 preview_finishes.py` writes a page that shows all three side by side.
+
+## ⌜ card packs ⌟
+
+you get 5 packs per quiz. the first one is opened for you, the other four are opened one at a time from the result page, and each one rolls a finish on the server (the odds are in `finishes.py`). shiny pulls get a longer, flashier opening. a row of slots under the card tracks which finishes of your type you've pulled, and tapping a pulled slot shows that card again. the packs you've opened are kept in the browser (`gr.BrowserState`), and anything read back from it is cleaned first (`game.py`), so a refresh keeps your pulls and a tampered value just falls back to the landing page.
 
 ## ⌜ honest limitations ⌟
 
@@ -74,6 +78,8 @@ for testing there's a dev mode: `MBTI_DEV=1 python3 ui.py` adds a small bar at t
 | `sprites.js` | the 16 pixel-art characters, drawn in the browser |
 | `finishes.py` | the card finishes, the pack count and the odds, plus the roll |
 | `pack_art.py` | the card pack, drawn as two little svg pieces |
+| `foil_art.py` | the pixel sparkle tile and stripe fill for the rainbow finish |
+| `game.py` | the pack game's state: cleaning what comes back from the browser, opening the next pack |
 | `preview_finishes.py` | writes a page that shows all three finishes side by side |
 | `ui.py` | gradio layout and theme |
 | `styles.css` | custom styling on top of the gradio theme |
