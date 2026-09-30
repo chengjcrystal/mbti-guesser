@@ -186,6 +186,30 @@ function mbtiFit() {
   document.documentElement.addEventListener('mouseleave', function () { pending = null; rest(); });
 })();
 
+// the mystery cards on the landing page show a different dark silhouette on every visit, so no single mascot
+// becomes "the" mascot. picked here in the browser, redrawn with the same sprite code the cards use
+(function () {
+  var CODES = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'];
+  var pick = CODES[Math.floor(Math.random() * CODES.length)];
+  function paint() {
+    if (!window.mbtiSprites || !window.mbtiSprites[pick]) return;
+    document.querySelectorAll('.landing canvas[data-landing]:not([data-picked])').forEach(function (cv) {
+      cv.setAttribute('data-sprite', pick);
+      cv.setAttribute('data-drawn', '1');
+      window.mbtiSprites[pick]().render(cv, 7);
+      cv.setAttribute('data-picked', '1');
+    });
+  }
+  new MutationObserver(paint).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener('DOMContentLoaded', paint);
+})();
+
+// the landing page button: reveal the quiz. it's only a class on the body, css does the rest
+function mbtiStart() {
+  document.body.classList.add('started');
+  window.scrollTo({ top: 0 });
+}
+
 function mbtiPack() {   // back to a sealed pack
   var w = mbtiRv();
   if (!w) return;
@@ -1275,6 +1299,53 @@ HOW_IT_WORKS_RULES = [
 ]
 
 
+def _landing_card(finish, pos):
+    """one big card for the spread. it's the real result card markup (so the finishes look exactly
+    like they will when you pull them), but the mascot is a dark silhouette and every word about
+    who it is stays a question mark. only the finish is on show."""
+    label = F.FINISHES[finish]["label"]
+    tag = f'<span class="finish-tag">{label}</span>' if finish != "common" else ""
+    return f'''
+    <div class="rv lc lc-{pos} sliced" data-finish="{finish}" style="--fam:#8C6E8C">
+      <div class="card-scene"><div class="face"><div class="fband"><div class="fbody">
+        <div class="rcard-top">
+          <div class="rcard-tags"><div class="family-badge"><span class="family-label">???</span></div>{tag}</div>
+          <span class="card-index">NO. ?? / {len(MBTI_DESCRIPTIONS)}</span>
+        </div>
+        <div class="rname"><span class="rcode">????-?</span><span class="rtitle">your type mascot</span></div>
+        <div class="artwin art"><div class="rstage"><canvas data-landing data-sprite="ENFP" width="252" height="252"></canvas></div></div>
+        <div class="rblurb">???</div>
+      </div></div></div></div>
+    </div>'''
+
+
+def landing_html():
+    """the first screen. it sells the finishes, not the mascots: three big cards fanned out (all with the
+    mascot hidden), what each finish looks like, and how often it shows up. you always get the mascot that
+    is you, the chase is pulling the holo and the rainbow."""
+    ids = F.FINISH_IDS
+    # common up front. holo goes on the left because its shine sits toward the middle of the card, and the
+    # rainbow (bands all over) goes on the right, so both show what makes them special from behind the front card
+    cards = _landing_card(ids[1], "far") + _landing_card(ids[2], "mid") + _landing_card(ids[0], "front")
+    odds = "".join(
+        f'<div class="odds-pill odds-{f}"><b>{F.FINISHES[f]["label"]}</b><span>{F.ODDS[f]}%</span></div>' for f in ids)
+    return f'''
+  <div class="landing">
+    <h2 class="landing-title">meet your type mascot</h2>
+    <p class="landing-sub">you get the one that's you. the question is which finish you pull.</p>
+    <div class="landing-fan">{cards}</div>
+    <p class="landing-odds-title">your odds in every pack</p>
+    <div class="landing-odds">{odds}</div>
+    <p class="landing-first">you get {F.TOTAL_PACKS} packs to chase the rare ones.</p>
+    <button class="start-btn" type="button" onclick="mbtiStart()">{STAR_SVG}<span>earn your first pack</span></button>
+    <p class="landing-note">answer a short quiz, open your pack, meet your mascot.</p>
+  </div>'''
+
+
+STAR_SVG = ('<svg viewBox="0 0 40 40" aria-hidden="true"><polygon points="20,4 24,15 36,15 26,22 30,34 20,26 10,34 14,22 4,15 16,15" '
+            'fill="#C9A876" stroke="#4A3B5C" stroke-width="3" stroke-linejoin="round"/></svg>')
+
+
 def rules_block_svg():
     """a pixel '?' item block, the kind you bump from below for a coin."""
     glyph = ["01110", "10001", "00001", "00110", "00100", "00000", "00100"]
@@ -1783,7 +1854,10 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
             dev_finish = gr.Dropdown(choices=F.FINISH_IDS, value="common", label="dev: finish", scale=2)
             dev_btn = gr.Button("dev: jump to result", scale=2)
 
-    with gr.Column(elem_classes=["main-content"]) as form_page:
+    # the landing page shows first. the quiz is already in the page, hidden by css until the button is pressed
+    gr.HTML(landing_html(), elem_classes=["flush-html", "landing-page"])
+
+    with gr.Column(elem_classes=["main-content", "quiz-page"]) as form_page:
         with gr.Row(elem_classes=["console"]):
 
             with gr.Column(elem_classes=["form-col"]):
@@ -1954,7 +2028,8 @@ if DEV:
         return build_reveal_html(mbti_type, read, finish), gr.update(visible=False), gr.update(visible=True)
 
     with demo:
-        dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish], outputs=[output, form_page, reveal_page], show_progress="hidden")
+        dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish], outputs=[output, form_page, reveal_page], show_progress="hidden",
+                      js="(t, f) => { window.mbtiStart && mbtiStart(); return [t, f]; }")
 
 if __name__ == "__main__":
     demo.launch(share=False, favicon_path="favicon.svg")
