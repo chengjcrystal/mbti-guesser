@@ -69,19 +69,13 @@ def pull_finish(pack_number):
 MAX_PACKS = TOTAL_PACKS + INVITE_BONUS_PACKS + GUESS_BONUS_PACKS + SHARER_BONUS_PACKS
 
 
-def clean_game_numbers(budget, pulls):
-    """budget and pulls come back from the browser, so nothing in them is trusted.
-    returns (budget, pulls) with the budget clamped to what's possible and only real finishes kept,
-    or None if there's nothing usable (no pulls at all)."""
-    if isinstance(budget, bool) or not isinstance(budget, int):
-        budget = TOTAL_PACKS
-    budget = max(TOTAL_PACKS, min(MAX_PACKS, budget))
+def clean_pulls(pulls, budget):
+    """pulls come back from the browser, so nothing in them is trusted. keeps only real finishes, at most
+    one per pack in the budget, or returns None if nothing usable is left (no pulls at all)."""
     if not isinstance(pulls, list):
         return None
     pulls = [p for p in pulls if is_finish(p)][:budget]
-    if not pulls:
-        return None
-    return budget, pulls
+    return pulls or None
 
 
 def best_pull(pulls):
@@ -107,7 +101,7 @@ if __name__ == "__main__":
     for f in FINISH_IDS:
         print(f"  {f:<10} wanted {ODDS[f]:>3}%   got {100 * seen[f] / n:5.2f}%")
     print("pack 1 is always", FIRST_PACK_FINISH, "(1000 of 1000)")
-    assert clean_game_numbers("x", ["holo", "nope", "common"]) == (TOTAL_PACKS, ["holo", "common"])
-    assert clean_game_numbers(99, ["common"] * 30)[0] == MAX_PACKS and clean_game_numbers(5, []) is None
-    assert clean_game_numbers(5, "holo") is None
+    assert clean_pulls(["holo", "nope", "common"], 5) == ["holo", "common"]
+    assert len(clean_pulls(["common"] * 30, MAX_PACKS)) == MAX_PACKS and clean_pulls([], 5) is None
+    assert clean_pulls("holo", 5) is None
     assert best_pull(["common", "holo"]) == "holo" and best_pull(["common"]) == "common"
