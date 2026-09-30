@@ -838,7 +838,9 @@ footer, .built-with { display: none !important; }
 }
 
 /* beta shortcut bar, only rendered when the app is started with MBTI_DEV=1 */
-.dev-bar { max-width: 720px; margin: 0 auto 10px !important; padding: 8px; border: 3px dashed var(--mauve); border-radius: 6px; background: var(--field); gap: 8px !important; align-items: end !important; }
+.dev-bar { position: fixed !important; left: 10px; bottom: 10px; z-index: 1000; width: 250px; max-width: calc(100vw - 20px); margin: 0 !important; padding: 8px; border: 3px dashed var(--mauve); border-radius: 6px; background: var(--field); gap: 6px !important; flex-direction: column !important; align-items: stretch !important; flex-wrap: nowrap !important; }
+.dev-bar > * { min-width: 0 !important; width: 100% !important; flex: none !important; }
+@media (max-width: 900px) { .dev-bar { position: static !important; width: auto; margin: 0 auto 10px !important; } }
 .dev-bar label span { font-family: 'Silkscreen', monospace !important; font-size: 11px !important; text-transform: uppercase; color: var(--ink-soft) !important; }
 
 /* ── tilt: the card leans toward the pointer (the tilt script sets these variables on .rv) ── */
