@@ -536,7 +536,11 @@ footer, .built-with { display: none !important; }
 .read-chip label:has(input:checked) span { color: var(--cream) !important; }
 
 /* ── result card: slice the pack, flip the card, wide view ── */
-.rv { max-width: 480px; margin: 0 auto; text-align: center; }
+.rv {
+  --foil: linear-gradient(135deg, #F3DC8E 0%, #C9A24F 35%, #F6E5A6 55%, #B98F3E 80%, #EBCF7B 100%);
+  --deep: #2b2140;
+  max-width: 480px; margin: 0 auto; text-align: center;
+}
 .rv[data-layout="wide"] { max-width: 860px; }
 .rv .card-scene { display: none; }
 .rv.sliced .card-scene { display: block; animation: card-in 0.5s cubic-bezier(.34, 1.4, .64, 1); }
@@ -584,8 +588,8 @@ footer, .built-with { display: none !important; }
 .flip.flipped .flip-in { transform: rotateY(180deg); }
 .face {
   grid-area: 1 / 1; min-width: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  background: var(--cream); border: 5px solid var(--plum); border-radius: 8px; box-shadow: 10px 10px 0 rgba(0,0,0,.25);
-  padding: 12px; display: flex; flex-direction: column; gap: 10px; text-align: left;
+  background: var(--foil); border-radius: 28px; box-shadow: 0 10px 0 rgba(43,33,64,.35);
+  padding: 7px; display: flex; text-align: left;
 }
 .face.back { transform: rotateY(180deg); }
 .rcard-top { display: flex; justify-content: space-between; align-items: center; }
@@ -604,11 +608,13 @@ footer, .built-with { display: none !important; }
 .rhint { margin-top: auto; text-align: center; font-family: 'Silkscreen', monospace; font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--plum); padding-top: 8px; }
 
 .wide-card {
-  display: none; flex-direction: column; gap: 10px; text-align: left; background: var(--cream);
-  border: 5px solid var(--plum); border-radius: 8px; box-shadow: 10px 10px 0 rgba(0,0,0,.25); padding: 12px;
+  display: none; text-align: left; background: var(--foil); border-radius: 28px;
+  box-shadow: 0 10px 0 rgba(43,33,64,.35); padding: 7px;
 }
+.rv[data-layout="wide"] .wide-card .fbody { gap: 10px; }
 .rv[data-layout="wide"] .flip { display: none; }
 .rv[data-layout="wide"] .wide-card { display: flex; }
+.wide-card .fbody .flavor-bar { margin-bottom: 0; }
 .wide-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .wide-stats { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
 .wide-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-family: 'Press Start 2P', monospace; font-size: 9px; color: rgba(74,59,92,.55); }
@@ -730,6 +736,77 @@ footer, .built-with { display: none !important; }
 .reveal-col { display: none !important; }
 .console.chat-done .reveal-col.rv-chat_done { display: flex !important; animation: need-in 0.25s ease-out; }
 
+
+/* ── the card frame: a gold rim, a band in the family color, then the cream face ── */
+.fband {
+  flex: 1; min-width: 0; display: flex; padding: 11px; border-radius: 22px;
+  background: var(--fam, var(--sage)); border: 3px solid var(--deep);
+}
+.fbody {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px; padding: 12px 14px 10px; border-radius: 12px;
+  background: linear-gradient(180deg, #F6EFDC 0%, #EDE6D3 100%); border: 3px solid var(--deep);
+}
+/* the family tag is a filled pill, with dark text so it reads on every family color */
+.rcard-top .family-badge {
+  background: var(--fam); border: 2px solid var(--deep); border-radius: 4px; padding: 3px 10px;
+}
+.rcard-top .family-label { color: var(--deep); letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
+.rcard-top .card-index { letter-spacing: 0.04em; }
+
+/* windows: a gold double rim around the character and the radar */
+.artwin {
+  padding: 5px; border-radius: 6px; border: 2px solid var(--deep);
+  background: linear-gradient(135deg, #F3DC8E, #B98F3E 50%, #F3DC8E);
+}
+.artwin.sm { padding: 3px; border-radius: 5px; }
+.artwin .rstage, .artwin .rradar { border-color: var(--deep); border-radius: 0; }
+.rstage, .tstage { position: relative; }
+.rstage::after, .tstage::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255,255,255,0) 18%, rgba(255,255,255,0.38) 30%, rgba(255,170,210,0.20) 38%, rgba(140,230,255,0.22) 46%, rgba(255,255,255,0) 58%);
+}
+.rname { gap: 4px; }
+.rcode { font-size: 26px; line-height: 1.1; }
+.rtitle { font-size: 13px; letter-spacing: 0.05em; }
+/* the one-line blurb on a gold strip, like the pokedex line under the art */
+.rblurb {
+  margin: 0; padding: 5px 10px; text-align: center; border: 2px solid var(--deep); border-radius: 4px;
+  background: linear-gradient(90deg, #F3DC8E, #F9EDBE 50%, #F3DC8E); font-size: 14px; font-style: italic; color: #362B47;
+}
+.fbody .flavor-bar { margin-bottom: 0; }
+
+/* stat rows get an xp bar between the name and the number */
+/* a fixed name column keeps the bars lined up, and a close-call tag sits under its stat name */
+.stat-name { flex: 0 0 136px; min-width: 0; line-height: 1.2; }
+.stat-name .stat-soft { display: block; margin: 2px 0 0; }
+.stat-bar {
+  flex: 1 1 40px; min-width: 40px; height: 13px; background: var(--field);
+  border: 2px solid var(--deep); border-radius: 3px; overflow: hidden;
+}
+.stat-bar i { display: block; height: 100%; }
+.stat-num { width: 34px; flex: 0 0 auto; }
+
+/* tap to flip, with the rotate icon on both sides */
+.rhint { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.rhint svg { width: 18px; height: 18px; flex: 0 0 auto; }
+@media (prefers-reduced-motion: no-preference) {
+  .flip:hover .rhint svg { transform: rotate(180deg); transition: transform 0.45s steps(6); }
+}
+
+/* the gallery cards wear the same frame, scaled down */
+.tcard {
+  display: block; padding: 4px; background: var(--foil); border: none; border-radius: 16px; box-shadow: 0 6px 0 rgba(43,33,64,.35);
+}
+.tband { display: flex; padding: 6px; border-radius: 12px; background: var(--fam); border: 2px solid var(--deep); height: 100%; box-sizing: border-box; }
+.tbody {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 7px;
+  background: linear-gradient(180deg, #F6EFDC 0%, #EDE6D3 100%); border: 2px solid var(--deep);
+}
+.tcard.mine { background: var(--foil); box-shadow: 0 0 0 3px var(--field), 0 0 0 6px var(--plum), 0 9px 0 6px rgba(43,33,64,.35); }
+.tcard.mine .tbody { background: var(--field); }
+.tstage { border-color: var(--deep); border-radius: 0; }
+@media (max-width: 520px) { .tcard { padding: 3px; } .tband { padding: 4px; } .tbody { padding: 6px; } }
+
 /* the "how it works" block hangs below the title, so the gallery's back button gets some room */
 .rv[data-view="all"] .types-bar { margin-top: 44px; }
 
@@ -751,4 +828,9 @@ footer, .built-with { display: none !important; }
 .console.radar-hidden .live-col { display: none !important; }
 .console.radar-hidden { grid-template-columns: minmax(0, 720px) !important; justify-content: center; }
 @media (max-width: 420px) { .radar-toggle { font-size: 10px; padding: 4px 8px; } }
+
+/* both windows in the wide layout stretch to the same height, the radar fills its rim */
+.wide-row .artwin { display: flex; }
+.wide-row .artwin .rstage, .wide-row .artwin .rradar { flex: 1; }
+@media (max-width: 380px) { .stat-name { flex-basis: 120px; } }
 .step-top span, .radar-toggle { white-space: nowrap; }

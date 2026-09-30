@@ -855,14 +855,14 @@ def all_types_html(mine=None):
             you = ' mine' if code == mine else ""
             tag = '<span class="tcard-you">you</span>' if code == mine else ""
             cards += f"""
-        <div class="tcard{you}" style="--fam:{FAMILY_COLORS[fam]}">
+        <div class="tcard{you}" style="--fam:{FAMILY_COLORS[fam]}"><div class="tband"><div class="tbody">
           <div class="tcard-top"><span class="tcard-no">NO. {TYPE_INDEX[code]:02d}</span>{tag}</div>
-          <div class="tstage"><canvas data-sprite="{code}" width="252" height="252"></canvas></div>
+          <div class="artwin sm"><div class="tstage"><canvas data-sprite="{code}" width="252" height="252"></canvas></div></div>
           <div class="tcode">{code}</div>
           <div class="ttitle">{title}</div>
           <div class="tblurb">{CREATURE_BLURBS[code]}</div>
           <div class="tdesc">{desc}</div>
-        </div>"""
+        </div></div></div>"""
         groups += f"""
       <div class="tgroup">
         <div class="tgroup-head"><span class="family-swatch" style="background:{FAMILY_COLORS[fam]}"></span>{FAMILY_PLURALS[fam]}</div>
@@ -877,6 +877,10 @@ def all_types_html(mine=None):
     {groups}
     <div class="types-foot"><button class="rv-tool" onclick="mbtiTypes(false)">&larr; back to your result</button></div>
   </div>"""
+
+
+ROTATE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">'
+              '<path d="M3 9a6 6 0 0 1 10-4.5"/><path d="M13 1.5v3.5H9.5"/><path d="M15 9a6 6 0 0 1-10 4.5"/><path d="M5 16.5V13h3.5"/></svg>')
 
 
 def build_reveal_html(mbti_type, axis_results):
@@ -916,6 +920,7 @@ def build_reveal_html(mbti_type, axis_results):
     <div class="stat-row">
       <svg class="stat-icon" viewBox="0 0 18 18" style="color:{color}">{ICONS[icon]}</svg>
       <span class="stat-name">{name} <span class="stat-letter">({letter})</span>{soft}</span>
+      <span class="stat-bar"><i style="width:{num}%;background:{color}"></i></span>
       <span class="stat-num">{num}</span>
     </div>'''
 
@@ -943,21 +948,20 @@ def build_reveal_html(mbti_type, axis_results):
 
     top_row = f"""
         <div class="rcard-top">
-          <div class="family-badge">
-            <div class="family-swatch" style="background:{family_color}"></div>
-            <span class="family-label">{family_name}</span>
-          </div>
-          <span class="card-index">NO. {index:02d}</span>
+          <div class="family-badge"><span class="family-label">{family_name}</span></div>
+          <span class="card-index">NO. {index:02d} / 16</span>
         </div>"""
     name_block = f"""
         <div class="rname">
           <span class="rcode">{code}</span>
           <span class="rtitle">{title}</span>
-          <span class="rblurb">{CREATURE_BLURBS[core_display]}</span>
         </div>"""
+    blurb_strip = f'<div class="rblurb">{CREATURE_BLURBS[core_display]}</div>'
+    art_window = f'<div class="artwin"><div class="rstage">{sprite}</div></div>'
+    radar_window = f'<div class="artwin"><div class="rradar">{pentagon}</div></div>'
 
     return f"""
-<div class="rv" id="rv" data-layout="card" data-card="{card_data}">
+<div class="rv" id="rv" data-layout="card" style="--fam:{family_color}" data-card="{card_data}">
 
   <div class="pack-stage" id="packStage">
     <div class="rpack" id="pack1">
@@ -986,39 +990,41 @@ def build_reveal_html(mbti_type, axis_results):
   <div class="card-scene">
     <div class="flip" id="flip1" onclick="mbtiFlip()" title="tap to flip">
       <div class="flip-in">
-        <div class="face front">
+        <div class="face front"><div class="fband"><div class="fbody">
           {top_row}
-          <div class="rstage">{sprite}</div>
           {name_block}
+          {art_window}
+          {blurb_strip}
           <div class="flavor-bar">{desc}</div>
           <div class="identity-bar"><b>{suffix}-identity:</b> {identity_desc}</div>
-          <div class="rhint">tap the card to flip &#9656; your radar</div>
-        </div>
-        <div class="face back">
+          <div class="rhint">{ROTATE_SVG}<span>tap to flip &middot; your radar</span></div>
+        </div></div></div>
+        <div class="face back"><div class="fband"><div class="fbody">
           <div class="rcard-top">
             <span class="card-index">YOUR RADAR</span>
             <span class="card-index">{code}</span>
           </div>
-          <div class="rradar">{pentagon}</div>
+          {radar_window}
           <div class="stat-rows">{stat_rows}</div>
           <div class="rarity-row"><span class="rarity-tag" style="background:{rarity_color}">{rarity}</span><span class="rclose">{close_note}</span></div>
-          <div class="rhint">tap the card to flip &#9656; the character</div>
-        </div>
+          <div class="rhint">{ROTATE_SVG}<span>tap to flip &middot; the character</span></div>
+        </div></div></div>
       </div>
     </div>
 
-    <div class="wide-card" id="wide1">
+    <div class="wide-card" id="wide1"><div class="fband"><div class="fbody">
       {top_row}
       <div class="wide-row">
-        <div class="rstage">{sprite}</div>
-        <div class="rradar">{pentagon}</div>
+        {art_window}
+        {radar_window}
       </div>
       {name_block}
+      {blurb_strip}
       <div class="wide-stats stat-rows">{stat_rows}</div>
       <div class="flavor-bar">{desc}</div>
       <div class="identity-bar"><b>{suffix}-identity:</b> {identity_desc}</div>
       <div class="wide-foot"><span class="wide-who"></span><span>MBTI RADAR</span></div>
-    </div>
+    </div></div></div>
 
     <div class="rv-tools">
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
