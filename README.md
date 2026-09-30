@@ -43,6 +43,10 @@ six steps: quick picks, easy free-text (weekends, party vibe, what stresses you 
 
 every question is required except the photo, follower count and close-friends size, since some people can't or won't answer those. the whole quiz lives in `questions.py`.
 
+## ⌜ card finishes ⌟
+
+every result card comes in three finishes: common (just the family color border), holo (a gold border and one bold shine) and rainbow (a rainbow border with rainbow foil over the character, and a rainbow ring shape on the radar). hover or drag over a card to tilt it, and the shine slides so you can catch the light. the finish names, the pack count and the odds all live in `finishes.py`, and `python3 preview_finishes.py` writes a page that shows all three side by side.
+
 ## ⌜ honest limitations ⌟
 
 this is a heuristic sketch, not a validated model. there's no labeled ground truth for real profiles, so "accuracy on real people" isn't a number that exists here. the confidence scores describe the model's certainty, not correctness. the photo and numeric signals are hand-tuned nudges, not learned from data, so read them as flavor on top of the text signal.
@@ -58,6 +62,8 @@ python ui.py   # http://127.0.0.1:7860
 
 first run downloads `facebook/bart-large-mnli` (~1.6 GB) from hugging face.
 
+for testing there's a dev mode: `MBTI_DEV=1 python3 ui.py` adds a small bar at the top that jumps straight to a result for any type and finish, so you don't have to fill in the quiz. it isn't there unless that variable is set.
+
 ## ⌜ what's in the repo ⌟
 
 | file | what it does |
@@ -66,6 +72,9 @@ first run downloads `facebook/bart-large-mnli` (~1.6 GB) from hugging face.
 | `app.py` | answer-to-sentence conversion, zero-shot scoring per axis, numeric signals, fusion |
 | `photo_analysis.py` | deepface + opencv photo signals |
 | `sprites.js` | the 16 pixel-art characters, drawn in the browser |
+| `finishes.py` | the card finishes, the pack count and the odds, plus the roll |
+| `pack_art.py` | the card pack, drawn as two little svg pieces |
+| `preview_finishes.py` | writes a page that shows all three finishes side by side |
 | `ui.py` | gradio layout and theme |
 | `styles.css` | custom styling on top of the gradio theme |
 | `eval_axes.py` | sanity check for the text classifier, writes `eval_results.json` |
