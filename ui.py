@@ -10,11 +10,17 @@ import html
 import json
 import os
 import pathlib
+import random
 import gradio as gr
 import finishes as F
 import pack_art
 from app import predict_mbti
 from questions import BY_ID, NO_SOCIAL, NOT_SURE, QUESTIONS, STEP_TITLES, STEPS, answer_ids, chip_ids, is_shown, required_ids, step_questions
+
+# beta testing shortcut: start the app with  MBTI_DEV=1 python3 ui.py  and a small bar shows up
+# above the quiz that jumps straight to the result page. it isn't there unless that env var is set,
+# so the public space never shows it
+DEV = os.environ.get("MBTI_DEV", "").strip() == "1"
 
 CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
 # follow-up questions are shown by flags on the quiz wrapper (set by the head script), not by the server:
@@ -1771,6 +1777,12 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     """, elem_classes=["flush-html"])
     gr.HTML(how_it_works_html(), elem_classes=["flush-html", "tuck"])
 
+    if DEV:
+        with gr.Row(elem_classes=["dev-bar"]):
+            dev_type = gr.Dropdown(choices=sorted(MBTI_DESCRIPTIONS), value="ENFJ", label="dev: type", scale=2)
+            dev_finish = gr.Dropdown(choices=F.FINISH_IDS, value="common", label="dev: finish", scale=2)
+            dev_btn = gr.Button("dev: jump to result", scale=2)
+
     with gr.Column(elem_classes=["main-content"]) as form_page:
         with gr.Row(elem_classes=["console"]):
 
@@ -1924,6 +1936,25 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         outputs=[C[n] for n in RESET_IDS] + [C["photo"]] + reset_states,
         show_progress="hidden",
     )
+
+if DEV:
+    # a made up read for whichever type was picked, so the result page has real looking numbers on it
+    def _fake_read(code):
+        letters = list(code) + [random.choice("AT")]
+        read = {}
+        for (key, _name, outward, _color, _icon), win in zip(SPOKES, letters):
+            conf = random.randint(56, 92)
+            read[key] = {"winner": win, "confidence": conf,
+                         "scores": {outward: conf if win == outward else 100 - conf},
+                         "is_ambiguous": conf < 62}
+        return f"{code}-{letters[4]}", read
+
+    def dev_jump(code, finish):
+        mbti_type, read = _fake_read(code)
+        return build_reveal_html(mbti_type, read, finish), gr.update(visible=False), gr.update(visible=True)
+
+    with demo:
+        dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish], outputs=[output, form_page, reveal_page], show_progress="hidden")
 
 if __name__ == "__main__":
     demo.launch(share=False, favicon_path="favicon.svg")

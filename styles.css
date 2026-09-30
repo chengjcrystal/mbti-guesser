@@ -879,6 +879,10 @@ footer, .built-with { display: none !important; }
 /* the radar shape on the back fills with rainbow rings growing out from the middle */
 .rv[data-finish="rainbow"] .card-scene .radar-shape { fill: url(#mbtiRings); fill-opacity: .95; }
 
+/* beta shortcut bar, only rendered when the app is started with MBTI_DEV=1 */
+.dev-bar { max-width: 720px; margin: 0 auto 10px !important; padding: 8px; border: 3px dashed var(--mauve); border-radius: 6px; background: var(--field); gap: 8px !important; align-items: end !important; }
+.dev-bar label span { font-family: 'Silkscreen', monospace !important; font-size: 11px !important; text-transform: uppercase; color: var(--ink-soft) !important; }
+
 /* ── tilt: the card leans toward the pointer (the tilt script sets these variables on .rv) ── */
 .card-scene { perspective: 1600px; }
 .flip, .wide-card { touch-action: pan-y; }
