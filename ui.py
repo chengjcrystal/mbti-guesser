@@ -11,6 +11,7 @@ import json
 import os
 import pathlib
 import gradio as gr
+import finishes as F
 from app import predict_mbti
 from questions import BY_ID, NO_SOCIAL, NOT_SURE, QUESTIONS, STEP_TITLES, STEPS, answer_ids, chip_ids, is_shown, required_ids, step_questions
 
@@ -213,19 +214,49 @@ function mbtiRenderCard(done) {
     var sheen = function (x, y, S) {
       var cx0 = x + S / 2, cy0 = y + S / 2, dx = 0.906 * S * 0.664, dy = 0.423 * S * 0.664;
       var g = c.createLinearGradient(cx0 - dx, cy0 - dy, cx0 + dx, cy0 + dy);
-      g.addColorStop(0.18, 'rgba(255,255,255,0)'); g.addColorStop(0.30, 'rgba(255,255,255,.38)');
-      g.addColorStop(0.38, 'rgba(255,170,210,.20)'); g.addColorStop(0.46, 'rgba(140,230,255,.22)'); g.addColorStop(0.58, 'rgba(255,255,255,0)');
+      g.addColorStop(0.08, 'rgba(255,255,255,0)'); g.addColorStop(0.14, 'rgba(255,170,210,.34)');
+      g.addColorStop(0.26, 'rgba(255,255,255,.62)'); g.addColorStop(0.34, 'rgba(255,255,255,.62)');
+      g.addColorStop(0.3401, 'rgba(140,230,255,.38)'); g.addColorStop(0.44, 'rgba(140,230,255,.38)');
+      g.addColorStop(0.4401, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,0)');
       c.fillStyle = g; c.fillRect(x, y, S, S);
     };
-    // a gold double rim around a window
+    // the finish decides the look: common is the family color only, holo adds the gold rim and one
+    // still shine, rainbow has a still rainbow rim and rainbow foil bands over the character
+    var fin = d.finish || 'common';
+    var RB = ['#E86A6A', '#F0A35E', '#F3D66B', '#8FCB7A', '#6FA8DC', '#A98BD9'];
+    var rainbowFill = function (x, y, w, h) {
+      var g = c.createLinearGradient(x, y, x + w, y + h), n = 6 * Math.max(2, Math.round((w + h) / 190));
+      for (var k = 0; k < n; k++) { var col = RB[k % 6]; g.addColorStop(k / n, col); g.addColorStop((k + 1) / n - 0.0001, col); }
+      return g;
+    };
+    // the fill for a rim: gold on holo, rainbow on rainbow, the family color on a common card
+    var rimFill = function (x, y, w, h) {
+      return fin === 'holo' ? foil(x, y, w, h) : fin === 'rainbow' ? rainbowFill(x, y, w, h) : d.familyColor;
+    };
+    // the rainbow foil over the character: hard diagonal bands, drawn still in the saved image
+    var rainbowBands = function (x, y, S) {
+      c.save(); c.beginPath(); c.rect(x, y, S, S); c.clip();
+      var w = 31, T = S * 2;
+      for (var a = -S, k = 0; a < S * 2; a += w, k++) {
+        c.fillStyle = 'rgba(' + [[238,143,143],[243,185,132],[245,225,146],[172,217,155],[147,190,230],[193,170,226]][k % 6].join(',') + ',.32)';
+        c.beginPath(); c.moveTo(x + a - T, y + T); c.lineTo(x + a + w - T, y + T); c.lineTo(x + a + w + T, y - T); c.lineTo(x + a + T, y - T); c.closePath(); c.fill();
+      }
+      c.restore();
+    };
+    // a double rim around a window
     var rim = function (x, y, S) {
-      rr(x - 14, y - 14, S + 28, S + 28, 8); c.fillStyle = foil(x - 14, y - 14, S + 28, S + 28); c.fill();
+      rr(x - 14, y - 14, S + 28, S + 28, 8); c.fillStyle = rimFill(x - 14, y - 14, S + 28, S + 28); c.fill();
       c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
     };
-    // the card: gold rim, a band in the family color, then the cream face
-    rr(0, 0, cv.width, cv.height, 46); c.fillStyle = foil(0, 0, cv.width, cv.height); c.fill();
-    rr(14, 14, cv.width - 28, cv.height - 28, 36); c.fillStyle = d.familyColor; c.fill();
+    // the card: an outer rim on holo and rainbow, a band in the family color, then the cream face
+    if (fin === 'common') {
+      rr(3, 3, cv.width - 6, cv.height - 6, 43); c.fillStyle = d.familyColor; c.fill();
+    } else {
+      rr(0, 0, cv.width, cv.height, 46); c.fillStyle = rimFill(0, 0, cv.width, cv.height); c.fill();
+      rr(14, 14, cv.width - 28, cv.height - 28, 36); c.fillStyle = d.familyColor; c.fill();
+    }
     c.strokeStyle = DK; c.lineWidth = 6; c.stroke();
+    c.strokeStyle = DK; c.lineWidth = 6;
     rr(38, 38, cv.width - 76, cv.height - 76, 20);
     var face = c.createLinearGradient(0, 38, 0, cv.height - 38); face.addColorStop(0, '#F6EFDC'); face.addColorStop(1, CREAM);
     c.fillStyle = face; c.fill(); c.stroke();
@@ -236,6 +267,11 @@ function mbtiRenderCard(done) {
     var tagW = c.measureText(d.family.toUpperCase()).width + 36;
     rr(48, 43, tagW, 44, 6); c.fillStyle = d.familyColor; c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
     c.fillStyle = DK; c.fillText(d.family.toUpperCase(), 66, 66);
+    if (fin !== 'common') {   // the finish tag next to the family pill
+      var ft = (d.finishLabel || fin).toUpperCase(), fw = c.measureText(ft).width + 32, fx = 48 + tagW + 16;
+      rr(fx, 43, fw, 44, 6); c.fillStyle = fin === 'holo' ? '#F3DC8E' : rainbowFill(fx, 43, fw, 44); c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+      c.fillStyle = DK; c.fillText(ft, fx + 16, 66);
+    }
     c.fillStyle = SOFT; c.textAlign = 'right'; c.fillText('NO. ' + String(d.dex).padStart(2, '0') + ' / 16', W - 48, 66); c.textAlign = 'left';
 
     // left pane: the character on a little scene
@@ -247,7 +283,8 @@ function mbtiRenderCard(done) {
     var sp = document.createElement('canvas');
     window.mbtiSprites[d.code]().render(sp, 20);   // the grid is 36 wide, so 20x fills the pane
     c.drawImage(sp, px, py, S, S);
-    sheen(px, py, S);
+    if (fin === 'holo') sheen(px, py, S);
+    if (fin === 'rainbow') rainbowBands(px, py, S);
     c.strokeStyle = DK; c.lineWidth = 8; c.strokeRect(px, py, S, S);
 
     // right pane: the radar
@@ -255,6 +292,7 @@ function mbtiRenderCard(done) {
     rim(rx, ry, S);
     c.fillStyle = '#ffffff'; c.fillRect(rx, ry, S, S);
     c.strokeStyle = DK; c.lineWidth = 8; c.strokeRect(rx, ry, S, S);
+    if (fin === 'holo') { c.save(); c.globalAlpha = 0.7; sheen(rx, ry, S); c.restore(); }
     var cx = rx + S / 2, cy = ry + S / 2 + 10, R = 268, n = d.stats.length;
     var pt = function (i, r) { var a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
     c.lineWidth = 2; c.strokeStyle = '#D9CFC0';
@@ -262,9 +300,22 @@ function mbtiRenderCard(done) {
       c.beginPath(); for (var i = 0; i < n; i++) { var p = pt(i, R * k); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); } c.closePath(); c.stroke();
     });
     for (var i = 0; i < n; i++) { var e = pt(i, R); c.beginPath(); c.moveTo(cx, cy); c.lineTo(e[0], e[1]); c.stroke(); }
-    c.beginPath();
-    d.stats.forEach(function (s, i) { var p = pt(i, R * s.radar / 100); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); });
-    c.closePath(); c.fillStyle = 'rgba(74,59,92,.18)'; c.fill(); c.strokeStyle = PLUM; c.lineWidth = 6; c.stroke();
+    var tracePoly = function () {
+      c.beginPath();
+      d.stats.forEach(function (s, i) { var p = pt(i, R * s.radar / 100); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); });
+      c.closePath();
+    };
+    tracePoly();
+    if (fin === 'rainbow') {   // the shape fills with hard edged rainbow rings growing out from the middle
+      c.save(); c.clip();
+      for (var k2 = RB.length - 1; k2 >= 0; k2--) {
+        c.fillStyle = RB[k2]; c.beginPath(); c.arc(cx, cy, R * 0.7 * (k2 + 1) / RB.length, 0, 7); c.fill();
+      }
+      c.restore();
+    } else {
+      c.fillStyle = fin === 'holo' ? 'rgba(201,162,79,.30)' : 'rgba(74,59,92,.18)'; c.fill();
+    }
+    tracePoly(); c.strokeStyle = PLUM; c.lineWidth = 6; c.stroke();
     d.stats.forEach(function (s, i) {
       var p = pt(i, R * s.radar / 100);
       c.beginPath(); c.arc(p[0], p[1], 13, 0, 7); c.fillStyle = s.color; c.fill(); c.lineWidth = 4; c.stroke();
@@ -282,7 +333,7 @@ function mbtiRenderCard(done) {
     c.fillStyle = PLUM; c.font = '46px "Press Start 2P", monospace'; c.fillText(d.code + '-' + d.suffix, 48, 880);
     c.fillStyle = SOFT; c.font = '700 28px Silkscreen, monospace'; c.fillText(d.title.toUpperCase(), 48, 944);
     var sg = c.createLinearGradient(48, 0, 768, 0); sg.addColorStop(0, '#F3DC8E'); sg.addColorStop(0.5, '#F9EDBE'); sg.addColorStop(1, '#F3DC8E');
-    rr(48, 972, 720, 50, 6); c.fillStyle = sg; c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+    rr(48, 972, 720, 50, 6); c.fillStyle = fin === 'common' ? '#FFFDF9' : sg; c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
     c.fillStyle = '#362B47'; c.font = 'italic 25px Rubik, sans-serif'; c.textAlign = 'center';
     c.fillText(d.blurb, 408, 997); c.textAlign = 'left';
     c.fillStyle = '#362B47'; c.font = '500 25px Rubik, sans-serif';
@@ -720,7 +771,7 @@ def _pentagon_svg(stats, size=120, show_labels=False, fill_container=False,
     # confident-looking point the axis hasn't earned.
     shape_pct = [0 if is_ambiguous else pct for _, pct, _, _, is_ambiguous in stats]
     data_pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in (_point(i, n, r_max * (shape_pct[i] / 100), cx, cy) for i in range(n)))
-    poly = f'<polygon points="{data_pts}" fill="#4A3B5C" fill-opacity="0.18" stroke="#4A3B5C" stroke-width="2.5"></polygon>'
+    poly = f'<polygon class="radar-shape" points="{data_pts}" fill="#4A3B5C" fill-opacity="0.18" stroke="#4A3B5C" stroke-width="2.5"></polygon>'
     dots = ""
     for i, (name, pct, color, icon, is_ambiguous) in enumerate(stats):
         dot_color = "#C7BFAE" if is_ambiguous else color
@@ -954,7 +1005,7 @@ def all_types_html(mine=None):
     return f"""
   <div class="types-page">
     <div class="types-bar">
-      <span class="types-title">all 16 types</span>
+      <span class="types-title">all 16 type mascots</span>
       <button class="rv-tool" onclick="mbtiTypes(false)">&larr; back</button>
     </div>
     {groups}
@@ -962,6 +1013,23 @@ def all_types_html(mine=None):
   </div>"""
 
 
+# the six rainbow colors. the rainbow radar shape fills itself with hard edged rings of them, growing out from
+# the middle of the chart (one gradient, defined once per result, sized to the chart the result card draws)
+RAINBOW_COLORS = ["#E86A6A", "#F0A35E", "#F3D66B", "#8FCB7A", "#6FA8DC", "#A98BD9"]
+
+
+def _rainbow_rings_defs(size=340):
+    cx, cy, r = size * 1.12 / 2, size * 1.06 / 2, size * 0.43 * 0.7   # where _pentagon_svg puts the middle, and 70% of the way out
+    n = len(RAINBOW_COLORS)
+    stops = "".join(
+        f'<stop offset="{i / n:.4f}" stop-color="{c}"/><stop offset="{(i + 1) / n:.4f}" stop-color="{c}"/>'
+        for i, c in enumerate(RAINBOW_COLORS))
+    return (f'<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'
+            f'<radialGradient id="mbtiRings" gradientUnits="userSpaceOnUse" cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}">{stops}</radialGradient>'
+            f'</defs></svg>')
+
+
+RAINBOW_DEFS = _rainbow_rings_defs()
 ROTATE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">'
               '<path d="M3 9a6 6 0 0 1 10-4.5"/><path d="M13 1.5v3.5H9.5"/><path d="M15 9a6 6 0 0 1-10 4.5"/><path d="M5 16.5V13h3.5"/></svg>')
 SHARE_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">'
@@ -972,7 +1040,7 @@ COPY_SVG = ('<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-w
             '<rect x="6" y="6" width="9" height="9"/><path d="M12 3H3v9"/></svg>')
 
 
-def build_reveal_html(mbti_type, axis_results):
+def build_reveal_html(mbti_type, axis_results, finish="common"):
     core, suffix = mbti_type.split("-")
     core_display = core  # always four real letters: the answer is one of the 16 types
     title, desc = MBTI_DESCRIPTIONS[core_display]
@@ -1025,19 +1093,26 @@ def build_reveal_html(mbti_type, axis_results):
     code = f"{core_display}-{suffix}"
     close_names = [s["name"] for s in card_stats if s["soft"]]
     close_note = ("close call on " + ", ".join(close_names)) if close_names else "a clear read on every stat"
+    if not F.is_finish(finish):
+        finish = "common"
     sprite = f'<canvas data-sprite="{core_display}" width="252" height="252"></canvas>'
+    finish_tag = f'<span class="finish-tag">{F.FINISHES[finish]["label"]}</span>' if finish != "common" else ""
 
     # the export button redraws the wide card from this, so it carries everything
     card_data = html.escape(json.dumps({
         "code": core_display, "suffix": suffix, "title": title, "family": family_name,
         "familyColor": family_color, "dex": index, "desc": desc, "identity": identity_desc,
         "blurb": CREATURE_BLURBS[core_display],
+        "finish": finish, "finishLabel": F.FINISHES[finish]["label"],
         "stats": card_stats,
     }), quote=True)
 
     top_row = f"""
         <div class="rcard-top">
-          <div class="family-badge"><span class="family-label">{family_name}</span></div>
+          <div class="rcard-tags">
+            <div class="family-badge"><span class="family-label">{family_name}</span></div>
+            {finish_tag}
+          </div>
           <span class="card-index">NO. {index:02d} / 16</span>
         </div>"""
     name_block = f"""
@@ -1046,11 +1121,11 @@ def build_reveal_html(mbti_type, axis_results):
           <span class="rtitle">{title}</span>
         </div>"""
     blurb_strip = f'<div class="rblurb">{CREATURE_BLURBS[core_display]}</div>'
-    art_window = f'<div class="artwin"><div class="rstage">{sprite}</div></div>'
+    art_window = f'<div class="artwin art"><div class="rstage">{sprite}</div></div>'
     radar_window = f'<div class="artwin"><div class="rradar">{pentagon}</div></div>'
 
     return f"""
-<div class="rv" id="rv" data-layout="card" style="--fam:{family_color}" data-card="{card_data}">
+{RAINBOW_DEFS}<div class="rv" id="rv" data-layout="card" data-finish="{finish}" style="--fam:{family_color}" data-card="{card_data}">
 
   <div class="pack-stage" id="packStage">
     <div class="rpack" id="pack1">
@@ -1090,13 +1165,13 @@ def build_reveal_html(mbti_type, axis_results):
         </div></div></div>
         <div class="face back"><div class="fband"><div class="fbody">
           <div class="rcard-top">
-            <span class="card-index">YOUR RADAR</span>
+            <div class="rcard-tags"><span class="card-index">YOUR RADAR</span>{finish_tag}</div>
             <span class="card-index">{code}</span>
           </div>
           {radar_window}
           <div class="stat-rows">{stat_rows}</div>
           <div class="rarity-row"><span class="rarity-tag" style="background:{rarity_color}">{rarity}</span><span class="rclose">{close_note}</span></div>
-          <div class="rhint">{ROTATE_SVG}<span>tap to flip &middot; the character</span></div>
+          <div class="rhint">{ROTATE_SVG}<span>tap to flip &middot; the mascot</span></div>
         </div></div></div>
       </div>
     </div>
@@ -1119,7 +1194,7 @@ def build_reveal_html(mbti_type, axis_results):
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
       <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel()">{SHARE_SVG}<span>share</span></button>
       <button class="rv-tool" onclick="mbtiPack()">open another pack</button>
-      <button class="rv-tool" onclick="mbtiTypes(true)">all 16 types</button>
+      <button class="rv-tool" onclick="mbtiTypes(true)">all 16 mascots</button>
     </div>
 
     <div class="export-panel" id="exportPanel">
@@ -1258,7 +1333,7 @@ def run_prediction(*values):
             gr.update(visible=True), gr.update(visible=False), reset_btn,
         )
         return
-    yield build_reveal_html(mbti_type, axis_results), gr.update(visible=False), gr.update(visible=True), reset_btn
+    yield build_reveal_html(mbti_type, axis_results, F.pull_finish(1)), gr.update(visible=False), gr.update(visible=True), reset_btn
 
 
 # ── theme ─────────────────────────────────────────────────────────────────────

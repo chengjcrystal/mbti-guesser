@@ -588,8 +588,8 @@ footer, .built-with { display: none !important; }
 .flip.flipped .flip-in { transform: rotateY(180deg); }
 .face {
   grid-area: 1 / 1; min-width: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  background: var(--foil); border-radius: 28px; box-shadow: 0 10px 0 rgba(43,33,64,.35);
-  padding: 7px; display: flex; text-align: left;
+  background: none; border-radius: 28px; box-shadow: 0 10px 0 rgba(43,33,64,.35);
+  padding: 0; display: flex; text-align: left;
 }
 .face.back { transform: rotateY(180deg); }
 .rcard-top { display: flex; justify-content: space-between; align-items: center; }
@@ -601,15 +601,15 @@ footer, .built-with { display: none !important; }
 .rname { display: flex; flex-direction: column; gap: 3px; }
 .rcode { font-family: 'Press Start 2P', monospace; font-size: 24px; color: var(--plum); }
 .rtitle { font-family: 'Silkscreen', monospace; font-size: 15px; text-transform: uppercase; color: var(--ink-soft); letter-spacing: 0.04em; }
-.rradar { background: #fff; border: 3px solid var(--plum); border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; }
+.rradar { position: relative; overflow: hidden; background: #fff; border: 3px solid var(--plum); border-radius: 4px; display: flex; align-items: center; justify-content: center; padding: 4px; }
 .rradar svg { width: 100%; height: auto; display: block; }
 .rarity-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .rclose { font-family: 'Silkscreen', monospace; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mauve); }
 .rhint { margin-top: auto; text-align: center; font-family: 'Silkscreen', monospace; font-size: 15px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--plum); padding-top: 8px; }
 
 .wide-card {
-  display: none; text-align: left; background: var(--foil); border-radius: 28px;
-  box-shadow: 0 10px 0 rgba(43,33,64,.35); padding: 7px;
+  display: none; text-align: left; background: none; border-radius: 28px;
+  box-shadow: 0 10px 0 rgba(43,33,64,.35); padding: 0;
 }
 .rv[data-layout="wide"] .wide-card .fbody { gap: 10px; }
 .rv[data-layout="wide"] .flip { display: none; }
@@ -739,7 +739,7 @@ footer, .built-with { display: none !important; }
 
 /* ── the card frame: a gold rim, a band in the family color, then the cream face ── */
 .fband {
-  flex: 1; min-width: 0; display: flex; padding: 11px; border-radius: 22px;
+  flex: 1; min-width: 0; display: flex; padding: 18px; border-radius: 28px;
   background: var(--fam, var(--sage)); border: 3px solid var(--deep);
 }
 .fbody {
@@ -753,25 +753,21 @@ footer, .built-with { display: none !important; }
 .rcard-top .family-label { color: var(--deep); letter-spacing: 0.06em; text-transform: uppercase; font-size: 11px; }
 .rcard-top .card-index { letter-spacing: 0.04em; }
 
-/* windows: a gold double rim around the character and the radar */
+/* windows: a rim around the character and the radar, in the family color on a common card */
 .artwin {
   padding: 5px; border-radius: 6px; border: 2px solid var(--deep);
-  background: linear-gradient(135deg, #F3DC8E, #B98F3E 50%, #F3DC8E);
+  background: var(--fam, var(--sage));
 }
 .artwin.sm { padding: 3px; border-radius: 5px; }
 .artwin .rstage, .artwin .rradar { border-color: var(--deep); border-radius: 0; }
 .rstage, .tstage { position: relative; }
-.rstage::after, .tstage::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(115deg, rgba(255,255,255,0) 18%, rgba(255,255,255,0.38) 30%, rgba(255,170,210,0.20) 38%, rgba(140,230,255,0.22) 46%, rgba(255,255,255,0) 58%);
-}
 .rname { gap: 4px; }
 .rcode { font-size: 26px; line-height: 1.1; }
 .rtitle { font-size: 13px; letter-spacing: 0.05em; }
-/* the one-line blurb on a gold strip, like the pokedex line under the art */
+/* the one-line blurb strip under the art (gold on the rarer finishes) */
 .rblurb {
   margin: 0; padding: 5px 10px; text-align: center; border: 2px solid var(--deep); border-radius: 4px;
-  background: linear-gradient(90deg, #F3DC8E, #F9EDBE 50%, #F3DC8E); font-size: 14px; font-style: italic; color: #362B47;
+  background: var(--field); font-size: 14px; font-style: italic; color: #362B47;
 }
 .fbody .flavor-bar { margin-bottom: 0; }
 
@@ -795,17 +791,17 @@ footer, .built-with { display: none !important; }
 
 /* the gallery cards wear the same frame, scaled down */
 .tcard {
-  display: block; padding: 4px; background: var(--foil); border: none; border-radius: 16px; box-shadow: 0 6px 0 rgba(43,33,64,.35);
+  display: block; padding: 0; background: none; border: none; border-radius: 16px; box-shadow: 0 6px 0 rgba(43,33,64,.35);
 }
-.tband { display: flex; padding: 6px; border-radius: 12px; background: var(--fam); border: 2px solid var(--deep); height: 100%; box-sizing: border-box; }
+.tband { display: flex; padding: 10px; border-radius: 16px; background: var(--fam); border: 2px solid var(--deep); height: 100%; box-sizing: border-box; }
 .tbody {
   flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 7px;
   background: linear-gradient(180deg, #F6EFDC 0%, #EDE6D3 100%); border: 2px solid var(--deep);
 }
-.tcard.mine { background: var(--foil); box-shadow: 0 0 0 3px var(--field), 0 0 0 6px var(--plum), 0 9px 0 6px rgba(43,33,64,.35); }
+.tcard.mine { box-shadow: 0 0 0 3px var(--field), 0 0 0 6px var(--plum), 0 9px 0 6px rgba(43,33,64,.35); }
 .tcard.mine .tbody { background: var(--field); }
 .tstage { border-color: var(--deep); border-radius: 0; }
-@media (max-width: 520px) { .tcard { padding: 3px; } .tband { padding: 4px; } .tbody { padding: 6px; } }
+@media (max-width: 520px) { .tband { padding: 7px; } .tbody { padding: 6px; } }
 
 /* the "how it works" block hangs below the title, so the gallery's back button gets some room */
 .rv[data-view="all"] .types-bar { margin-top: 44px; }
@@ -844,3 +840,60 @@ footer, .built-with { display: none !important; }
 .wide-row .artwin .rstage, .wide-row .artwin .rradar { flex: 1; }
 @media (max-width: 380px) { .stat-name { flex-basis: 120px; } }
 .step-top span, .radar-toggle { white-space: nowrap; }
+
+
+/* ── card finishes ──────────────────────────────────────────────────────────
+   three of them, set on the .rv wrapper as data-finish="common|holo|rainbow".
+     common:  the family color border and nothing else
+     holo:    adds the gold border and one still shine stripe over the art
+     rainbow: a rainbow border (also still) and rainbow foil bands over the art
+   the outer size is the same for all three, the gold and rainbow rims just take the
+   space the thicker common border uses. every rule is scoped to .card-scene so the
+   gallery cards stay common. */
+
+/* the family pill and the finish tag sit together on the left, the number stays on the right */
+.rcard-tags { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+/* the small tag next to the family pill, only shown on the rarer finishes */
+.finish-tag {
+  font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--deep); border: 2px solid var(--deep); border-radius: 4px; padding: 3px 8px; white-space: nowrap;
+}
+.rv[data-finish="holo"] .finish-tag { background: #F3DC8E; }
+.rv[data-finish="rainbow"] .finish-tag { background: linear-gradient(90deg, #E86A6A 0 16.66%, #F0A35E 16.66% 33.33%, #F3D66B 33.33% 50%, #8FCB7A 50% 66.66%, #6FA8DC 66.66% 83.33%, #A98BD9 83.33% 100%); }
+
+/* holo and rainbow: a thin rim outside the family band, so the band gets thinner to keep the size */
+.rv[data-finish="holo"] .card-scene .face, .rv[data-finish="holo"] .card-scene .wide-card,
+.rv[data-finish="rainbow"] .card-scene .face, .rv[data-finish="rainbow"] .card-scene .wide-card { padding: 7px; }
+.rv[data-finish="holo"] .card-scene .fband, .rv[data-finish="rainbow"] .card-scene .fband { padding: 11px; border-radius: 22px; }
+.rv[data-finish="holo"] .card-scene .rblurb, .rv[data-finish="rainbow"] .card-scene .rblurb {
+  background: linear-gradient(90deg, #F3DC8E, #F9EDBE 50%, #F3DC8E);
+}
+
+/* holo: the gold rim and a bold shine. the shine sits at a fixed spot until the card is tilted,
+   then --shine (set by the tilt script) slides it across, so you can catch the light on it */
+.rv[data-finish="holo"] .card-scene .face, .rv[data-finish="holo"] .card-scene .wide-card { background: var(--foil); }
+.rv[data-finish="holo"] .card-scene .artwin { background: linear-gradient(135deg, #F3DC8E, #B98F3E 50%, #F3DC8E); }
+.rv[data-finish="holo"] .card-scene .rstage::after, .rv[data-finish="holo"] .card-scene .rradar::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255,255,255,0) 0 32.2%, rgba(255,170,210,.34) 34.8%, rgba(255,255,255,.62) 39.85% 43.2%, rgba(140,230,255,.38) 43.2% 47.5%, rgba(255,255,255,0) 47.5% 100%);
+  background-size: 300% 100%; background-position: calc(var(--shine, 50) * 1%) 0;
+  transition: background-position 0.1s linear;
+}
+.rv[data-finish="holo"] .card-scene .rradar::after { opacity: .7; }
+/* the radar shape on the back turns pale gold */
+.rv[data-finish="holo"] .card-scene .radar-shape { fill: #C9A24F; fill-opacity: .30; }
+
+/* rainbow: a bold rainbow rim, rainbow frames around the character and the radar, and rainbow foil
+   bands over the character. everything is still until the card is tilted, then the bands shift */
+.rv[data-finish="rainbow"] .card-scene .face, .rv[data-finish="rainbow"] .card-scene .wide-card { background: repeating-linear-gradient(135deg, rgb(232,106,106) 0px 8px, rgb(240,163,94) 8px 16px, rgb(243,214,107) 16px 24px, rgb(143,203,122) 24px 32px, rgb(111,168,220) 32px 40px, rgb(169,139,217) 40px 48px); }
+.rv[data-finish="rainbow"] .card-scene .artwin { background: repeating-linear-gradient(135deg, rgb(232,106,106) 0px 8px, rgb(240,163,94) 8px 16px, rgb(243,214,107) 16px 24px, rgb(143,203,122) 24px 32px, rgb(111,168,220) 32px 40px, rgb(169,139,217) 40px 48px); }
+.rv[data-finish="rainbow"] .card-scene .rstage { isolation: isolate; }
+.rv[data-finish="rainbow"] .card-scene .rstage::after {
+  content: ''; position: absolute; inset: -64px; pointer-events: none;
+  background: repeating-linear-gradient(135deg, rgba(238,143,143,.32) 0.0px 10.67px, rgba(243,185,132,.32) 10.67px 21.33px, rgba(245,225,146,.32) 21.33px 32.0px, rgba(172,217,155,.32) 32.0px 42.67px, rgba(147,190,230,.32) 42.67px 53.33px, rgba(193,170,226,.32) 53.33px 64.0px);
+  translate: calc(var(--sx, 0) * 1px) calc(var(--sx, 0) * 1px);
+  transition: translate 0.1s linear;
+}
+/* the radar shape on the back fills with rainbow rings growing out from the middle */
+.rv[data-finish="rainbow"] .card-scene .radar-shape { fill: url(#mbtiRings); fill-opacity: .95; }
