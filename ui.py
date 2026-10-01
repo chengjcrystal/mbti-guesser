@@ -30,7 +30,7 @@ CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
 
 # gradio 6.18 styles every button with .gradio-container-x button (three-ish classes deep), which
 # beats a plain .start-btn. repeating the class on a button selector wins on any gradio version
-_BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool|pb-open"
+_BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool|pb-open|board-share"
 CSS = re.sub(rf"(?<![\w-])\.({_BTN_CLASSES})(?![\w-])", r"button.\1.\1.\1.\1", CSS)
 CSS += f"\n:root {{ --sparkle: {foil_art.sparkle_tile_css(1)}; --sparkle-faint: {foil_art.sparkle_tile_css(0.4)}; }}\n"
 # follow-up questions are shown by flags on the quiz wrapper (set by the head script), not by the server:
@@ -1376,7 +1376,8 @@ def board_html(pulls, radar):
                   f'<div class="frame"><div class="sw">__SPRITE__<span class="bn">{i + 1}</span></div><div class="bl">{label}</div></div></div>')
     return (f'<div class="board"><div class="board-title">pack results</div>'
             f'<div class="board-ring">{cards}<div class="board-radar"><div class="artwin"><div class="rradar">{radar}</div></div></div></div>'
-            f'<div class="board-hint">tap a card to open it</div></div>')
+            f'<div class="board-hint">tap a card to open it</div>'
+            f'<button type="button" class="pb-open board-share" onclick="mbtiExportPanel()">{SHARE_SVG}<span>share results</span></button></div>')
 
 
 def slots_html(core, pulls, viewing):
@@ -1563,8 +1564,8 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
         "familyColor": family_color, "dex": index, "desc": desc, "identity": identity_desc,
         "blurb": CREATURE_BLURBS[core_display],
         "finish": finish, "finishLabel": F.FINISHES[finish]["label"],
-        "stats": card_stats,
         "pulls": game["pulls"] if game else [],
+        "stats": card_stats,
     }), quote=True)
 
     top_row = f"""

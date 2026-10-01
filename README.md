@@ -51,6 +51,8 @@ every result card comes in three finishes: common (just the family color border)
 
 you get 5 packs per quiz. the first one is opened for you, the other four are opened one at a time from the result page, and each one rolls a finish on the server (the odds are in `finishes.py`). shiny pulls get a longer, flashier opening. a column of slots beside the card (a dropdown on narrow screens) tracks which finishes of your type you've pulled, and tapping a pulled slot shows that card again. the packs you've opened are kept in the browser (`gr.BrowserState`), and anything read back from it is cleaned first (`game.py`), so a refresh keeps your pulls and a tampered value just falls back to the landing page.
 
+after the last pack the page shows all your cards on a board around your radar. the share button on the board saves or copies that board as one image (name and date included), drawn in the browser with the same rims and foil as the single cards.
+
 ## ⌜ invite and guess links ⌟
 
 the share panel can copy two links. an invite link (`?ref=1`) gives whoever opens it a bonus pack. a guess link (`?guess=ENFP&from=Sam`) is for guessing a friend's type: when the friend finishes the quiz they get a bonus pack and a card that shows what you guessed against what they are, letter by letter. copying either link also gives the sender one bonus pack, once. nothing is stored on the server, the links carry everything, and a broken or hostile query (`game.parse_query`) just falls back to no bonus. it's an honor system: nothing checks that a friend really showed up.
