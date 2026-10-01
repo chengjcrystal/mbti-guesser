@@ -1679,8 +1679,8 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
 # anyone who keeps reading) -- same text serves both readers, just at two
 # depths.
 HOW_IT_WORKS_RULES = [
-    ("bolt", "no dice, no randomness",
-     "Every card comes from a real language model actually reading what you typed.",
+    ("bolt", "your type is never random",
+     "Your type comes from a real language model actually reading what you typed.",
      "A zero-shot NLI classifier (<code>facebook/bart-large-mnli</code>) compares your answers against a short description of each trait and scores how well they match."),
     ("star", "five stats, five separate reads",
      "Energy, Vision, Empathy, Freedom, and Assurance each get their own pass.",
@@ -1691,6 +1691,9 @@ HOW_IT_WORKS_RULES = [
     ("heart", "photos count for a quarter",
      "Drop in a photo and DeepFace and OpenCV read expression, face count, and eye contact as small adjustments.",
      "A photo is weighted at 25% of the read. With no photo, text carries all of it."),
+    ("swirl", "packs are rolled on the server",
+     "Your result comes with 5 packs. The odds for each finish are fixed: common 65%, holo 27%, rainbow 8%.",
+     "Rolls use Python's <code>secrets</code> module on the server, never in the browser. Your pulls are saved in your browser and re-checked on the server every time. Invite and guess links carry everything in the URL and store nothing, so the bonus packs are an honor system."),
     ("shield", "tested on 16 snippets",
      "16 hand-written test snippets confirm the classifier reads clearly stated traits correctly.",
      "Mean confidence is over 97% on unambiguous text (see <code>eval_axes.py</code>). There's no labeled dataset of real people, so real-world accuracy is unknown. Treat it as a heuristic sketch."),
