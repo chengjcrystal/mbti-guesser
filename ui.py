@@ -30,7 +30,7 @@ CSS = (pathlib.Path(__file__).parent / "styles.css").read_text()
 
 # gradio 6.18 styles every button with .gradio-container-x button (three-ish classes deep), which
 # beats a plain .start-btn. repeating the class on a button selector wins on any gradio version
-_BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool|pb-open|board-share"
+_BTN_CLASSES = "radar-toggle|start-btn|rules-block|rules-close|rv-tool|pb-open|board-share|rv-mini"
 CSS = re.sub(rf"(?<![\w-])\.({_BTN_CLASSES})(?![\w-])", r"button.\1.\1.\1.\1", CSS)
 CSS += f"\n:root {{ --sparkle: {foil_art.sparkle_tile_css(1)}; --sparkle-faint: {foil_art.sparkle_tile_css(0.4)}; }}\n"
 # follow-up questions are shown by flags on the quiz wrapper (set by the head script), not by the server:
@@ -171,12 +171,11 @@ function mbtiFit() {
   };
   var cn = nat(f, 'block'), wn = wd ? nat(wd, 'flex') : cn;
   var again = document.querySelector('.again-row');
-  var panel = document.getElementById('exportPanel');
   var slots = document.querySelector('.slots-panel');   // on a wide screen it sits beside the card, otherwise under it (and can be scrolled to)
   var under = slots && getComputedStyle(slots).position !== 'absolute' && slots.offsetHeight > 0;   // beside the card it takes no height, otherwise it sits under it
   var top = absTop(el), bottom = top + el.offsetHeight;
   var end = again ? absTop(again) + again.offsetHeight : bottom;
-  var below = end - bottom - (panel && panel.classList.contains('open') ? panel.offsetHeight + 14 : 0) - (under ? slots.offsetHeight + 14 : 0);
+  var below = end - bottom - (under ? slots.offsetHeight + 14 : 0);
   // the gap under the card matches the one above it, and leaves room for the glow rings
   var GAP = 28, extra = GAP - 10;   // 10 is the bar's own top margin
   var target = Math.max(cn[1] * 0.5, Math.min(cn[1] * 1.3, window.innerHeight - top - below - extra - 20));
@@ -324,17 +323,15 @@ function mbtiGuess(on) {
   mbtiFit();
   w.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-// copy an invite link or a guess link from the share panel. the first copy also asks the server for the bonus pack (mbtiClaim)
-function mbtiInvite(kind) {
+// copy the invite link (with a guess in it if one was picked). the first copy also asks the server for the bonus pack (mbtiClaim)
+function mbtiInvite() {
   var w = mbtiRv(), note = document.getElementById('inviteNote');
   if (!w) return;
-  var d = {}; try { d = JSON.parse(w.getAttribute('data-card')); } catch (e) {}
   var url = location.origin + location.pathname + '?ref=1';
-  if (kind === 'guess') {
-    var sel = document.getElementById('guessType');
-    if (!sel || !sel.value) { if (note) note.textContent = 'pick the type you think your friend is first.'; return; }
+  var sel = document.getElementById('guessType');
+  if (sel && sel.value) {
     var nm = ((document.getElementById('exportName') || {}).value || '').trim().slice(0, 24);
-    url = location.origin + location.pathname + '?guess=' + sel.value + (nm ? '&from=' + encodeURIComponent(nm) : '');
+    url += '&guess=' + sel.value + (nm ? '&from=' + encodeURIComponent(nm) : '');
   }
   var done = function (ok) {
     if (note) note.textContent = ok ? 'link copied. send it to a friend.' : 'copy this link: ' + url;
@@ -386,19 +383,37 @@ function mbtiWho() {
   document.querySelectorAll('.wide-who').forEach(function (el) { el.textContent = line; });
   try { localStorage.setItem('mbtiRadarName', (document.getElementById('exportName') || {}).value || ''); } catch (e) {}
 }
-function mbtiExportPanel() {
+// the share window: a centered popup that prints a preview of the exact image first, so you can see what you're
+// saving or sending before you decide to put your name on it
+function mbtiExportPanel(force) {
   var p = document.getElementById('exportPanel');
   if (!p) return;
-  var open = !p.classList.contains('open');
+  var open = (typeof force === 'boolean') ? force : !p.classList.contains('open');
   p.classList.toggle('open', open);
-  if (open) mbtiShareInit();
+  document.body.classList.toggle('modal-open', open);
+  if (!open) return;
+  mbtiShareInit();
   var i = document.getElementById('exportName');
-  if (open && i) {
-    try { if (!i.value) i.value = localStorage.getItem('mbtiRadarName') || ''; } catch (e) {}
-    mbtiWho();
-    setTimeout(function () { i.focus(); p.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 60);
-  }
+  try { if (i && !i.value) i.value = localStorage.getItem('mbtiRadarName') || ''; } catch (e) {}
+  mbtiWho();
+  mbtiShareRefresh(true);
 }
+var mbtiShareT = null;
+function mbtiShareRefresh(print) {   // draws the image again (the name changed) after a short pause, and prints it on the first go
+  var img = document.getElementById('shareImg'), st = document.getElementById('smStage');
+  if (!img || !st) return;
+  clearTimeout(mbtiShareT);
+  mbtiShareT = setTimeout(function () {
+    st.classList.add('busy');
+    mbtiRenderCard(function (blob) {
+      var old = img.getAttribute('data-url'); if (old) URL.revokeObjectURL(old);
+      var u = URL.createObjectURL(blob); img.setAttribute('data-url', u); img.src = u;
+      st.classList.remove('busy');
+      if (print) { st.classList.remove('printing'); void st.offsetWidth; st.classList.add('printing'); }
+    });
+  }, print ? 30 : 250);
+}
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') mbtiExportPanel(false); });
 
 // draws the wide card onto a canvas by hand and downloads it. this is the
 // shareable version, so it has everything on it: character, radar, stats.
@@ -1377,7 +1392,7 @@ def board_html(pulls, radar):
     return (f'<div class="board"><div class="board-title">pack results</div>'
             f'<div class="board-ring">{cards}<div class="board-radar"><div class="artwin"><div class="rradar">{radar}</div></div></div></div>'
             f'<div class="board-hint">tap a card to open it</div>'
-            f'<button type="button" class="pb-open board-share" onclick="mbtiExportPanel()">{SHARE_SVG}<span>share results</span></button></div>')
+            f'<button type="button" class="pb-open board-share" onclick="mbtiExportPanel(true)">{SHARE_SVG}<span>share results</span></button></div>')
 
 
 def slots_html(core, pulls, viewing):
@@ -1426,7 +1441,7 @@ def invite_banner_html(params):
     packs = f"{bonus} bonus pack{'' if bonus == 1 else 's'}"
     if guess:
         who = html.escape(guess["from"]) if guess["from"] else "a friend"
-        text = f"{who} guessed your type. finish the test for {packs}."
+        text = f"{who} guessed your type. finish the test for {packs}, or {bonus + F.PERFECT_GUESS_BONUS_PACKS} if they nailed it."
     else:
         text = f"you were invited. finish the test for {packs}."
     return f'<div class="invite-banner" role="status"><span class="ib-tag">invite</span><span>{text}</span></div>'
@@ -1441,6 +1456,7 @@ def guess_page_html(game):
     core = game["code"][:4]
     who = html.escape(g["from"]) if g["from"] else "a friend"
     score = G.guess_score(g["type"], core)
+    perfect = (f'<div class="gc-perfect">perfect guess! +{F.PERFECT_GUESS_BONUS_PACKS} bonus pack for you</div>' if score == 4 else "")
     row = lambda word: "".join(
         f'<span class="gl {"hit" if a == b else "miss"}">{a}</span>' for a, b in zip(word, core))
     stage = lambda t, label: (f'<div class="gc-mascot"><div class="artwin sm"><div class="tstage"><canvas data-sprite="{t}" width="252" height="252"></canvas></div></div>'
@@ -1456,7 +1472,7 @@ def guess_page_html(game):
         <div class="gc-row"><span class="gc-lab">guess</span>{row(g["type"])}</div>
         <div class="gc-row"><span class="gc-lab">you</span>{"".join(f'<span class="gl hit">{c}</span>' for c in core)}</div>
       </div>
-      <div class="gc-score">{score}/4 letters right</div>
+      <div class="gc-score">{score}/4 letters right</div>{perfect}
       <div class="gc-foot">mbti radar</div>
     </div>
     <button type="button" class="pb-open" onclick="mbtiGuess(false)"><span>continue</span><span class="pb-arrow">&rarr;</span></button>
@@ -1464,23 +1480,21 @@ def guess_page_html(game):
 
 
 def invite_box_html(game):
-    """inside the share panel: copy a link that invites a friend, or one that asks a friend to guess a type.
-    copying either one gives you a bonus pack, once (an honor system, there's nothing to check)."""
+    """inside the share window: one invite link. it can carry a guess at the friend's type. the friend gets a
+    bonus pack for the invite, another for the guess, and another if the guess is exactly right. you get one for
+    sharing (once). it's an honor system, there's nothing to check."""
     if not game:
         return ""
-    options = "".join(f'<option value="{t}">{t}</option>' for t in sorted(MBTI_DESCRIPTIONS))
+    options = "".join(f'<option value="{t}">guess {t}</option>' for t in sorted(MBTI_DESCRIPTIONS))
     note = ("you already got your bonus pack for sharing." if game["shared"]
-            else "friends who join from your link get a bonus pack, and you get one too (once).")
+            else f"you get {F.SHARER_BONUS_PACKS} bonus pack for sharing (once). they get {F.INVITE_BONUS_PACKS}, {F.INVITE_BONUS_PACKS + F.GUESS_BONUS_PACKS} with a guess, "
+                 f"and {F.INVITE_BONUS_PACKS + F.GUESS_BONUS_PACKS + F.PERFECT_GUESS_BONUS_PACKS} if you guess their type exactly.")
     return f'''
       <div class="invite-box">
-        <div class="export-label">invite friends</div>
-        <div class="export-actions">
-          <button class="rv-tool" onclick="mbtiInvite('ref')">copy invite link</button>
-        </div>
-        <label class="export-label" for="guessType">or guess a friend's type <span>(your name above goes on it)</span></label>
-        <div class="export-actions">
-          <select id="guessType" aria-label="type to guess"><option value="">pick a type</option>{options}</select>
-          <button class="rv-tool" onclick="mbtiInvite('guess')">copy guess link</button>
+        <div class="export-label">invite a friend <span>(optional guess)</span></div>
+        <div class="ib-row">
+          <select id="guessType" aria-label="guess your friend's type"><option value="">no guess</option>{options}</select>
+          <button class="rv-tool" onclick="mbtiInvite()">copy invite link</button>
         </div>
         <p class="export-note" id="inviteNote">{note}</p>
       </div>'''
@@ -1650,21 +1664,28 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
 
     <div class="rv-tools">
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
-      <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel()">{SHARE_SVG}<span>share</span></button>
-      <button class="rv-tool" onclick="mbtiTypes(true)"><span class="lab-long">all 16 mascots</span><span class="lab-short">all 16</span></button>
-      <button class="rv-tool" id="guessBtn" onclick="mbtiGuess(true)">their guess</button>
-      <button class="rv-tool" id="colBtn" onclick="mbtiCollection()">collection</button>
+      <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel(true)">{SHARE_SVG}<span>share card</span></button>
+      <button class="rv-tool" onclick="mbtiTypes(true)">all 16 mascots</button>
     </div>
-
-    <div class="export-panel" id="exportPanel">
-      <label class="export-label" for="exportName">name on the card <span>(optional)</span></label>
-      <input id="exportName" type="text" maxlength="40" autocomplete="name" placeholder="your full name" oninput="mbtiWho()">
+    <div class="rv-tools2">
+      <button class="rv-tool rv-mini" id="guessBtn" onclick="mbtiGuess(true)">their guess</button>
+      <button class="rv-tool rv-mini" id="colBtn" onclick="mbtiCollection()">collection</button>
+    </div>
+  </div>
+  <div class="export-panel" id="exportPanel" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+    <div class="sm-backdrop" onclick="mbtiExportPanel(false)"></div>
+    <div class="sm-box">
+      <button type="button" class="rules-close sm-x" onclick="mbtiExportPanel(false)" aria-label="Close">x</button>
+      <div class="sm-title" id="smTitle">your share card</div>
+      <div class="sm-stage" id="smStage"><img id="shareImg" alt="a preview of the image you can save or send"><div class="sm-load">printing...</div></div>
+      <label class="export-label" for="exportName">name on it <span>(optional)</span></label>
+      <input id="exportName" type="text" maxlength="40" autocomplete="name" placeholder="your full name" oninput="mbtiWho(); mbtiShareRefresh(false)">
       <div class="export-actions">
-        <button class="rv-tool has-ico" id="nativeShareBtn" onclick="mbtiShare()">{SHARE_SVG}<span>share</span></button>
+        <button class="rv-tool has-ico" id="nativeShareBtn" onclick="mbtiShare()">{SHARE_SVG}<span>send</span></button>
         <button class="rv-tool has-ico" id="copyBtn" onclick="mbtiCopy()">{COPY_SVG}<span>copy image</span></button>
         <button class="rv-tool has-ico" onclick="mbtiExport()">{SAVE_SVG}<span>save image</span></button>
       </div>
-      <p class="export-note" id="exportNote">your name and today's date get printed on the card. it stays in your browser, nothing is sent or saved.</p>{invite_box_html(game)}
+      <p class="export-note" id="exportNote">your name and today's date get printed on it. it stays in your browser, nothing is sent or saved.</p>{invite_box_html(game)}
     </div>
   </div>
   {game_slots}
@@ -2280,7 +2301,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         with gr.Row(elem_classes=["dev-bar"]):
             dev_type = gr.Dropdown(choices=sorted(MBTI_DESCRIPTIONS), value="ENFJ", label="dev: type", scale=2)
             dev_finish = gr.Dropdown(choices=F.FINISH_IDS, value="common", label="dev: finish", scale=2)
-            dev_link = gr.Dropdown(choices=["no link", "invite link", "guess link", "invite + guess link"], value="no link", label="dev: pretend the page was opened from", scale=2)
+            dev_link = gr.Dropdown(choices=["no link", "invite link", "invite link with a guess"], value="no link", label="dev: pretend the page was opened from", scale=2)
             dev_guess = gr.Dropdown(choices=sorted(MBTI_DESCRIPTIONS), value="ENFP", label="dev: type the friend guessed", scale=2)
             dev_btn = gr.Button("dev: jump to result", scale=2)
 
@@ -2510,7 +2531,7 @@ if DEV:
 
     def dev_set_link(link, guessed):
         params = {"ref": 1 if "invite" in link else 0,
-                  "guess": {"type": guessed, "from": "Sam"} if "guess" in link else None}
+                  "guess": {"type": guessed, "from": "Sam"} if "guess" in link else None}   # a link with a guess is an invite link too
         return params, invite_banner_html(params)
 
     with demo:

@@ -53,9 +53,9 @@ you get 5 packs per quiz. the first one is opened for you, the other four are op
 
 after the last pack the page shows all your cards on a board around your radar. the share button on the board saves or copies that board as one image (name and date included), drawn in the browser with the same rims and foil as the single cards.
 
-## ⌜ invite and guess links ⌟
+## ⌜ share window and invite links ⌟
 
-the share panel can copy two links. an invite link (`?ref=1`) gives whoever opens it a bonus pack. a guess link (`?guess=ENFP&from=Sam`) is for guessing a friend's type: when the friend finishes the quiz they get a bonus pack and a card that shows what you guessed against what they are, letter by letter. copying either link also gives the sender one bonus pack, once. nothing is stored on the server, the links carry everything, and a broken or hostile query (`game.parse_query`) just falls back to no bonus. it's an honor system: nothing checks that a friend really showed up.
+the share button opens a centered window that prints a preview of the exact image first, so you see what you're saving or sending, then you can add your name (the preview updates as you type) and save, copy or send it. the same window has one invite link (`?ref=1`). you can add a guess at your friend's type to it (`?ref=1&guess=ENFP&from=Sam`): the friend gets a bonus pack for the invite, another for the guess, and another if the guess was exactly right, and they see a card comparing your guess to their real type, letter by letter. copying the link gives the sender one bonus pack, once. nothing is stored on the server, the links carry everything, and a broken or hostile query (`game.parse_query`) just falls back to no bonus. it's an honor system: nothing checks that a friend really showed up.
 
 ## ⌜ honest limitations ⌟
 
