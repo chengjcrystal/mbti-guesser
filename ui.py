@@ -1395,8 +1395,7 @@ def board_html(pulls, radar):
                   f'<div class="frame"><div class="sw">__SPRITE__<span class="bn">{i + 1}</span></div><div class="bl">{label}</div></div></div>')
     return (f'<div class="board"><div class="board-title">pack results</div>'
             f'<div class="board-ring">{cards}<div class="board-radar"><div class="artwin"><div class="rradar">{radar}</div></div></div></div>'
-            f'<div class="board-hint">tap a card to open it</div>'
-            f'<button type="button" class="pb-open board-share" onclick="mbtiExportPanel(true)">{SHARE_SVG}<span>share results</span></button></div>')
+            f'<div class="board-hint">tap a card to open it</div></div>')
 
 
 def slots_html(core, pulls, viewing):
@@ -1668,8 +1667,8 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
 
     <div class="rv-tools">
       <button class="rv-tool" id="layoutBtn" onclick="mbtiLayout()">wide view</button>
-      <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel(true)">{SHARE_SVG}<span>share card</span></button>
-      <button class="rv-tool" onclick="mbtiTypes(true)">all 16 mascots</button>
+      <button class="rv-tool has-ico" id="shareBtn" onclick="mbtiExportPanel(true)">{SHARE_SVG}<span class="lab-card">share card</span><span class="lab-res">share results</span></button>
+      <button class="rv-tool" onclick="mbtiTypes(true)"><span class="lab-long">all 16 mascots</span><span class="lab-short">all 16</span></button>
     </div>
     <div class="rv-tools2">
       <button class="rv-tool rv-mini" id="guessBtn" onclick="mbtiGuess(true)">their guess</button>
