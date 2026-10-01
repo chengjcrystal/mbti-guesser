@@ -1717,7 +1717,7 @@ HOW_IT_WORKS_RULES = [
      "Drop in a photo and DeepFace and OpenCV read expression, face count, and eye contact as small adjustments.",
      "A photo is weighted at 25% of the read. With no photo, text carries all of it."),
     ("swirl", "packs are rolled on the server",
-     "Your result comes with 5 packs. The odds for each finish are fixed: common 65%, holo 27%, rainbow 8%.",
+     f"Your result comes with {F.TOTAL_PACKS} packs. The odds for each finish are fixed: common {F.ODDS['common']}%, holo {F.ODDS['holo']}%, rainbow {F.ODDS['rainbow']}%.",
      "Rolls use Python's <code>secrets</code> module on the server, never in the browser. Your pulls are saved in your browser and re-checked on the server every time. Invite and guess links carry everything in the URL and store nothing, so the bonus packs are an honor system."),
     ("shield", "tested on 16 snippets",
      "16 hand-written test snippets confirm the classifier reads clearly stated traits correctly.",
