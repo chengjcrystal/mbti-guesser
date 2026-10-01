@@ -2189,6 +2189,11 @@ def _conds(q):
     cond = q["show_if"]
     return [cond] if isinstance(cond, str) else list(cond)
 
+# once a game exists the page's ?ref=1 / ?guess= is used up, so it's taken off the address bar (a reload or a retake
+# can't pick the bonus up a second time)
+CLEAN_URL_BODY = "history.replaceState(null, '', location.pathname);"
+CLEAN_URL_JS = "() => { var v = document.getElementById('rv'); if (v && v.offsetParent !== null) { " + CLEAN_URL_BODY + " } }"
+
 with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     gr.HTML(f"""
@@ -2348,10 +2353,11 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         inputs=[C[name] for name in ALL_FIELD_NAMES] + [C["photo"]] + [params_state],
         outputs=[output, form_page, reveal_page, submit_btn, game_state, callouts[LAST_STEP], attempted[LAST_STEP]],
         show_progress="hidden",
-    )
+    ).then(fn=None, js=CLEAN_URL_JS)
 
     def again_reset_pages():
-        return gr.update(visible=True), gr.update(visible=False), None  # form_page, reveal_page, game
+        # form_page, reveal_page, game, and the link's bonus is used up so a retake doesn't get it again
+        return gr.update(visible=True), gr.update(visible=False), None, {"ref": 0, "guess": None}, ""
 
     def again_reset_panels():
         return step_indicator_html(1, TOTAL_STEPS), empty_progress_html()
@@ -2369,9 +2375,9 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
 
     # retake wipes every answer and goes back to the quiz. back to start does the same wipe, then shows the landing page
     def wire_reset(btn, js=None):
-        extra = {"js": js} if js else {}
+        extra = {"js": js}
         btn.click(
-            fn=again_reset_pages, outputs=[form_page, reveal_page, game_state], show_progress="hidden", **extra,
+            fn=again_reset_pages, outputs=[form_page, reveal_page, game_state, params_state, invite_banner], show_progress="hidden", **extra,
         ).then(
             fn=again_reset_panels, outputs=[step_indicator, progress_panel], show_progress="hidden",
         ).then(
@@ -2398,7 +2404,7 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
     demo.load(
         fn=on_load, inputs=[game_state, url_query], outputs=[output, form_page, reveal_page, game_state, params_state, invite_banner],
         show_progress="hidden", js="(saved, query) => [saved, window.location.search]",
-    ).then(fn=None, js="() => { if (document.getElementById('rv')) { mbtiStart(); mbtiFit(); } }")
+    ).then(fn=None, js="() => { if (document.getElementById('rv')) { mbtiStart(); mbtiFit(); history.replaceState(null, '', location.pathname); } }")
 
     # the bonus pack for sharing a link. the server hands it out once per game, then the page is drawn again with the extra pack
     def claim_handler(saved):
@@ -2411,8 +2417,8 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         fn=claim_handler, inputs=[game_state], outputs=[output, game_state], show_progress="hidden", trigger_mode="once",
     ).then(fn=None, js="() => { mbtiFit(); }")
 
-    wire_reset(again_btn)
-    wire_reset(home_btn, js="() => { document.body.classList.remove('started'); window.scrollTo({ top: 0 }); }")
+    wire_reset(again_btn, js=f"() => {{ {CLEAN_URL_BODY} }}")
+    wire_reset(home_btn, js=f"() => {{ {CLEAN_URL_BODY} document.body.classList.remove('started'); window.scrollTo({{ top: 0 }}); }}")
 
 if DEV:
     # a made up read for whichever type was picked, so the result page has real looking numbers on it
