@@ -547,7 +547,7 @@ footer, .built-with { display: none !important; }
 .rv[data-layout="wide"] .wide-card { display: flex; }
 .wide-card .fbody .flavor-bar { margin-bottom: 0; }
 .wide-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.wide-stats { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+.wide-stats { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 6px 24px; }   /* two columns only when the card is wide enough for them */
 .wide-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-family: 'Press Start 2P', monospace; font-size: 9px; color: rgba(74,59,92,.55); }
 .wide-who { font-family: 'Silkscreen', monospace; font-size: 13px; font-weight: 700; color: var(--plum); letter-spacing: 0.03em; }
 @media (max-width: 640px) { .wide-row, .wide-stats { grid-template-columns: 1fr; } }
@@ -1132,7 +1132,7 @@ body:not(.started) .reveal-page-inner { display: none !important; }
   font-family: 'Rubik', sans-serif; font-size: 14px; line-height: 1.35; color: var(--ink);
 }
 .invite-banner > span:last-child { min-width: 0; }
-@media (min-width: 700px) { .invite-banner > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }   /* one line on a wide screen, even with a long name */
+@media (min-width: 900px) { .invite-banner > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }   /* one line on a wide screen, even with a long name */
 .ib-tag { flex: 0 0 auto; padding: 3px 8px; font-family: 'Silkscreen', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--deep); background: #F3DC8E; border: 2px solid var(--deep); border-radius: 4px; }
 
 /* the friend's guess: a still card of what they guessed against what you are, made to be screenshotted */
@@ -1227,3 +1227,7 @@ body.modal-open { overflow: hidden; }
 .rv-tool.rv-mini { font-size: 11px; padding: 6px 16px; }
 
 .gc-perfect { padding: 6px 12px; font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--deep); background: #F3DC8E; border: 3px solid var(--deep); border-radius: 4px; }
+
+/* a lone button in the row (the board only has one) stays button sized instead of stretching across the page */
+.rv-tools { justify-content: center; }
+.rv-tools > .rv-tool { width: 100%; max-width: 240px; justify-self: center; }
