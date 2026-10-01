@@ -655,6 +655,7 @@ footer, .built-with { display: none !important; }
 
 /* the quiet-chat question appears once the group chat part is settled */
 .reveal-col { display: none !important; }
+.console.chat-done .reveal-col.rv-chat_done { display: flex !important; animation: need-in 0.25s ease-out; }
 
 /* ── the card frame: a gold rim, a band in the family color, then the cream face ── */
 .fband {
