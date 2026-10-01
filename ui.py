@@ -140,16 +140,28 @@ function mbtiTypes(open) {   // the gallery of all 16 types, in place of the pac
 function mbtiHeroSync() {
   // the title banner steps aside (on a short screen, see the css) while the card is showing
   var w = mbtiRv(), h = document.querySelector('.mbti-hero');
-  if (h) h.classList.toggle('stepped-aside', !!w && w.classList.contains('sliced') && !w.hasAttribute('data-view'));
+  var aside = !!w && w.classList.contains('sliced') && !w.hasAttribute('data-view');
+  if (h) {
+    h.classList.toggle('stepped-aside', aside);
+    // on a short screen the css hides it; in an embed the frame is as tall as the page, so that never fires and it is hidden here
+    h.style.display = (aside && mbtiEmbedded() && window.innerWidth >= 700) ? 'none' : '';
+  }
 }
 // sizes the card so the card, the buttons under it and the retake button fit one screen. one target height is
 // worked out from the window alone and both views (card and wide) are scaled to it, so they are always the same
 // height and switching never moves anything below. it shrinks (not below 50%) on a short window and grows
 // (up to 1.3x) on a big one. --cardw tells the css how wide the card ended up (the side collection is placed by it)
 // the usable window height. inside an embed that grows to fit its content (a Hugging Face Space) innerHeight keeps
-// growing with the card, so it is capped by the real screen, which stops the card and the wallpaper chasing the page height
+// growing with the card, so a fixed size from the real screen is used there, which stops the card and the wallpaper chasing the page height
+function mbtiEmbedded() {
+  try { return window.self !== window.top; } catch (e) { return true; }
+}
 function mbtiViewH() {
   var h = window.innerHeight, sh = (window.screen && (screen.availHeight || screen.height)) || h;
+  var embedded = mbtiEmbedded();
+  // embedded, the frame's own height follows the page (and the page follows the card), so it is no use as a size:
+  // use what the screen can show under the host page's header instead, which never changes
+  if (embedded) return Math.max(420, sh - 200);
   return Math.max(320, Math.min(h, sh - 40));
 }
 function mbtiSceneSync() {
@@ -205,20 +217,22 @@ function mbtiFit() {
   window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(mbtiFit, 120); });
 })();
 // tilt: the card leans toward the pointer and the shine slides with it, so a foil card
-// can be turned to catch the light. this only sets a few css variables on .rv, the css does the rest
+// can be turned to catch the light. this only sets a few css variables on the card area, the css does the rest
 (function () {
   var MAX = 13;   // degrees of lean at the very edge of the card
   var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var VARS = ['--rx', '--ry', '--ra', '--shine', '--sx'];
   var pending = null, queued = false;
   function clamp(v) { return Math.max(0, Math.min(1, v)); }
+  // the variables go on the card area, not the whole page, so a mouse move only restyles the card and not every element on the page
+  function scene() { return document.querySelector('#rv .card-scene'); }
   function rest() {
-    var rv = document.getElementById('rv');
+    var rv = scene();
     if (rv) VARS.forEach(function (k) { rv.style.removeProperty(k); });
   }
   function paint() {
     queued = false;
-    var rv = document.getElementById('rv');
+    var rv = scene();
     if (!rv || !pending) return;
     var dx = (pending.x - 0.5) * 2, dy = (pending.y - 0.5) * 2, m = Math.sqrt(dx * dx + dy * dy);
     rv.style.setProperty('--rx', m ? (-dy / m).toFixed(3) : '0');
@@ -381,8 +395,10 @@ function mbtiWrapText(c, text, x, y, maxW, lh) {
 
 // the name box under the tools row. the name and today's date are printed on the
 // wide card and on the exported png, all in the browser, nothing gets sent anywhere.
+var mbtiDateFmt = null;   // building the formatter is the slow part (about 20ms), so it is made once
 function mbtiToday() {
-  return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (!mbtiDateFmt) mbtiDateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return mbtiDateFmt.format(new Date());
 }
 function mbtiWhoLine() {
   var i = document.getElementById('exportName');
@@ -1586,6 +1602,8 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
         mini = _pentagon_svg(stats, size=200, show_labels=False, fill_container=True)
         game_board = board_html(game["pulls"], mini).replace("__SPRITE__", f'<canvas data-sprite="{core_display}" width="252" height="252"></canvas>')
     board_attr = ' data-board="1" data-done="1"' if over and opened else ""
+    if over:
+        board_attr += ' data-last="1"'   # every pack is out, so the collection is no longer needed (see the css)
     if game:
         board_attr += f' data-pack="{n_pack}"' + (' data-guess="1"' if game["guess"] else "") + (' data-shared="1"' if game["shared"] else "")
 
