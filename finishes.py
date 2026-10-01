@@ -24,8 +24,8 @@ FIRST_PACK_FINISH = "common" # pack 1 is always the base card, so everyone has a
 
 # odds for packs 2 and up, out of 100. the numbers have to add up to 100.
 # worked out from a target for a plain 5 pack quiz (4 rolls, since pack 1 is always common): about 1 person in 5
-# should see even one rainbow (1 - 0.94^4 = 22%) and about 4 in 5 should see at least one holo (1 - 0.67^4 = 80%)
-ODDS = {"common": 61, "holo": 33, "rainbow": 6}
+# should see even one rainbow (1 - 0.94^4 = 22%) and about 3 in 4 should see at least one holo (1 - 0.72^4 = 73%)
+ODDS = {"common": 66, "holo": 28, "rainbow": 6}
 
 # bonus packs from the share links (used in a later step)
 INVITE_BONUS_PACKS = 1   # someone who arrives through ?ref=1
