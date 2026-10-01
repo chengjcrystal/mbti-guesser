@@ -2211,6 +2211,8 @@ with gr.Blocks(title="MBTI Radar", css=CSS, theme=theme, head=HEAD_JS) as demo:
         with gr.Row(elem_classes=["dev-bar"]):
             dev_type = gr.Dropdown(choices=sorted(MBTI_DESCRIPTIONS), value="ENFJ", label="dev: type", scale=2)
             dev_finish = gr.Dropdown(choices=F.FINISH_IDS, value="common", label="dev: finish", scale=2)
+            dev_link = gr.Dropdown(choices=["no link", "invite link", "guess link", "invite + guess link"], value="no link", label="dev: pretend the page was opened from", scale=2)
+            dev_guess = gr.Dropdown(choices=sorted(MBTI_DESCRIPTIONS), value="ENFP", label="dev: type the friend guessed", scale=2)
             dev_btn = gr.Button("dev: jump to result", scale=2)
 
     # the landing page shows first. the quiz is already in the page, hidden by css until the button is pressed
@@ -2437,7 +2439,15 @@ if DEV:
         new = G.new_game(mbti_type, read, finish, ref=params.get("ref"), guess=params.get("guess"))
         return build_game_html(new), gr.update(visible=False), gr.update(visible=True), new
 
+    def dev_set_link(link, guessed):
+        params = {"ref": 1 if "invite" in link else 0,
+                  "guess": {"type": guessed, "from": "Sam"} if "guess" in link else None}
+        return params, invite_banner_html(params)
+
     with demo:
+        # pick a pretend link and the landing page shows its banner, the next dev jump gets its bonus packs
+        for comp in (dev_link, dev_guess):
+            comp.change(fn=dev_set_link, inputs=[dev_link, dev_guess], outputs=[params_state, invite_banner], show_progress="hidden")
         dev_btn.click(fn=dev_jump, inputs=[dev_type, dev_finish, params_state], outputs=[output, form_page, reveal_page, game_state], show_progress="hidden",
                       js="(t, f, p) => { window.mbtiStart && mbtiStart(); return [t, f, p]; }")
 
