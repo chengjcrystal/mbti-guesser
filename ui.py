@@ -494,8 +494,12 @@ function mbtiRenderCard(done) {
       var SW = 1400, SH = 1560, BM = 36, BW = 1100, bx = 150, by = 215, n = d.pulls.length;
       cv.width = SW + 2 * BM; cv.height = SH + 2 * BM; c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
       c.translate(BM, BM);
-      rr(0, 0, SW, SH, 44); c.fillStyle = d.familyColor; c.fill(); c.strokeStyle = DK; c.lineWidth = 6; c.stroke();
+      // the frame follows the rarest card you pulled: a rainbow or gold rim around the family band, like the cards themselves
+      var top = d.pulls.indexOf('rainbow') >= 0 ? 'rainbow' : d.pulls.indexOf('holo') >= 0 ? 'holo' : 'common';
+      rr(0, 0, SW, SH, 44); c.fillStyle = top === 'holo' ? foil(0, 0, SW, SH) : top === 'rainbow' ? rainbowFill(0, 0, SW, SH) : d.familyColor; c.fill(); c.strokeStyle = DK; c.lineWidth = 6; c.stroke();
+      if (top !== 'common') { rr(16, 16, SW - 32, SH - 32, 30); c.fillStyle = d.familyColor; c.fill(); c.lineWidth = 5; c.stroke(); }
       rr(34, 34, SW - 68, SH - 68, 24); c.fillStyle = '#F6EFDC'; c.fill(); c.lineWidth = 5; c.stroke();
+      if (top === 'rainbow') { c.save(); rr(34, 34, SW - 68, SH - 68, 24); c.clip(); c.globalAlpha = 0.3; sparkles(34, 34, SW - 68); sparkles(34, SH - 34 - (SW - 68), SW - 68); c.restore(); }
       c.textAlign = 'left'; c.fillStyle = PLUM; c.font = '48px "Press Start 2P", monospace'; c.fillText(d.code + '-' + d.suffix, 80, 130);
       c.fillStyle = SOFT; c.font = '700 28px Silkscreen, monospace'; c.fillText(d.title.toUpperCase(), 80, 180);
       c.textAlign = 'right'; c.fillStyle = PLUM; c.font = '700 32px Silkscreen, monospace'; c.fillText('PACK RESULTS', SW - 80, 130);
