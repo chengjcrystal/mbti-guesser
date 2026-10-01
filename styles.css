@@ -1191,3 +1191,10 @@ body:not(.started) .reveal-page-inner { display: none !important; }
   #colBtn { display: block; }
 }
 @media (max-width: 839px) { .lab-long { display: none; } .lab-short { display: inline; } }   /* four buttons in the row, so the gallery one is short */
+
+/* the top row of a card (tags on the left, the number on the right) wraps instead of running into each other on a phone */
+@media (max-width: 480px) {
+  .rcard-top { flex-wrap: wrap; gap: 4px 8px; }
+  .rcard-tags { flex-wrap: wrap; }
+  .rcard-top .card-index { white-space: nowrap; }
+}
