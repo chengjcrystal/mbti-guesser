@@ -146,7 +146,18 @@ function mbtiHeroSync() {
 // worked out from the window alone and both views (card and wide) are scaled to it, so they are always the same
 // height and switching never moves anything below. it shrinks (not below 50%) on a short window and grows
 // (up to 1.3x) on a big one. --cardw tells the css how wide the card ended up (the side collection is placed by it)
+// the usable window height. inside an embed that grows to fit its content (a Hugging Face Space) innerHeight keeps
+// growing with the card, so it is capped by the real screen, which stops the card and the wallpaper chasing the page height
+function mbtiViewH() {
+  var h = window.innerHeight, sh = (window.screen && (screen.availHeight || screen.height)) || h;
+  return Math.max(320, Math.min(h, sh - 40));
+}
+function mbtiSceneSync() {
+  var d = document.documentElement, v = mbtiViewH() + 'px';
+  if (d.style.getPropertyValue('--scene-h') !== v) d.style.setProperty('--scene-h', v);
+}
 function mbtiFit() {
+  mbtiSceneSync();
   mbtiHeroSync();
   var w = mbtiRv();
   var f = document.getElementById('flip1'), wd = document.getElementById('wide1');
@@ -178,7 +189,7 @@ function mbtiFit() {
   var below = end - bottom - (under ? slots.offsetHeight + 14 : 0);
   // the gap under the card matches the one above it, and leaves room for the glow rings
   var GAP = 28, extra = GAP - 10;   // 10 is the bar's own top margin
-  var target = Math.max(cn[1] * 0.5, Math.min(cn[1] * 1.3, window.innerHeight - top - below - extra - 20));
+  var target = Math.max(cn[1] * 0.5, Math.min(cn[1], mbtiViewH() - top - below - extra - 20));   // never bigger than its natural size
 
   var me = wide ? wn : cn, s = Math.min(target / me[1], (window.innerWidth - 40) / me[0]);
   w.style.setProperty('--cardw', Math.round(me[0] * s) + 'px');
@@ -801,6 +812,7 @@ document.addEventListener('keydown', function (e) {
     highlight();
     if (window.mbtiRadarApply) mbtiRadarApply();
     if (window.mbtiHeroSync) mbtiHeroSync();
+    if (window.mbtiSceneSync) mbtiSceneSync();
     // a re-render (the bonus pack for copying the invite link) can remove the share window while the page is still locked
     if (document.body.classList.contains('modal-open') && !document.querySelector('.export-panel.open')) document.body.classList.remove('modal-open');
     var r = document.querySelector('#f-posting_frequency input[type=radio]:checked');
