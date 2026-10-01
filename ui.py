@@ -1357,13 +1357,13 @@ def invite_banner_html(params):
     ref, guess = params.get("ref"), params.get("guess")
     if not ref and not guess:
         return ""
-    total = G.budget_for(ref, guess, 0)
-    bonus = total - F.TOTAL_PACKS
+    bonus = G.budget_for(ref, guess, 0) - F.TOTAL_PACKS
+    packs = f"{bonus} bonus pack{'' if bonus == 1 else 's'}"
     if guess:
         who = html.escape(guess["from"]) if guess["from"] else "a friend"
-        text = f"{who} guessed your type. finish the test to see how close they got, plus {bonus} bonus pack{'' if bonus == 1 else 's'} ({total} in all)."
+        text = f"{who} guessed your type. finish the test for {packs}."
     else:
-        text = f"you were invited. finish the test for {bonus} bonus pack{'' if bonus == 1 else 's'} ({total} in all)."
+        text = f"you were invited. finish the test for {packs}."
     return f'<div class="invite-banner" role="status"><span class="ib-tag">invite</span><span>{text}</span></div>'
 
 
