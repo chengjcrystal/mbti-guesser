@@ -28,13 +28,14 @@ gradio-app, body {
 /* ── hero scene: fixed full-viewport pixel-art wallpaper, not a repeating pattern ── */
 .hero-scene {
   position: fixed;
-  inset: 0 0 auto 0;
-  width: 100%;
-  height: var(--scene-h, 100%);   /* capped by the screen, so a page that grows taller doesn't zoom the wallpaper */
+  inset: 0;
   overflow: hidden;
   line-height: 0;
+  background-color: #A3DBD8;   /* the sky color, for the part above the picture when the window is taller than the picture */
 }
-.hero-scene svg { width: 100%; height: 100%; display: block; }
+/* the picture is 4:3 and fills the width, so how big it looks depends on the width only. a taller window (or an embed that grows
+   with the page) gets plain sky above it instead of a zoomed-in picture, and a shorter one crops it like before */
+.hero-scene svg { position: absolute; left: 0; bottom: 0; width: 100%; height: min(100%, 75vw); display: block; }
 
 .main-content {
   max-width: 1320px !important;

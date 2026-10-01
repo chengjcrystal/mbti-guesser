@@ -164,12 +164,7 @@ function mbtiViewH() {
   if (embedded) return Math.max(420, sh - 200);
   return Math.max(320, Math.min(h, sh - 40));
 }
-function mbtiSceneSync() {
-  var d = document.documentElement, v = mbtiViewH() + 'px';
-  if (d.style.getPropertyValue('--scene-h') !== v) d.style.setProperty('--scene-h', v);
-}
 function mbtiFit() {
-  mbtiSceneSync();
   mbtiHeroSync();
   var w = mbtiRv();
   var f = document.getElementById('flip1'), wd = document.getElementById('wide1');
@@ -828,7 +823,6 @@ document.addEventListener('keydown', function (e) {
     highlight();
     if (window.mbtiRadarApply) mbtiRadarApply();
     if (window.mbtiHeroSync) mbtiHeroSync();
-    if (window.mbtiSceneSync) mbtiSceneSync();
     // a re-render (the bonus pack for copying the invite link) can remove the share window while the page is still locked
     if (document.body.classList.contains('modal-open') && !document.querySelector('.export-panel.open')) document.body.classList.remove('modal-open');
     var r = document.querySelector('#f-posting_frequency input[type=radio]:checked');
