@@ -1449,8 +1449,8 @@ def guess_page_html(game):
   <div class="guess-page">
     <div class="guess-card">
       <div class="gc-eyebrow">friend's guess</div>
-      <div class="gc-title">{who} guessed <b>{g["type"]}</b></div>
-      <div class="gc-sub">you're <b>{core}</b></div>
+      <div class="gc-line"><span class="gc-who">{who} guessed</span><b class="gc-code">{g["type"]}</b></div>
+      <div class="gc-line"><span class="gc-who">you're</span><b class="gc-code">{core}</b></div>
       <div class="gc-mascots">{stage(g["type"], "their guess")}{stage(core, "you")}</div>
       <div class="gc-rows">
         <div class="gc-row"><span class="gc-lab">guess</span>{row(g["type"])}</div>
