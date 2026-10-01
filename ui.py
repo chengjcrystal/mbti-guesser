@@ -474,6 +474,67 @@ function mbtiRenderCard(done) {
       rr(x - 14, y - 14, S + 28, S + 28, 8); c.fillStyle = rimFill(x - 14, y - 14, S + 28, S + 28); c.fill();
       c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
     };
+    // the results board as an image: every card you pulled around your radar, laid out like the page's board
+    if (d.pulls && d.pulls.length && w.hasAttribute('data-board')) {
+      var SW = 1400, SH = 1560, BM = 36, BW = 1100, bx = 150, by = 215, n = d.pulls.length;
+      cv.width = SW + 2 * BM; cv.height = SH + 2 * BM; c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
+      c.translate(BM, BM);
+      rr(0, 0, SW, SH, 44); c.fillStyle = d.familyColor; c.fill(); c.strokeStyle = DK; c.lineWidth = 6; c.stroke();
+      rr(34, 34, SW - 68, SH - 68, 24); c.fillStyle = '#F6EFDC'; c.fill(); c.lineWidth = 5; c.stroke();
+      c.textAlign = 'left'; c.fillStyle = PLUM; c.font = '48px "Press Start 2P", monospace'; c.fillText(d.code + '-' + d.suffix, 80, 130);
+      c.fillStyle = SOFT; c.font = '700 28px Silkscreen, monospace'; c.fillText(d.title.toUpperCase(), 80, 180);
+      c.textAlign = 'right'; c.fillStyle = PLUM; c.font = '700 32px Silkscreen, monospace'; c.fillText('PACK RESULTS', SW - 80, 130);
+      c.fillStyle = SOFT; c.font = '700 24px Silkscreen, monospace'; c.fillText(n + ' PACKS OPENED', SW - 80, 176); c.textAlign = 'left';
+      // the positions are the page's (units of the board's width): the usual five hang the same distance from the radar
+      var cy0 = 0.53, rr0 = 0.12, gp = 0.055, cw = 0.22, chh = 0.28, pos = [];
+      var ring = function (deg) { return [0.5 + 0.36 * Math.cos(deg * Math.PI / 180), cy0 + 0.36 * Math.sin(deg * Math.PI / 180)]; };
+      if (n === 5) pos = [ring(-90), ring(-18), [0.69, cy0 + rr0 + gp + chh / 2], [0.31, cy0 + rr0 + gp + chh / 2], ring(-162)];
+      else { cw = Math.min(0.22, 2 * 0.36 * Math.sin(Math.PI / n) * 0.95); for (var q = 0; q < n; q++) pos.push(ring(-90 + q * 360 / n)); }
+      var CWp = cw * BW, ART = CWp - 24, CHp = ART + 68;
+      var mine = document.createElement('canvas'); window.mbtiSprites[d.code]().render(mine, 6);
+      var rimOf = function (f, x, y, w2, h2) { return f === 'holo' ? foil(x, y, w2, h2) : f === 'rainbow' ? rainbowFill(x, y, w2, h2) : d.familyColor; };
+      var best = d.pulls.indexOf('rainbow') >= 0 ? 'rainbow' : d.pulls.indexOf('holo') >= 0 ? 'holo' : 'common';
+      // the radar in the middle, rimmed like the best card you pulled
+      var RS = rr0 * 2 * BW, rx0 = bx + 0.5 * BW - RS / 2, ry0 = by + cy0 * BW - RS / 2;
+      rr(rx0 - 12, ry0 - 12, RS + 24, RS + 24, 8); c.fillStyle = rimOf(best, rx0 - 12, ry0 - 12, RS + 24, RS + 24); c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+      c.fillStyle = '#ffffff'; c.fillRect(rx0, ry0, RS, RS);
+      if (best === 'rainbow') { rainbowBands(rx0, ry0, RS); c.save(); c.globalAlpha = 0.8; sparkles(rx0, ry0, RS); c.restore(); }
+      c.strokeStyle = DK; c.lineWidth = 4; c.strokeRect(rx0, ry0, RS, RS);
+      var rcx = rx0 + RS / 2, rcy = ry0 + RS / 2, RR = RS * 0.4, k5 = d.stats.length;
+      var rp = function (i, r) { var a = -Math.PI / 2 + i * 2 * Math.PI / k5; return [rcx + r * Math.cos(a), rcy + r * Math.sin(a)]; };
+      c.lineWidth = 2; c.strokeStyle = '#D9CFC0';
+      [1, 0.66, 0.33].forEach(function (f2) { c.beginPath(); for (var i = 0; i < k5; i++) { var pp = rp(i, RR * f2); i ? c.lineTo(pp[0], pp[1]) : c.moveTo(pp[0], pp[1]); } c.closePath(); c.stroke(); });
+      var shape = function () { c.beginPath(); d.stats.forEach(function (st, i) { var pp = rp(i, RR * st.radar / 100); i ? c.lineTo(pp[0], pp[1]) : c.moveTo(pp[0], pp[1]); }); c.closePath(); };
+      shape();
+      if (best === 'rainbow') {
+        c.save(); c.clip(); var bw2 = 18;
+        for (var a3 = -RS, k3 = 0; a3 < RS; a3 += bw2, k3++) { c.fillStyle = RB[k3 % 6]; c.beginPath(); c.moveTo(rcx + a3 - RS, rcy + RS); c.lineTo(rcx + a3 + bw2 - RS, rcy + RS); c.lineTo(rcx + a3 + bw2 + RS, rcy - RS); c.lineTo(rcx + a3 + RS, rcy - RS); c.closePath(); c.fill(); }
+        c.restore();
+      } else { c.fillStyle = best === 'holo' ? 'rgba(201,162,79,.35)' : 'rgba(74,59,92,.2)'; c.fill(); }
+      shape(); c.strokeStyle = PLUM; c.lineWidth = 4; c.stroke();
+      d.stats.forEach(function (st, i) { var pp = rp(i, RR * st.radar / 100); c.beginPath(); c.arc(pp[0], pp[1], 7, 0, 7); c.fillStyle = st.color; c.fill(); c.lineWidth = 3; c.stroke(); });
+      // the cards, in the order they were opened
+      d.pulls.forEach(function (f, i) {
+        var x = bx + pos[i][0] * BW - CWp / 2, y = by + pos[i][1] * BW - CHp / 2;
+        rr(x, y, CWp, CHp, 12); c.fillStyle = rimOf(f, x, y, CWp, CHp); c.fill(); c.strokeStyle = DK; c.lineWidth = 4; c.stroke();
+        var ax = x + 12, ay = y + 12;
+        var sky = c.createLinearGradient(0, ay, 0, ay + ART); sky.addColorStop(0, '#BFE3E6'); sky.addColorStop(0.62, '#BFE3E6'); sky.addColorStop(0.62, '#A5BE7E'); sky.addColorStop(1, '#A5BE7E');
+        c.fillStyle = sky; c.fillRect(ax, ay, ART, ART); c.drawImage(mine, ax, ay, ART, ART);
+        if (f === 'holo') sheen(ax, ay, ART); if (f === 'rainbow') rainbowBands(ax, ay, ART);
+        c.strokeStyle = DK; c.lineWidth = 4; c.strokeRect(ax, ay, ART, ART);
+        c.fillStyle = DK; c.fillRect(ax, ay, 34, 30); c.fillStyle = CREAM; c.font = '14px "Press Start 2P", monospace'; c.textAlign = 'center'; c.fillText(String(i + 1), ax + 17, ay + 22);
+        var ly = ay + ART + 8; rr(ax, ly, ART, 36, 4);
+        if (f === 'rainbow') { var lg = c.createLinearGradient(ax, 0, ax + ART, 0); ['#F2B8B8', '#F6D9B6', '#F8EBB0', '#C9E6BE', '#B9D5F0', '#D6C8EC'].forEach(function (col, j) { lg.addColorStop(j / 5, col); }); c.fillStyle = lg; }
+        else c.fillStyle = f === 'holo' ? '#F3DC8E' : '#F6EFDC';
+        c.fill(); c.strokeStyle = DK; c.lineWidth = 3; c.stroke();
+        c.fillStyle = DK; c.font = '700 20px Silkscreen, monospace'; c.fillText(f.toUpperCase(), ax + ART / 2, ly + 25); c.textAlign = 'left';
+      });
+      c.fillStyle = 'rgba(74,59,92,.35)'; c.fillRect(80, SH - 128, SW - 160, 3);
+      c.fillStyle = PLUM; c.font = '700 28px Silkscreen, monospace'; c.fillText(mbtiWhoLine().toUpperCase(), 80, SH - 74);
+      c.fillStyle = 'rgba(74,59,92,.55)'; c.font = '16px "Press Start 2P", monospace'; c.textAlign = 'right'; c.fillText('MBTI RADAR', SW - 80, SH - 74); c.textAlign = 'left';
+      cv.toBlob(function (blob) { done(blob, d); });
+      return;
+    }
     // the card: an outer rim on holo and rainbow, a band in the family color, then the cream face
     if (fin === 'common') {
       rr(3, 3, cv.width - 6, cv.height - 6, 43); c.fillStyle = d.familyColor; c.fill();
@@ -603,7 +664,10 @@ function mbtiRenderCard(done) {
   ]).then(draw, draw);
 }
 
-function mbtiFileName(d) { return 'mbti-radar-' + d.code + '-' + d.suffix + '.png'; }
+function mbtiFileName(d) {
+  var w = mbtiRv(), results = w && d.pulls && d.pulls.length && w.hasAttribute('data-board');
+  return 'mbti-radar-' + (results ? 'results-' : '') + d.code + '-' + d.suffix + '.png';
+}
 function mbtiNote(msg) {
   var n = document.getElementById('exportNote');
   if (!n) return;
@@ -628,7 +692,7 @@ function mbtiShare() {
   mbtiRenderCard(function (blob, d) {
     var file = new File([blob], mbtiFileName(d), { type: 'image/png' });
     var data = { files: [file], title: 'MBTI Radar',
-      text: 'i got ' + d.code + '-' + d.suffix + ', ' + d.title + ', on MBTI Radar. try it: https://huggingface.co/spaces/chengjcrystal/mbti-radar' };
+      text: (mbtiRv() && mbtiRv().hasAttribute('data-board') ? 'my ' + d.pulls.length + ' packs on MBTI Radar (' + d.code + '-' + d.suffix + '). try it: ' : 'i got ' + d.code + '-' + d.suffix + ', ' + d.title + ', on MBTI Radar. try it: ') + 'https://huggingface.co/spaces/chengjcrystal/mbti-radar' };
     if (navigator.canShare && navigator.canShare(data)) {
       navigator.share(data).catch(function () {});
     } else {
@@ -1500,6 +1564,7 @@ def build_reveal_html(mbti_type, axis_results, finish="common", game=None, opene
         "blurb": CREATURE_BLURBS[core_display],
         "finish": finish, "finishLabel": F.FINISHES[finish]["label"],
         "stats": card_stats,
+        "pulls": game["pulls"] if game else [],
     }), quote=True)
 
     top_row = f"""
