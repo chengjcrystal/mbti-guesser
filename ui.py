@@ -801,6 +801,8 @@ document.addEventListener('keydown', function (e) {
     highlight();
     if (window.mbtiRadarApply) mbtiRadarApply();
     if (window.mbtiHeroSync) mbtiHeroSync();
+    // a re-render (the bonus pack for copying the invite link) can remove the share window while the page is still locked
+    if (document.body.classList.contains('modal-open') && !document.querySelector('.export-panel.open')) document.body.classList.remove('modal-open');
     var r = document.querySelector('#f-posting_frequency input[type=radio]:checked');
     var label = r ? (r.closest('label') ? r.closest('label').innerText.trim() : r.value) : '';
     flag('no-social', NO_SOCIAL.indexOf(label) >= 0);
