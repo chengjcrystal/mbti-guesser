@@ -17,7 +17,7 @@ thumbnail: >-
 
 `★ press start   ▮▮▮▮ no training data`
 
-answer a few short scenarios about yourself, add a photo if you want, and get a zero-shot mbti read across all four axes, with a confidence gap on each. it runs on facebook/bart-large-mnli with no fine-tuning. [play it live](https://huggingface.co/spaces/chengjcrystal/mbti-radar).
+answer a few short scenarios about yourself, add a photo if you want, and get a zero-shot read on the four mbti axes plus the -a/-t stat, with a confidence gap on each. it runs on facebook/bart-large-mnli with no fine-tuning. [play it live](https://huggingface.co/spaces/chengjcrystal/mbti-radar).
 
 ## ⌜ the 16 ⌟
 
@@ -61,7 +61,7 @@ the share button opens a centered window that prints a preview of the exact imag
 
 this is a heuristic sketch, not a validated model. there's no labeled ground truth for real profiles, so "accuracy on real people" isn't a number that exists here. the confidence scores describe the model's certainty, not correctness. the photo and numeric signals are hand-tuned nudges, not learned from data, so read them as flavor on top of the text signal.
 
-what is checked (`eval_axes.py`): 16 hand-written snippets, four per axis, each written to clearly describe one pole. the text pipeline gets all 16 right with a mean confidence above 97%. that says the classifier reads clear-cut text correctly, and nothing about ambiguous real-world answers. results are in `eval_results.json`.
+what is checked (`eval_axes.py`): 16 hand-written snippets, four per axis on the four mbti axes (the -a/-t stat isn't covered), each written to clearly describe one pole. the text pipeline gets all 16 right with a mean confidence above 97%. that says the classifier reads clear-cut text correctly, and nothing about ambiguous real-world answers. results are in `eval_results.json`.
 
 ## ⌜ run it ⌟
 

@@ -598,6 +598,7 @@ footer, .built-with { display: none !important; }
 @media (max-width: 560px) {
   .chip-row > * { flex: 1 1 100% !important; }
   .chip-row .read-chip label { justify-content: center; }
+  .chip-row .read-chip label { white-space: normal; text-align: center; padding: 7px 10px !important; }   /* the longest pill no longer clips at 360px */
   .live-code { font-size: 13px; }
 }
 
