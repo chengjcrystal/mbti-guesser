@@ -86,14 +86,17 @@ def guess_score(guess_type, code):
 
 
 # ── the game ─────────────────────────────────────────────────────────────────
-def budget_for(ref, guess, shared):
+def budget_for(ref, guess, shared, code=None):
+    """5 packs, plus a bonus for each thing the link did. a guess that was exactly right (all four letters of the
+    type in `code`) is worth one more, which the friend gets without having done anything."""
+    perfect = bool(guess and code and guess["type"] == code[:4])
     return (F.TOTAL_PACKS + (F.INVITE_BONUS_PACKS if ref else 0) + (F.GUESS_BONUS_PACKS if guess else 0)
-            + (F.SHARER_BONUS_PACKS if shared else 0))
+            + (F.PERFECT_GUESS_BONUS_PACKS if perfect else 0) + (F.SHARER_BONUS_PACKS if shared else 0))
 
 
 def _build(code, read, pulls, ref, guess, shared):
     ref, shared, guess = 1 if ref else 0, 1 if shared else 0, clean_guess(guess)
-    budget = budget_for(ref, guess, shared)
+    budget = budget_for(ref, guess, shared, code)
     pulls = F.clean_pulls(pulls, budget)
     if pulls is None:
         return None
@@ -164,6 +167,10 @@ if __name__ == "__main__":
     assert both["budget"] == F.TOTAL_PACKS + F.INVITE_BONUS_PACKS + F.GUESS_BONUS_PACKS and both["guess"]["type"] == "ENFP"
     once = claim_share(g)
     assert once["budget"] == F.TOTAL_PACKS + F.SHARER_BONUS_PACKS and claim_share(once) is None and claim_share("x") is None
+    # a perfect guess is worth one more pack, and only when it is perfect
+    exact = new_game("ENFJ-T", read, "common", ref=True, guess={"type": "ENFJ", "from": "Sam"})
+    miss = new_game("ENFJ-T", read, "common", ref=True, guess={"type": "ENFP", "from": "Sam"})
+    assert exact["budget"] == miss["budget"] + F.PERFECT_GUESS_BONUS_PACKS == F.TOTAL_PACKS + 3
     # the url
     assert parse_query("?ref=1&guess=enfp&from=Sam") == {"ref": 1, "guess": {"type": "ENFP", "from": "Sam"}}
     assert parse_query("?ref=2&guess=ABCD&from=<script>alert(1)</script>") == {"ref": 0, "guess": None}

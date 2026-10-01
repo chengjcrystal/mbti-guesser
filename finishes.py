@@ -27,7 +27,8 @@ ODDS = {"common": 65, "holo": 27, "rainbow": 8}
 
 # bonus packs from the share links (used in a later step)
 INVITE_BONUS_PACKS = 1   # someone who arrives through ?ref=1
-GUESS_BONUS_PACKS = 1    # a friend who finishes after getting a guess link
+GUESS_BONUS_PACKS = 1    # a friend who finishes after getting a link with a guess in it
+PERFECT_GUESS_BONUS_PACKS = 1   # on top of that, when the guess was exactly right (all four letters)
 SHARER_BONUS_PACKS = 1   # the person who clicked share (honor system, nothing to verify)
 
 # ── the roll ─────────────────────────────────────────────────────────────────
@@ -66,7 +67,7 @@ def pull_finish(pack_number):
     return roll_finish(pack_number)
 
 
-MAX_PACKS = TOTAL_PACKS + INVITE_BONUS_PACKS + GUESS_BONUS_PACKS + SHARER_BONUS_PACKS
+MAX_PACKS = TOTAL_PACKS + INVITE_BONUS_PACKS + GUESS_BONUS_PACKS + PERFECT_GUESS_BONUS_PACKS + SHARER_BONUS_PACKS
 
 
 def clean_pulls(pulls, budget):
