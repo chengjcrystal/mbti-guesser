@@ -1147,7 +1147,7 @@ body:not(.started) .reveal-page-inner { display: none !important; }
 }
 .gc-eyebrow, .gc-foot { font-family: 'Silkscreen', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mauve); }
 .gc-line { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.gc-who { font-family: 'Rubik', sans-serif; font-size: 17px; font-weight: 500; line-height: 1.2; color: var(--ink-soft); overflow-wrap: anywhere; }
+.gc-who { font-family: 'Silkscreen', 'Rubik', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.3; color: var(--plum); overflow-wrap: anywhere; }   /* pixel look, and a name in another script falls back to Rubik letter by letter */
 .gc-code { font-family: 'Press Start 2P', monospace; font-size: 26px; font-weight: 400; line-height: 1; color: var(--plum); }
 .gc-mascots { display: flex; gap: 14px; justify-content: center; width: 100%; }
 .gc-mascot { flex: 0 1 150px; min-width: 0; }
@@ -1159,7 +1159,7 @@ body:not(.started) .reveal-page-inner { display: none !important; }
 .gl.hit { background: #B9D89A; color: var(--deep); }
 .gl.miss { background: #E5B4B4; color: var(--deep); }
 .gc-score { font-family: 'Press Start 2P', monospace; font-size: 15px; color: var(--plum); padding-top: 2px; }
-@media (max-width: 400px) { .gl { width: 30px; height: 30px; font-size: 13px; } .gc-who { font-size: 15px; } .gc-code { font-size: 22px; } .gc-score { font-size: 13px; } }
+@media (max-width: 400px) { .gl { width: 30px; height: 30px; font-size: 13px; } .gc-who { font-size: 12px; } .gc-code { font-size: 22px; } .gc-score { font-size: 13px; } }
 
 /* the share panel gains an invite section */
 .invite-box { margin-top: 14px; padding-top: 12px; border-top: 3px dashed var(--mauve); display: flex; flex-direction: column; gap: 8px; }
