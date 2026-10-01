@@ -49,7 +49,7 @@ every result card comes in three finishes: common (just the family color border)
 
 ## ⌜ card packs ⌟
 
-you get 5 packs per quiz. the first one is opened for you, the other four are opened one at a time from the result page, and each one rolls a finish on the server (the odds are in `finishes.py`). shiny pulls get a longer, flashier opening. a column of slots beside the card (a dropdown on narrow screens) tracks which finishes of your type you've pulled, and tapping a pulled slot shows that card again. the packs you've opened are kept in the browser (`gr.BrowserState`), and anything read back from it is cleaned first (`game.py`), so a refresh keeps your pulls and a tampered value just falls back to the landing page.
+you get 5 packs per quiz. the first one is opened for you, the other four are opened one at a time from the result page, and each one rolls a finish on the server (the odds are in `finishes.py`, and rainbow is rare on purpose: in a plain 5 pack quiz about 1 person in 5 sees one). shiny pulls get a longer, flashier opening. a column of slots beside the card (a dropdown on narrow screens) tracks which finishes of your type you've pulled, and tapping a pulled slot shows that card again. the packs you've opened are kept in the browser (`gr.BrowserState`), and anything read back from it is cleaned first (`game.py`), so a refresh keeps your pulls and a tampered value just falls back to the landing page.
 
 after the last pack the page shows all your cards on a board around your radar. the share button on the board saves or copies that board as one image (name and date included), drawn in the browser with the same rims and foil as the single cards.
 
@@ -72,7 +72,7 @@ python ui.py   # http://127.0.0.1:7860
 
 first run downloads `facebook/bart-large-mnli` (~1.6 GB) from hugging face.
 
-for testing there's a dev mode: `MBTI_DEV=1 python3 ui.py` adds a small bar at the top that jumps straight to a result for any type and finish, so you don't have to fill in the quiz. it isn't there unless that variable is set.
+for testing there's a dev mode: `MBTI_DEV=1 python3 ui.py` adds a small floating panel in the corner that jumps straight to a result for any type and finish, and can pretend the page was opened from an invite or guess link, so you don't have to fill in the quiz or share anything. it isn't there unless that variable is set.
 
 ## ⌜ what's in the repo ⌟
 
