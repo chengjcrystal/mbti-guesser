@@ -21,7 +21,7 @@ OUTWARD = {"E_I": "E", "N_S": "N", "T_F": "F", "J_P": "P", "A_T": "A"}
 CODE_RE = re.compile(r"^[EI][NS][TF][JP]-[AT]$")
 TYPE_RE = re.compile(r"^[EI][NS][TF][JP]$")
 NAME_MAX = 24
-_NAME_DROP = re.compile(r"[^A-Za-z0-9 '\-._]")
+_NAME_DROP = re.compile(r"[^\w '\-.]")   # letters and digits in any script, a space and - ' .
 
 
 def _percent(v, default=50):
@@ -51,7 +51,7 @@ def clean_read(read):
 
 # ── the url parameters ───────────────────────────────────────────────────────
 def clean_name(value):
-    """a name from the url, made safe to print: plain letters, digits and a few marks, one space at a time, short."""
+    """a name from the url, made safe to print: letters and digits (any language), a few marks, one space at a time, short."""
     if not isinstance(value, str):
         return ""
     value = _NAME_DROP.sub("", value)
@@ -170,5 +170,6 @@ if __name__ == "__main__":
     assert parse_query("?guess=INTJ&from=%3Cb%3E%20%20Sam%20%20Lee%3C/b%3E")["guess"]["from"] == "b Sam Leeb"
     assert parse_query(None) == parse_query("") == parse_query("?%%%") == {"ref": 0, "guess": None}
     assert len(parse_query("?guess=INTJ&from=" + "a" * 500)["guess"]["from"]) <= NAME_MAX
+    assert clean_name("\u738b\u5c0f\u660e \u2728 <b>") == "\u738b\u5c0f\u660e b" and clean_name("Zo\u00eb") == "Zo\u00eb"
     assert guess_score("ENFP", "ENFJ-T") == 3 and guess_score("ISTJ", "ENFP-A") == 0
     print("game ok:", g["pulls"])
